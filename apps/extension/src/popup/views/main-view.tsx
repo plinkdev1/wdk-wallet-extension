@@ -32,6 +32,7 @@ import { useMainAccount } from '../hooks/use-main-account.js';
 import { useBalance, formatEthFromWei } from '../hooks/use-balance.js';
 import { ReceiveView } from './receive-view.js';
 import { SendView } from './send-view.js';
+import { ActivityView } from './activity-view.js';
 
 export interface MainViewProps {
   /**
@@ -122,7 +123,7 @@ export function MainView({ onLockRequested, onOpenSettings }: MainViewProps): JS
   // SOL on Solana once those chains land in the picker, etc.).
   const activeSymbol = CHAIN_OPTIONS.find((o) => o.id === activeChain)?.symbol ?? 'ETH';
   const activeName = CHAIN_OPTIONS.find((o) => o.id === activeChain)?.name ?? 'this network';
-  const [subView, setSubView] = useState<'main' | 'receive' | 'send'>('main');
+  const [subView, setSubView] = useState<'main' | 'receive' | 'send' | 'activity'>('main');
   const [accountIndex, setAccountIndex] = useState(0);
   const { state: accountState } = useMainAccount({ chain: evmChain, accountIndex });
   const { state: balanceState } = useBalance(
@@ -176,6 +177,14 @@ export function MainView({ onLockRequested, onOpenSettings }: MainViewProps): JS
         symbol={activeSymbol}
         accountIndex={accountIndex}
         onBack={() => setSubView('main')}
+      />
+    );
+  }
+  if (subView === 'activity') {
+    return (
+      <ActivityView
+        onBack={() => setSubView('main')}
+        chainName={(c) => CHAIN_OPTIONS.find((o) => o.id === c)?.name ?? c}
       />
     );
   }
@@ -341,6 +350,10 @@ export function MainView({ onLockRequested, onOpenSettings }: MainViewProps): JS
           Receive
         </Button>
       </div>
+
+      <Button variant="ghost" size="sm" onClick={() => setSubView('activity')} style={{ alignSelf: 'center' }}>
+        Activity ›
+      </Button>
       </>)}
 
     </div>

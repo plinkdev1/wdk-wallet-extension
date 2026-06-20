@@ -70,6 +70,7 @@ This repository is that reference. It is not a toy: it ships a real WebCrypto-en
 - Clean, dark-mode-first popup UI with a reusable component library, theming, and a brand picker.
 - Guided onboarding (create / import), unlock screen with adaptive feedback, and a dashboard with live balances.
 - **Send** (recipient + amount, validated, signed & broadcast via WDK) and **Receive** (QR code + copyable address) flows.
+- **Activity** — persistent transaction history with per-chain filtering and live explorer links.
 
 ---
 
@@ -251,7 +252,7 @@ pnpm typecheck     # strict typecheck, all packages
 The wallet is a living reference implementation. Near-term, high-value increments:
 
 1. **Token assets** — USDt and XAUt ERC-20 balances and transfers (extending the existing native Send flow) via the indexer adapter.
-3. **Activity** — transaction history with filtering and real-time status monitoring.
+3. **In-wallet status polling** — transaction history with per-chain filtering ships today (with explorer links for live status); in-wallet receipt confirmation tracking is the next step.
 4. **Bitcoin & Lightning** — native BTC and Lightning (Spark) accounts via the corresponding WDK wallet packages.
 5. **Multiple wallets** — more than one independent seed per installation.
 

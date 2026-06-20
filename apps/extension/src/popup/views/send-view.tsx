@@ -10,6 +10,7 @@ import { useCallback, useState } from 'react';
 import { Button, Card, Input, Label } from '@wdk-starter/wdk-ui';
 import type { EvmChainId } from '@wdk-starter/wdk-web-core/types';
 import { send } from '../lib/sw-client.js';
+import { addTransaction } from '../hooks/use-transactions.js';
 
 export interface SendViewProps {
   readonly chain: EvmChainId;
@@ -73,6 +74,7 @@ export function SendView({ chain, symbol, accountIndex, onBack, onSent }: SendVi
         to: to.trim(),
         value: value.toString(),
       });
+      addTransaction({ hash, chain, to: to.trim(), value: value.toString(), symbol, decimals: 18, ts: Date.now() });
       setPhase({ status: 'sent', hash });
       onSent?.();
     } catch (e) {
