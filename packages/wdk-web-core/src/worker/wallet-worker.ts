@@ -37,6 +37,7 @@ import {
 import type { RpcAdapter, TransactionStatus } from '../adapters/index.js';
 import type {
   Base58Address,
+  BtcChainId,
   ChainId,
   EvmChainId,
   SolanaChainId,
@@ -51,7 +52,7 @@ export interface WalletWorkerOptions {
   readonly rpcAdapter?: RpcAdapter;
 }
 
-export class WalletWorker implements Pick<WalletWorkerApi, 'vault_hasStored' | 'vault_store' | 'vault_load' | 'vault_clear' | 'account_getEvmAddress' | 'account_getSolanaAddress' | 'account_signMessage' | 'account_signTypedData' | 'account_signSolanaMessage' | 'account_sendTransaction' | 'account_sendSolanaTransaction' | 'rpc_getBalance' | 'rpc_getTokenBalance' | 'rpc_getTransactionStatus' | 'bip39_generateMnemonic' | 'bip39_validateMnemonic'> {
+export class WalletWorker implements Pick<WalletWorkerApi, 'vault_hasStored' | 'vault_store' | 'vault_load' | 'vault_clear' | 'account_getEvmAddress' | 'account_getSolanaAddress' | 'account_signMessage' | 'account_signTypedData' | 'account_signSolanaMessage' | 'account_sendTransaction' | 'account_sendSolanaTransaction' | 'account_getBtcAddress' | 'account_getBtcBalance' | 'account_sendBtcTransaction' | 'rpc_getBalance' | 'rpc_getTokenBalance' | 'rpc_getTransactionStatus' | 'bip39_generateMnemonic' | 'bip39_validateMnemonic'> {
   private readonly vault: WebCryptoVault;
   private readonly rpcAdapter: RpcAdapter | null;
   private wdk: WdkManager | null = null;
@@ -191,6 +192,53 @@ export class WalletWorker implements Pick<WalletWorkerApi, 'vault_hasStored' | '
     const result = await solanaAccount.sendTransaction({ to, value });
     if (result && typeof result === 'object' && typeof result.hash === 'string') return result.hash;
     throw new Error('account_sendSolanaTransaction: unexpected return shape from WDK Solana account');
+  }
+
+  /**
+   * Returns the BIP-84 native-segwit (P2WPKH) Bitcoin address at an index.
+   * Derivation is offline; no network needed. (BIP-44/legacy via config.bip=44.)
+   */
+  async account_getBtcAddress(chain: BtcChainId, index: number): Promise<string> {
+    if (!isSupportedChainId(chain)) {
+      throw new Error('Unsupported chain (no loader registered): ' + chain);
+    }
+    const wdk = this._requireWdk();
+    await ensureChainRegistered(wdk, chain);
+    const account = await wdk.getAccount(chain, index);
+    const btcAccount = account as unknown as { address: string };
+    return btcAccount.address;
+  }
+
+  /** Reads the account's confirmed Bitcoin balance in satoshis (via the configured Blockbook client). */
+  async account_getBtcBalance(chain: BtcChainId, index: number): Promise<bigint> {
+    if (!isSupportedChainId(chain)) {
+      throw new Error('Unsupported chain (no loader registered): ' + chain);
+    }
+    const wdk = this._requireWdk();
+    await ensureChainRegistered(wdk, chain);
+    const account = await wdk.getAccount(chain, index);
+    const btcAccount = account as unknown as { getBalance(): Promise<bigint> };
+    return btcAccount.getBalance();
+  }
+
+  /**
+   * Sends native BTC (value in satoshis) on a Bitcoin chain. WDK selects UTXOs,
+   * builds, signs, and broadcasts a PSBT via the Blockbook client, returning the
+   * txid. confirmationTarget tunes the fee (blocks); 6 ≈ ~1 hour.
+   */
+  async account_sendBtcTransaction(chain: BtcChainId, index: number, to: string, value: bigint, confirmationTarget = 6): Promise<string> {
+    if (!isSupportedChainId(chain)) {
+      throw new Error('Unsupported chain (no loader registered): ' + chain);
+    }
+    const wdk = this._requireWdk();
+    await ensureChainRegistered(wdk, chain);
+    const account = await wdk.getAccount(chain, index);
+    const btcAccount = account as unknown as {
+      sendTransaction(tx: { to: string; value: bigint; confirmationTarget?: number }): Promise<{ hash: string }>;
+    };
+    const result = await btcAccount.sendTransaction({ to, value, confirmationTarget });
+    if (result && typeof result === 'object' && typeof result.hash === 'string') return result.hash;
+    throw new Error('account_sendBtcTransaction: unexpected return shape from WDK Bitcoin account');
   }
 
   async account_getEvmAddress(chain: EvmChainId, index: number): Promise<Hex> {

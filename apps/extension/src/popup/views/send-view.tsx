@@ -10,18 +10,18 @@
 
 import { useCallback, useState } from 'react';
 import { Button, Card, Input, Label } from '@wdk-starter/wdk-ui';
-import type { EvmChainId, SolanaChainId } from '@wdk-starter/wdk-web-core/types';
+import type { BtcChainId, EvmChainId, SolanaChainId } from '@wdk-starter/wdk-web-core/types';
 import { send } from '../lib/sw-client.js';
 import { addTransaction } from '../hooks/use-transactions.js';
 import { encodeErc20Transfer } from '../lib/erc20.js';
 
 export interface SendViewProps {
-  readonly chain: EvmChainId | SolanaChainId;
+  readonly chain: EvmChainId | SolanaChainId | BtcChainId;
   readonly symbol: string;
   /** The active account index to send from (BIP-44 derivation). */
   readonly accountIndex: number;
   /** Asset kind — selects address format, decimals, and the send message. Defaults to 'evm'. */
-  readonly kind?: 'evm' | 'solana';
+  readonly kind?: 'evm' | 'solana' | 'bitcoin';
   /** When set (EVM only), sends this ERC-20 token via transfer() calldata instead of native value. */
   readonly token?: { readonly address: string; readonly decimals: number } | null;
   readonly onBack: () => void;
@@ -31,6 +31,9 @@ export interface SendViewProps {
 
 const EVM_ADDRESS = /^0x[0-9a-fA-F]{40}$/;
 const SOLANA_ADDRESS = /^[1-9A-HJ-NP-Za-km-z]{32,44}$/;
+// Bech32 native-segwit (bc1/tb1) or base58 legacy/P2SH. Lenient: the worker
+// validates precisely when building the PSBT.
+const BTC_ADDRESS = /^(bc1|tb1)[0-9ac-hj-np-z]{11,87}$|^[123mn2][a-km-zA-HJ-NP-Z1-9]{25,39}$/;
 
 /** Parses a decimal amount into a base-unit bigint with the given decimals. */
 function parseAmount(input: string, decimals: number): bigint {
@@ -55,14 +58,19 @@ export function SendView({ chain, symbol, accountIndex, kind = 'evm', token, onB
   const [error, setError] = useState<string | null>(null);
   const [phase, setPhase] = useState<Phase>({ status: 'form' });
   const isSolana = kind === 'solana';
+  const isBitcoin = kind === 'bitcoin';
 
   const handleSend = useCallback(async (): Promise<void> => {
     setError(null);
-    const decimals = token ? token.decimals : isSolana ? 9 : 18;
+    const decimals = token ? token.decimals : isSolana ? 9 : isBitcoin ? 8 : 18;
     const recipient = to.trim();
-    const valid = (isSolana ? SOLANA_ADDRESS : EVM_ADDRESS).test(recipient);
-    if (!valid) {
-      setError(isSolana ? 'Enter a valid Solana address (base58).' : 'Enter a valid recipient address (0x…40 hex).');
+    const addressRe = isSolana ? SOLANA_ADDRESS : isBitcoin ? BTC_ADDRESS : EVM_ADDRESS;
+    if (!addressRe.test(recipient)) {
+      setError(
+        isSolana ? 'Enter a valid Solana address (base58).'
+          : isBitcoin ? 'Enter a valid Bitcoin address (bech32 or legacy).'
+            : 'Enter a valid recipient address (0x…40 hex).',
+      );
       return;
     }
     let value: bigint;
@@ -82,6 +90,8 @@ export function SendView({ chain, symbol, accountIndex, kind = 'evm', token, onB
       let hash: string;
       if (isSolana) {
         hash = await send({ type: 'ACCOUNT_SEND_SOLANA_TRANSACTION', chain: chain as SolanaChainId, accountIndex, to: recipient, value: value.toString() });
+      } else if (isBitcoin) {
+        hash = await send({ type: 'ACCOUNT_SEND_BTC_TRANSACTION', chain: chain as BtcChainId, accountIndex, to: recipient, value: value.toString() });
       } else if (token) {
         // ERC-20 transfer: call the token contract with transfer() calldata, value 0.
         hash = await send({ type: 'ACCOUNT_SEND_TRANSACTION', chain: chain as EvmChainId, accountIndex, to: token.address, value: '0', data: encodeErc20Transfer(recipient, value) });
@@ -95,7 +105,7 @@ export function SendView({ chain, symbol, accountIndex, kind = 'evm', token, onB
       setError(e instanceof Error ? e.message : 'Transaction failed.');
       setPhase({ status: 'form' });
     }
-  }, [to, amount, chain, accountIndex, isSolana, token, symbol, onSent]);
+  }, [to, amount, chain, accountIndex, isSolana, isBitcoin, token, symbol, onSent]);
 
   return (
     <div style={{ padding: 20, display: 'flex', flexDirection: 'column', gap: 16, flex: 1, fontFamily: 'var(--font-body)', color: 'var(--text-primary)' }}>
@@ -109,7 +119,7 @@ export function SendView({ chain, symbol, accountIndex, kind = 'evm', token, onB
           <div style={{ display: 'flex', flexDirection: 'column', gap: 14, padding: 16 }}>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
               <Label>Recipient address</Label>
-              <Input value={to} onChange={(e) => setTo(e.target.value)} placeholder={isSolana ? 'Base58 address' : '0x…'} />
+              <Input value={to} onChange={(e) => setTo(e.target.value)} placeholder={isSolana ? 'Base58 address' : isBitcoin ? 'bc1… or legacy address' : '0x…'} />
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
               <Label>Amount ({symbol})</Label>

@@ -179,6 +179,7 @@ const NETWORK_CHAIN_OPTIONS = [
   { id: 'zora-mainnet' as const, name: 'Zora', testnet: false, symbol: 'ETH', icon: <NetworkIcon chain="zora-mainnet" size={14} /> },
   { id: 'zksync-mainnet' as const, name: 'zkSync Era', testnet: false, symbol: 'ETH', icon: <NetworkIcon chain="zksync-mainnet" size={14} /> },
   { id: 'solana-mainnet' as const, name: 'Solana', testnet: false, symbol: 'SOL', icon: <NetworkIcon chain="solana-mainnet" size={14} /> },
+  { id: 'bitcoin-mainnet' as const, name: 'Bitcoin', testnet: false, symbol: 'BTC', icon: <NetworkIcon chain="bitcoin-mainnet" size={14} /> },
   { id: 'arbitrum-sepolia-testnet' as const, name: 'Arbitrum Sepolia', testnet: true, symbol: 'ETH', icon: <NetworkIcon chain="arbitrum-sepolia-testnet" size={14} /> },
   { id: 'avalanche-fuji-testnet' as const, name: 'Avalanche Fuji', testnet: true, symbol: 'AVAX', icon: <NetworkIcon chain="avalanche-fuji-testnet" size={14} /> },
   { id: 'bsc-testnet' as const, name: 'BNB Smart Chain Testnet', testnet: true, symbol: 'BNB', icon: <NetworkIcon chain="bsc-testnet" size={14} /> },
@@ -197,6 +198,7 @@ const NETWORK_CHAIN_OPTIONS = [
   { id: 'zksync-sepolia-testnet' as const, name: 'zkSync Era Sepolia', testnet: true, symbol: 'ETH', icon: <NetworkIcon chain="zksync-sepolia-testnet" size={14} /> },
   { id: 'solana-devnet' as const, name: 'Solana Devnet', testnet: true, symbol: 'SOL', icon: <NetworkIcon chain="solana-devnet" size={14} /> },
   { id: 'solana-testnet' as const, name: 'Solana Testnet', testnet: true, symbol: 'SOL', icon: <NetworkIcon chain="solana-testnet" size={14} /> },
+  { id: 'bitcoin-testnet' as const, name: 'Bitcoin Testnet', testnet: true, symbol: 'tBTC', icon: <NetworkIcon chain="bitcoin-testnet" size={14} /> },
 ];
 export function WalletSettingsView({ onBack }: WalletSettingsViewProps): JSX.Element {
   // B1c: auto-lock minutes (popup writes chrome.storage; bg listens)

@@ -4,7 +4,7 @@ import type {
   SolanaSignature,
   TypedDataPayload,
 } from './accounts.js';
-import type { ChainId, EvmChainId, SolanaChainId } from './chains.js';
+import type { BtcChainId, ChainId, EvmChainId, SolanaChainId } from './chains.js';
 
 /**
  * WalletWorker API surface - the typed contract that wdk-web-core exposes to
@@ -48,6 +48,13 @@ export interface WalletWorkerApi {
 
   /** Sends native SOL (value in lamports) on a Solana chain; returns the base58 signature. */
   account_sendSolanaTransaction(chain: SolanaChainId, index: number, to: string, value: bigint): Promise<string>;
+
+  /** Derives the BIP-84 native-segwit Bitcoin address at an index (offline). */
+  account_getBtcAddress(chain: BtcChainId, index: number): Promise<string>;
+  /** Reads the account's confirmed Bitcoin balance in satoshis. */
+  account_getBtcBalance(chain: BtcChainId, index: number): Promise<bigint>;
+  /** Sends native BTC (value in satoshis) on a Bitcoin chain; returns the txid. */
+  account_sendBtcTransaction(chain: BtcChainId, index: number, to: string, value: bigint, confirmationTarget?: number): Promise<string>;
 
   // Solana account operations
   account_getSolanaAddress(chain: SolanaChainId, index: number): Promise<Base58Address>;

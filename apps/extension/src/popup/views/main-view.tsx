@@ -26,10 +26,11 @@
 
 import { useCallback, useState } from 'react';
 import { Badge, Button, Card, ChainSelector, Label, NetworkIcon, TokenIcon, useActiveChain } from '@wdk-starter/wdk-ui';
-import type { ChainId, EvmChainId, SolanaChainId } from '@wdk-starter/wdk-web-core/types';
+import type { BtcChainId, ChainId, EvmChainId, SolanaChainId } from '@wdk-starter/wdk-web-core/types';
 import { send } from '../lib/sw-client.js';
 import { useMainAccount } from '../hooks/use-main-account.js';
 import { useSolanaAccount } from '../hooks/use-solana-account.js';
+import { useBtcAccount } from '../hooks/use-btc-account.js';
 import { useBalance, formatEthFromWei } from '../hooks/use-balance.js';
 import { useTokenBalances } from '../hooks/use-token-balances.js';
 import type { TokenInfo } from '../lib/tokens.js';
@@ -128,7 +129,9 @@ export function MainView({ onLockRequested, onOpenSettings }: MainViewProps): JS
   // would throw. Real Solana hooks land in a future phase.
   const [activeChain, setActiveChain] = useActiveChain<ChainId>({ supported: CHAIN_OPTIONS.map((o) => o.id) as ReadonlyArray<ChainId>, default: 'ethereum' });
   const isSolanaChain = activeChain === 'solana-mainnet' || activeChain === 'solana-devnet' || activeChain === 'solana-testnet';
-  const evmChain: EvmChainId = isSolanaChain ? 'ethereum' : (activeChain as EvmChainId);
+  const isBitcoinChain = activeChain === 'bitcoin-mainnet' || activeChain === 'bitcoin-testnet';
+  const isEvmChain = !isSolanaChain && !isBitcoinChain;
+  const evmChain: EvmChainId = isEvmChain ? (activeChain as EvmChainId) : 'ethereum';
   // B1-2 polish: derive currency symbol from active chain so the balance label
   // shows the right unit (ETH on L1/L2 ETH chains, MATIC on Polygon, BNB on BSC,
   // SOL on Solana once those chains land in the picker, etc.).
@@ -140,14 +143,19 @@ export function MainView({ onLockRequested, onOpenSettings }: MainViewProps): JS
   const [accountIndex, setAccountIndex] = useState(0);
   const { state: accountState } = useMainAccount({ chain: evmChain, accountIndex });
   const { state: balanceState } = useBalance(
-    !isSolanaChain && accountState.status === 'ready' ? { address: accountState.address, chain: evmChain } : {},
+    isEvmChain && accountState.status === 'ready' ? { address: accountState.address, chain: evmChain } : {},
   );
   const { state: tokenBalancesState } = useTokenBalances(
-    !isSolanaChain && accountState.status === 'ready' ? { chain: evmChain, address: accountState.address } : {},
+    isEvmChain && accountState.status === 'ready' ? { chain: evmChain, address: accountState.address } : {},
   );
   const { state: solanaAccountState } = useSolanaAccount(
     isSolanaChain
       ? { chain: activeChain as SolanaChainId, accountIndex, enabled: true }
+      : { enabled: false },
+  );
+  const { state: btcAccountState } = useBtcAccount(
+    isBitcoinChain
+      ? { chain: activeChain as BtcChainId, accountIndex, enabled: true }
       : { enabled: false },
   );
   const [locking, setLocking] = useState(false);
@@ -183,7 +191,9 @@ export function MainView({ onLockRequested, onOpenSettings }: MainViewProps): JS
   // actions and only available on EVM chains with a derived address.
   const activeAddress = isSolanaChain
     ? (solanaAccountState.status === 'ready' ? solanaAccountState.address : null)
-    : (accountState.status === 'ready' ? accountState.address : null);
+    : isBitcoinChain
+      ? (btcAccountState.status === 'ready' ? btcAccountState.address : null)
+      : (accountState.status === 'ready' ? accountState.address : null);
 
   if (subView === 'receive' && activeAddress) {
     return (
@@ -198,10 +208,10 @@ export function MainView({ onLockRequested, onOpenSettings }: MainViewProps): JS
   if (subView === 'send') {
     return (
       <SendView
-        chain={isSolanaChain ? (activeChain as SolanaChainId) : evmChain}
-        kind={isSolanaChain ? 'solana' : 'evm'}
+        chain={isSolanaChain ? (activeChain as SolanaChainId) : isBitcoinChain ? (activeChain as BtcChainId) : evmChain}
+        kind={isSolanaChain ? 'solana' : isBitcoinChain ? 'bitcoin' : 'evm'}
         symbol={sendToken ? sendToken.symbol : activeSymbol}
-        token={!isSolanaChain && sendToken ? { address: sendToken.address, decimals: sendToken.decimals } : null}
+        token={isEvmChain && sendToken ? { address: sendToken.address, decimals: sendToken.decimals } : null}
         accountIndex={accountIndex}
         onBack={() => { setSendToken(null); setSubView('main'); }}
       />
@@ -295,7 +305,52 @@ export function MainView({ onLockRequested, onOpenSettings }: MainViewProps): JS
           </Button>
         </>
       )}
-      {!isSolanaChain && (<>
+
+      {isBitcoinChain && (
+        <>
+          <Card>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10, padding: 14 }}>
+              <Label>Bitcoin address (BIP-84)</Label>
+              {btcAccountState.status === 'loading' && (
+                <div style={{ fontSize: 12, opacity: 0.6 }}>Loading address…</div>
+              )}
+              {btcAccountState.status === 'error' && (
+                <div role="alert" style={{ fontSize: 12, color: 'var(--color-error, #EF4444)', lineHeight: 1.4, wordBreak: 'break-word' }}>
+                  Failed to load address: {btcAccountState.error}
+                </div>
+              )}
+              {btcAccountState.status === 'ready' && (
+                <>
+                  <code style={{ fontSize: 11, wordBreak: 'break-all' }}>{btcAccountState.address}</code>
+                  <div style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
+                    <span style={{ fontSize: 22, fontWeight: 600 }}>
+                      {btcAccountState.balanceSats === null ? '—' : formatTokenAmount(btcAccountState.balanceSats, 8)}
+                    </span>
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><TokenIcon symbol={activeSymbol} size={14} /><span style={{ fontSize: 13, opacity: 0.6 }}>{activeSymbol}</span></span>
+                  </div>
+                </>
+              )}
+              <div style={{ fontSize: 11, opacity: 0.55, lineHeight: 1.4 }}>
+                Native segwit · balance &amp; send via Blockbook (Trezor public endpoint; set your own for production).
+              </div>
+            </div>
+          </Card>
+
+          <div style={{ display: 'flex', gap: 10 }}>
+            <Button onClick={() => { setSendToken(null); setSubView('send'); }} disabled={btcAccountState.status !== 'ready'} style={{ flex: 1 }}>
+              Send
+            </Button>
+            <Button variant="secondary" onClick={() => setSubView('receive')} disabled={btcAccountState.status !== 'ready'} style={{ flex: 1 }}>
+              Receive
+            </Button>
+          </div>
+
+          <Button variant="ghost" size="sm" onClick={() => setSubView('activity')} style={{ alignSelf: 'center' }}>
+            Activity ›
+          </Button>
+        </>
+      )}
+      {isEvmChain && (<>
       <Card>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10, padding: 14 }}>
           <Label>Balance</Label>

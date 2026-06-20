@@ -98,18 +98,32 @@ export const SOLANA_CHAIN_IDS = [
 /** Solana chain identifiers (BIP-44 coin type 501). */
 export type SolanaChainId = typeof SOLANA_CHAIN_IDS[number];
 
+/**
+ * Canonical list of Bitcoin chain identifiers. BIP-44 coin type 0 (mainnet) /
+ * 1 (testnet); WDK derives BIP-84 native-segwit accounts by default.
+ */
+export const BITCOIN_CHAIN_IDS = [
+  'bitcoin-mainnet',
+  'bitcoin-testnet',
+] as const satisfies readonly string[];
+
+/** Bitcoin chain identifiers (BIP-44 coin type 0 / 1). */
+export type BtcChainId = typeof BITCOIN_CHAIN_IDS[number];
+
 /** Any supported chain identifier. */
-export type ChainId = EvmChainId | SolanaChainId;
+export type ChainId = EvmChainId | SolanaChainId | BtcChainId;
 
 /**
  * Chain family discriminant - used for runtime routing in worker handlers
  * and for code-splitting boundaries in the chain-loader registry.
  */
-export type ChainFamily = 'evm' | 'solana';
+export type ChainFamily = 'evm' | 'solana' | 'bitcoin';
 
 /** Map a ChainId to its family at the type level. */
 export type ChainFamilyOf<T extends ChainId> = T extends EvmChainId
   ? 'evm'
   : T extends SolanaChainId
     ? 'solana'
-    : never;
+    : T extends BtcChainId
+      ? 'bitcoin'
+      : never;

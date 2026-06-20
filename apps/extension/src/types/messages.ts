@@ -23,11 +23,11 @@
  */
 
 import type { Hex } from 'viem';
-import type { ChainId, EvmChainId, SolanaChainId } from '@wdk-starter/wdk-web-core/types';
+import type { BtcChainId, ChainId, EvmChainId, SolanaChainId } from '@wdk-starter/wdk-web-core/types';
 import type { Eip1193Response } from './dapp-messages.js';
 import type { ApprovalRequest } from '../background/approval-flow.js';
 
-export type { ChainId, EvmChainId, SolanaChainId };
+export type { BtcChainId, ChainId, EvmChainId, SolanaChainId };
 
 export type WalletMessage =
   // Health / lifecycle
@@ -52,6 +52,10 @@ export type WalletMessage =
   // string (bigint is not structured-cloneable over chrome.runtime — L-WIRE-03).
   | { type: 'ACCOUNT_SEND_TRANSACTION'; chain: EvmChainId; accountIndex: number; to: string; value: string; data?: string }
   | { type: 'ACCOUNT_SEND_SOLANA_TRANSACTION'; chain: SolanaChainId; accountIndex: number; to: string; value: string }
+  // Bitcoin (BIP-84 native segwit; value is satoshis as a decimal string)
+  | { type: 'ACCOUNT_GET_BTC_ADDRESS'; chain: BtcChainId; accountIndex: number }
+  | { type: 'ACCOUNT_GET_BTC_BALANCE'; chain: BtcChainId; accountIndex: number }
+  | { type: 'ACCOUNT_SEND_BTC_TRANSACTION'; chain: BtcChainId; accountIndex: number; to: string; value: string; confirmationTarget?: number }
   // RPC
   | { type: 'RPC_GET_BALANCE'; chain: ChainId; address: string }
   | { type: 'RPC_GET_TOKEN_BALANCE'; chain: ChainId; address: string; tokenAddress: string }
@@ -86,6 +90,9 @@ export type WalletResponseData = {
   ACCOUNT_SIGN_SOLANA_MESSAGE: string;
   ACCOUNT_SEND_TRANSACTION: Hex;
   ACCOUNT_SEND_SOLANA_TRANSACTION: string;
+  ACCOUNT_GET_BTC_ADDRESS: string;
+  ACCOUNT_GET_BTC_BALANCE: string;
+  ACCOUNT_SEND_BTC_TRANSACTION: string;
   RPC_GET_BALANCE: string;
   RPC_GET_TOKEN_BALANCE: string;
   RPC_GET_TRANSACTION_STATUS: 'pending' | 'success' | 'failed';

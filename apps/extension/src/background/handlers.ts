@@ -103,6 +103,9 @@ export function createSwHandlers({ engine, worker, approvalFlow, connectionState
       if (msg.chain === 'solana-mainnet' || msg.chain === 'solana-devnet' || msg.chain === 'solana-testnet') {
         throw new Error('Use ACCOUNT_SIGN_SOLANA_MESSAGE for Solana chains');
       }
+      if (msg.chain === 'bitcoin-mainnet' || msg.chain === 'bitcoin-testnet') {
+        throw new Error('Bitcoin message signing is not exposed via ACCOUNT_SIGN_MESSAGE');
+      }
       return worker.account_signMessage(msg.chain, msg.accountIndex, msg.message);
     },
 
@@ -133,6 +136,21 @@ export function createSwHandlers({ engine, worker, approvalFlow, connectionState
       // User-initiated native SOL transfer from the popup. value arrives as a
       // lamports decimal string; WDK builds, signs + broadcasts, returns the sig.
       return worker.account_sendSolanaTransaction(msg.chain, msg.accountIndex, msg.to, BigInt(msg.value));
+    },
+
+    ACCOUNT_GET_BTC_ADDRESS: async (msg) => {
+      return worker.account_getBtcAddress(msg.chain, msg.accountIndex);
+    },
+
+    ACCOUNT_GET_BTC_BALANCE: async (msg) => {
+      const sats = await worker.account_getBtcBalance(msg.chain, msg.accountIndex);
+      return sats.toString();
+    },
+
+    ACCOUNT_SEND_BTC_TRANSACTION: async (msg) => {
+      // value arrives as a satoshi decimal string; WDK selects UTXOs, builds,
+      // signs + broadcasts a PSBT and returns the txid.
+      return worker.account_sendBtcTransaction(msg.chain, msg.accountIndex, msg.to, BigInt(msg.value), msg.confirmationTarget);
     },
 
     RPC_GET_BALANCE: async (msg) => {

@@ -74,6 +74,32 @@ describe('SendView', () => {
     }));
   });
 
+  it('sends native BTC (8-decimal sats) via ACCOUNT_SEND_BTC_TRANSACTION', async () => {
+    sendMock.mockResolvedValue('btctxid123');
+    render(<SendView chain="bitcoin-mainnet" kind="bitcoin" symbol="BTC" accountIndex={0} onBack={() => {}} />);
+    expect(screen.getByText('Send BTC')).toBeInTheDocument();
+    fireEvent.change(screen.getByPlaceholderText('bc1… or legacy address'), { target: { value: 'bc1qar0srrr7xfkvy5l643lydnw9re59gtzzwf5mdq' } });
+    fireEvent.change(screen.getByPlaceholderText('0.0'), { target: { value: '0.001' } }); // 0.001 BTC = 100_000 sats
+    fireEvent.click(screen.getByText('Review & send'));
+    await waitFor(() => expect(screen.getByText('btctxid123')).toBeInTheDocument());
+    expect(sendMock).toHaveBeenCalledWith(expect.objectContaining({
+      type: 'ACCOUNT_SEND_BTC_TRANSACTION',
+      chain: 'bitcoin-mainnet',
+      accountIndex: 0,
+      to: 'bc1qar0srrr7xfkvy5l643lydnw9re59gtzzwf5mdq',
+      value: '100000',
+    }));
+  });
+
+  it('rejects an invalid Bitcoin address', () => {
+    render(<SendView chain="bitcoin-mainnet" kind="bitcoin" symbol="BTC" accountIndex={0} onBack={() => {}} />);
+    fireEvent.change(screen.getByPlaceholderText('bc1… or legacy address'), { target: { value: '0xdeadbeef' } });
+    fireEvent.change(screen.getByPlaceholderText('0.0'), { target: { value: '0.1' } });
+    fireEvent.click(screen.getByText('Review & send'));
+    expect(screen.getByRole('alert')).toHaveTextContent(/valid Bitcoin address/i);
+    expect(sendMock).not.toHaveBeenCalled();
+  });
+
   it('sends an ERC-20 token to the token contract via transfer() calldata', async () => {
     sendMock.mockResolvedValue('0xtokentx');
     render(
