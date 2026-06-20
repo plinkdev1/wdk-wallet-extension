@@ -180,6 +180,7 @@ const NETWORK_CHAIN_OPTIONS = [
   { id: 'zksync-mainnet' as const, name: 'zkSync Era', testnet: false, symbol: 'ETH', icon: <NetworkIcon chain="zksync-mainnet" size={14} /> },
   { id: 'solana-mainnet' as const, name: 'Solana', testnet: false, symbol: 'SOL', icon: <NetworkIcon chain="solana-mainnet" size={14} /> },
   { id: 'bitcoin-mainnet' as const, name: 'Bitcoin', testnet: false, symbol: 'BTC', icon: <NetworkIcon chain="bitcoin-mainnet" size={14} /> },
+  { id: 'ton-mainnet' as const, name: 'TON', testnet: false, symbol: 'TON', icon: <NetworkIcon chain="ton-mainnet" size={14} /> },
   { id: 'arbitrum-sepolia-testnet' as const, name: 'Arbitrum Sepolia', testnet: true, symbol: 'ETH', icon: <NetworkIcon chain="arbitrum-sepolia-testnet" size={14} /> },
   { id: 'avalanche-fuji-testnet' as const, name: 'Avalanche Fuji', testnet: true, symbol: 'AVAX', icon: <NetworkIcon chain="avalanche-fuji-testnet" size={14} /> },
   { id: 'bsc-testnet' as const, name: 'BNB Smart Chain Testnet', testnet: true, symbol: 'BNB', icon: <NetworkIcon chain="bsc-testnet" size={14} /> },

@@ -23,11 +23,11 @@
  */
 
 import type { Hex } from 'viem';
-import type { BtcChainId, ChainId, EvmChainId, SolanaChainId } from '@wdk-starter/wdk-web-core/types';
+import type { BtcChainId, ChainId, EvmChainId, SolanaChainId, TonChainId } from '@wdk-starter/wdk-web-core/types';
 import type { Eip1193Response } from './dapp-messages.js';
 import type { ApprovalRequest } from '../background/approval-flow.js';
 
-export type { BtcChainId, ChainId, EvmChainId, SolanaChainId };
+export type { BtcChainId, ChainId, EvmChainId, SolanaChainId, TonChainId };
 
 export type WalletMessage =
   // Health / lifecycle
@@ -56,6 +56,10 @@ export type WalletMessage =
   | { type: 'ACCOUNT_GET_BTC_ADDRESS'; chain: BtcChainId; accountIndex: number }
   | { type: 'ACCOUNT_GET_BTC_BALANCE'; chain: BtcChainId; accountIndex: number }
   | { type: 'ACCOUNT_SEND_BTC_TRANSACTION'; chain: BtcChainId; accountIndex: number; to: string; value: string; confirmationTarget?: number }
+  // TON (value is nanotons as a decimal string)
+  | { type: 'ACCOUNT_GET_TON_ADDRESS'; chain: TonChainId; accountIndex: number }
+  | { type: 'ACCOUNT_GET_TON_BALANCE'; chain: TonChainId; accountIndex: number }
+  | { type: 'ACCOUNT_SEND_TON_TRANSACTION'; chain: TonChainId; accountIndex: number; to: string; value: string }
   // RPC
   | { type: 'RPC_GET_BALANCE'; chain: ChainId; address: string }
   | { type: 'RPC_GET_TOKEN_BALANCE'; chain: ChainId; address: string; tokenAddress: string }
@@ -93,6 +97,9 @@ export type WalletResponseData = {
   ACCOUNT_GET_BTC_ADDRESS: string;
   ACCOUNT_GET_BTC_BALANCE: string;
   ACCOUNT_SEND_BTC_TRANSACTION: string;
+  ACCOUNT_GET_TON_ADDRESS: string;
+  ACCOUNT_GET_TON_BALANCE: string;
+  ACCOUNT_SEND_TON_TRANSACTION: string;
   RPC_GET_BALANCE: string;
   RPC_GET_TOKEN_BALANCE: string;
   RPC_GET_TRANSACTION_STATUS: 'pending' | 'success' | 'failed';

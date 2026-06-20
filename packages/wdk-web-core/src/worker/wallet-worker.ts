@@ -41,6 +41,7 @@ import type {
   ChainId,
   EvmChainId,
   SolanaChainId,
+  TonChainId,
   SolanaSignature,
   TypedDataPayload,
   WalletWorkerApi,
@@ -52,7 +53,7 @@ export interface WalletWorkerOptions {
   readonly rpcAdapter?: RpcAdapter;
 }
 
-export class WalletWorker implements Pick<WalletWorkerApi, 'vault_hasStored' | 'vault_store' | 'vault_load' | 'vault_clear' | 'account_getEvmAddress' | 'account_getSolanaAddress' | 'account_signMessage' | 'account_signTypedData' | 'account_signSolanaMessage' | 'account_sendTransaction' | 'account_sendSolanaTransaction' | 'account_getBtcAddress' | 'account_getBtcBalance' | 'account_sendBtcTransaction' | 'rpc_getBalance' | 'rpc_getTokenBalance' | 'rpc_getTransactionStatus' | 'bip39_generateMnemonic' | 'bip39_validateMnemonic'> {
+export class WalletWorker implements Pick<WalletWorkerApi, 'vault_hasStored' | 'vault_store' | 'vault_load' | 'vault_clear' | 'account_getEvmAddress' | 'account_getSolanaAddress' | 'account_signMessage' | 'account_signTypedData' | 'account_signSolanaMessage' | 'account_sendTransaction' | 'account_sendSolanaTransaction' | 'account_getBtcAddress' | 'account_getBtcBalance' | 'account_sendBtcTransaction' | 'account_getTonAddress' | 'account_getTonBalance' | 'account_sendTonTransaction' | 'rpc_getBalance' | 'rpc_getTokenBalance' | 'rpc_getTransactionStatus' | 'bip39_generateMnemonic' | 'bip39_validateMnemonic'> {
   private readonly vault: WebCryptoVault;
   private readonly rpcAdapter: RpcAdapter | null;
   private wdk: WdkManager | null = null;
@@ -239,6 +240,46 @@ export class WalletWorker implements Pick<WalletWorkerApi, 'vault_hasStored' | '
     const result = await btcAccount.sendTransaction({ to, value, confirmationTarget });
     if (result && typeof result === 'object' && typeof result.hash === 'string') return result.hash;
     throw new Error('account_sendBtcTransaction: unexpected return shape from WDK Bitcoin account');
+  }
+
+  /** Returns the account's TON (v5r1) address. */
+  async account_getTonAddress(chain: TonChainId, index: number): Promise<string> {
+    if (!isSupportedChainId(chain)) {
+      throw new Error('Unsupported chain (no loader registered): ' + chain);
+    }
+    const wdk = this._requireWdk();
+    await ensureChainRegistered(wdk, chain);
+    const account = await wdk.getAccount(chain, index);
+    const tonAccount = account as unknown as { getAddress(): Promise<string> };
+    return tonAccount.getAddress();
+  }
+
+  /** Reads the account's TON balance in nanotons (via the configured TON client). */
+  async account_getTonBalance(chain: TonChainId, index: number): Promise<bigint> {
+    if (!isSupportedChainId(chain)) {
+      throw new Error('Unsupported chain (no loader registered): ' + chain);
+    }
+    const wdk = this._requireWdk();
+    await ensureChainRegistered(wdk, chain);
+    const account = await wdk.getAccount(chain, index);
+    const tonAccount = account as unknown as { getBalance(): Promise<bigint> };
+    return tonAccount.getBalance();
+  }
+
+  /** Sends native TON (value in nanotons) on a TON chain; returns the tx hash. */
+  async account_sendTonTransaction(chain: TonChainId, index: number, to: string, value: bigint): Promise<string> {
+    if (!isSupportedChainId(chain)) {
+      throw new Error('Unsupported chain (no loader registered): ' + chain);
+    }
+    const wdk = this._requireWdk();
+    await ensureChainRegistered(wdk, chain);
+    const account = await wdk.getAccount(chain, index);
+    const tonAccount = account as unknown as {
+      sendTransaction(tx: { to: string; value: bigint }): Promise<{ hash: string }>;
+    };
+    const result = await tonAccount.sendTransaction({ to, value });
+    if (result && typeof result === 'object' && typeof result.hash === 'string') return result.hash;
+    throw new Error('account_sendTonTransaction: unexpected return shape from WDK TON account');
   }
 
   async account_getEvmAddress(chain: EvmChainId, index: number): Promise<Hex> {

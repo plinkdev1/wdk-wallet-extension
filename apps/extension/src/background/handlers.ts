@@ -103,8 +103,8 @@ export function createSwHandlers({ engine, worker, approvalFlow, connectionState
       if (msg.chain === 'solana-mainnet' || msg.chain === 'solana-devnet' || msg.chain === 'solana-testnet') {
         throw new Error('Use ACCOUNT_SIGN_SOLANA_MESSAGE for Solana chains');
       }
-      if (msg.chain === 'bitcoin-mainnet' || msg.chain === 'bitcoin-testnet') {
-        throw new Error('Bitcoin message signing is not exposed via ACCOUNT_SIGN_MESSAGE');
+      if (msg.chain === 'bitcoin-mainnet' || msg.chain === 'bitcoin-testnet' || msg.chain === 'ton-mainnet') {
+        throw new Error('Bitcoin/TON message signing is not exposed via ACCOUNT_SIGN_MESSAGE');
       }
       return worker.account_signMessage(msg.chain, msg.accountIndex, msg.message);
     },
@@ -151,6 +151,20 @@ export function createSwHandlers({ engine, worker, approvalFlow, connectionState
       // value arrives as a satoshi decimal string; WDK selects UTXOs, builds,
       // signs + broadcasts a PSBT and returns the txid.
       return worker.account_sendBtcTransaction(msg.chain, msg.accountIndex, msg.to, BigInt(msg.value), msg.confirmationTarget);
+    },
+
+    ACCOUNT_GET_TON_ADDRESS: async (msg) => {
+      return worker.account_getTonAddress(msg.chain, msg.accountIndex);
+    },
+
+    ACCOUNT_GET_TON_BALANCE: async (msg) => {
+      const nano = await worker.account_getTonBalance(msg.chain, msg.accountIndex);
+      return nano.toString();
+    },
+
+    ACCOUNT_SEND_TON_TRANSACTION: async (msg) => {
+      // value arrives as a nanoton decimal string; WDK builds, signs + broadcasts.
+      return worker.account_sendTonTransaction(msg.chain, msg.accountIndex, msg.to, BigInt(msg.value));
     },
 
     RPC_GET_BALANCE: async (msg) => {

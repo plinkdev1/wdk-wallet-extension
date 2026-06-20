@@ -4,7 +4,7 @@ import type {
   SolanaSignature,
   TypedDataPayload,
 } from './accounts.js';
-import type { BtcChainId, ChainId, EvmChainId, SolanaChainId } from './chains.js';
+import type { BtcChainId, ChainId, EvmChainId, SolanaChainId, TonChainId } from './chains.js';
 
 /**
  * WalletWorker API surface - the typed contract that wdk-web-core exposes to
@@ -55,6 +55,13 @@ export interface WalletWorkerApi {
   account_getBtcBalance(chain: BtcChainId, index: number): Promise<bigint>;
   /** Sends native BTC (value in satoshis) on a Bitcoin chain; returns the txid. */
   account_sendBtcTransaction(chain: BtcChainId, index: number, to: string, value: bigint, confirmationTarget?: number): Promise<string>;
+
+  /** Returns the account's TON (v5r1) address. */
+  account_getTonAddress(chain: TonChainId, index: number): Promise<string>;
+  /** Reads the account's TON balance in nanotons. */
+  account_getTonBalance(chain: TonChainId, index: number): Promise<bigint>;
+  /** Sends native TON (value in nanotons) on a TON chain; returns the tx hash. */
+  account_sendTonTransaction(chain: TonChainId, index: number, to: string, value: bigint): Promise<string>;
 
   // Solana account operations
   account_getSolanaAddress(chain: SolanaChainId, index: number): Promise<Base58Address>;

@@ -23,6 +23,8 @@ describe('chains/index', () => {
     // Bitcoin (BIP-84 native segwit via @tetherto/wdk-wallet-btc)
     expect(keys).toContain('bitcoin-mainnet');
     expect(keys).toContain('bitcoin-testnet');
+    // TON (v5r1 via @tetherto/wdk-wallet-ton)
+    expect(keys).toContain('ton-mainnet');
   });
 
   it('B1-2: all loaders resolve to chain modules with the right id meta', async () => {

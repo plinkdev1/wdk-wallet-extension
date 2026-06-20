@@ -91,6 +91,22 @@ describe('SendView', () => {
     }));
   });
 
+  it('sends native TON (9-decimal nanotons) via ACCOUNT_SEND_TON_TRANSACTION', async () => {
+    sendMock.mockResolvedValue('tontxhash');
+    render(<SendView chain="ton-mainnet" kind="ton" symbol="TON" accountIndex={0} onBack={() => {}} />);
+    expect(screen.getByText('Send TON')).toBeInTheDocument();
+    fireEvent.change(screen.getByPlaceholderText('EQ… / UQ… address'), { target: { value: 'EQCD39VS5jcptHL8vMjEXrzGaRcCVYto7HUn4bpAOg8xqB2N' } });
+    fireEvent.change(screen.getByPlaceholderText('0.0'), { target: { value: '2' } }); // 2 TON = 2_000_000_000 nanoton
+    fireEvent.click(screen.getByText('Review & send'));
+    await waitFor(() => expect(screen.getByText('tontxhash')).toBeInTheDocument());
+    expect(sendMock).toHaveBeenCalledWith(expect.objectContaining({
+      type: 'ACCOUNT_SEND_TON_TRANSACTION',
+      chain: 'ton-mainnet',
+      accountIndex: 0,
+      value: '2000000000',
+    }));
+  });
+
   it('rejects an invalid Bitcoin address', () => {
     render(<SendView chain="bitcoin-mainnet" kind="bitcoin" symbol="BTC" accountIndex={0} onBack={() => {}} />);
     fireEvent.change(screen.getByPlaceholderText('bc1… or legacy address'), { target: { value: '0xdeadbeef' } });
