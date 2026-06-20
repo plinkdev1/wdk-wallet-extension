@@ -94,6 +94,12 @@ export function createStubHandlers(): HandlerRegistry {
     RPC_GET_TOKEN_BALANCE: notImplemented('RPC_GET_TOKEN_BALANCE'),
     RPC_GET_TRANSACTION_STATUS: notImplemented('RPC_GET_TRANSACTION_STATUS'),
     PRICING_GET_USD_PRICE: notImplemented('PRICING_GET_USD_PRICE'),
+    AAVE_GET_ACCOUNT_DATA: notImplemented('AAVE_GET_ACCOUNT_DATA'),
+    AAVE_QUOTE: notImplemented('AAVE_QUOTE'),
+    AAVE_SUPPLY: notImplemented('AAVE_SUPPLY'),
+    AAVE_WITHDRAW: notImplemented('AAVE_WITHDRAW'),
+    AAVE_BORROW: notImplemented('AAVE_BORROW'),
+    AAVE_REPAY: notImplemented('AAVE_REPAY'),
     DAPP_REQUEST: notImplemented('DAPP_REQUEST'),
     // B4.4: approval-flow handshake stubs (real impls in createSwHandlers).
     APPROVAL_GET_PENDING: notImplemented('APPROVAL_GET_PENDING'),

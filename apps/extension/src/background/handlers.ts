@@ -41,6 +41,11 @@ export interface SwHandlersDeps {
 
 const utf8Encoder = new TextEncoder();
 
+/** Serialises an Aave action result for the wire (bigint fee → decimal string). */
+function toAaveDto(r: { hash: string; fee: bigint; approveHash?: string }): { hash: string; fee: string; approveHash?: string } {
+  return { hash: r.hash, fee: r.fee.toString(), ...(r.approveHash ? { approveHash: r.approveHash } : {}) };
+}
+
 export function createSwHandlers({ engine, worker, approvalFlow, connectionState, eventBus }: SwHandlersDeps): HandlerRegistry {
   // Inner EIP-1193 dispatcher (F-SEC-01 inner tier per S12.6.3). B4.6 ships
   // real handlers for eth_chainId, eth_accounts, eth_requestAccounts wired to
@@ -198,6 +203,26 @@ export function createSwHandlers({ engine, worker, approvalFlow, connectionState
     PRICING_GET_USD_PRICE: async (msg) => {
       return worker.pricing_getUsdPrice(msg.symbol);
     },
+
+    AAVE_GET_ACCOUNT_DATA: async (msg) => {
+      const d = await worker.aave_getAccountData(msg.chain, msg.accountIndex);
+      return {
+        totalCollateralBase: d.totalCollateralBase.toString(),
+        totalDebtBase: d.totalDebtBase.toString(),
+        availableBorrowsBase: d.availableBorrowsBase.toString(),
+        currentLiquidationThreshold: d.currentLiquidationThreshold.toString(),
+        ltv: d.ltv.toString(),
+        healthFactor: d.healthFactor.toString(),
+      };
+    },
+    AAVE_QUOTE: async (msg) => {
+      const fee = await worker.aave_quote(msg.chain, msg.accountIndex, msg.action, msg.token, BigInt(msg.amount));
+      return fee.toString();
+    },
+    AAVE_SUPPLY: async (msg) => toAaveDto(await worker.aave_supply(msg.chain, msg.accountIndex, msg.token, BigInt(msg.amount))),
+    AAVE_WITHDRAW: async (msg) => toAaveDto(await worker.aave_withdraw(msg.chain, msg.accountIndex, msg.token, BigInt(msg.amount))),
+    AAVE_BORROW: async (msg) => toAaveDto(await worker.aave_borrow(msg.chain, msg.accountIndex, msg.token, BigInt(msg.amount))),
+    AAVE_REPAY: async (msg) => toAaveDto(await worker.aave_repay(msg.chain, msg.accountIndex, msg.token, BigInt(msg.amount))),
 
     DAPP_REQUEST: async (msg) => {
       // ctx.id threads the DAPP_REQUEST envelope id through to approvalFlow.open()

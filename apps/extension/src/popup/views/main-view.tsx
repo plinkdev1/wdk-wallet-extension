@@ -39,6 +39,7 @@ import { useTokenBalances } from '../hooks/use-token-balances.js';
 import type { TokenInfo } from '../lib/tokens.js';
 import { ReceiveView } from './receive-view.js';
 import { SendView } from './send-view.js';
+import { LendingView } from './lending-view.js';
 import { ActivityView } from './activity-view.js';
 
 export interface MainViewProps {
@@ -142,7 +143,7 @@ export function MainView({ onLockRequested, onOpenSettings }: MainViewProps): JS
   // SOL on Solana once those chains land in the picker, etc.).
   const activeSymbol = CHAIN_OPTIONS.find((o) => o.id === activeChain)?.symbol ?? 'ETH';
   const activeName = CHAIN_OPTIONS.find((o) => o.id === activeChain)?.name ?? 'this network';
-  const [subView, setSubView] = useState<'main' | 'receive' | 'send' | 'activity'>('main');
+  const [subView, setSubView] = useState<'main' | 'receive' | 'send' | 'activity' | 'lending'>('main');
   /** When set, the Send view sends this ERC-20 token instead of the native asset. */
   const [sendToken, setSendToken] = useState<TokenInfo | null>(null);
   const [accountIndex, setAccountIndex] = useState(0);
@@ -253,6 +254,16 @@ export function MainView({ onLockRequested, onOpenSettings }: MainViewProps): JS
       <ActivityView
         onBack={() => setSubView('main')}
         chainName={(c) => CHAIN_OPTIONS.find((o) => o.id === c)?.name ?? c}
+      />
+    );
+  }
+  if (subView === 'lending' && isEvmChain) {
+    return (
+      <LendingView
+        chain={evmChain}
+        chainName={activeName}
+        accountIndex={accountIndex}
+        onBack={() => setSubView('main')}
       />
     );
   }
@@ -611,6 +622,10 @@ export function MainView({ onLockRequested, onOpenSettings }: MainViewProps): JS
           Receive
         </Button>
       </div>
+
+      <Button variant="secondary" onClick={() => setSubView('lending')} disabled={accountState.status !== 'ready'} style={{ width: '100%' }}>
+        Earn with Aave V3
+      </Button>
 
       <Button variant="ghost" size="sm" onClick={() => setSubView('activity')} style={{ alignSelf: 'center' }}>
         Activity ›

@@ -70,6 +70,13 @@ export type WalletMessage =
   | { type: 'RPC_GET_TRANSACTION_STATUS'; chain: ChainId; hash: string }
   // Fiat pricing (USD)
   | { type: 'PRICING_GET_USD_PRICE'; symbol: string }
+  // Aave V3 lending (amounts are base-unit decimal strings; L-WIRE-03)
+  | { type: 'AAVE_GET_ACCOUNT_DATA'; chain: EvmChainId; accountIndex: number }
+  | { type: 'AAVE_QUOTE'; chain: EvmChainId; accountIndex: number; action: 'supply' | 'withdraw' | 'borrow' | 'repay'; token: string; amount: string }
+  | { type: 'AAVE_SUPPLY'; chain: EvmChainId; accountIndex: number; token: string; amount: string }
+  | { type: 'AAVE_WITHDRAW'; chain: EvmChainId; accountIndex: number; token: string; amount: string }
+  | { type: 'AAVE_BORROW'; chain: EvmChainId; accountIndex: number; token: string; amount: string }
+  | { type: 'AAVE_REPAY'; chain: EvmChainId; accountIndex: number; token: string; amount: string }
   // dApp pipeline (B4.3)
   | { type: 'DAPP_REQUEST'; id: string; origin: string; method: string; params?: readonly unknown[] }
   // Approval flow (B4.4)
@@ -113,8 +120,31 @@ export type WalletResponseData = {
   RPC_GET_TOKEN_BALANCE: string;
   RPC_GET_TRANSACTION_STATUS: 'pending' | 'success' | 'failed';
   PRICING_GET_USD_PRICE: number | null;
+  AAVE_GET_ACCOUNT_DATA: AaveAccountDataDto;
+  AAVE_QUOTE: string;
+  AAVE_SUPPLY: AaveActionResultDto;
+  AAVE_WITHDRAW: AaveActionResultDto;
+  AAVE_BORROW: AaveActionResultDto;
+  AAVE_REPAY: AaveActionResultDto;
   DAPP_REQUEST: Eip1193Response;
   APPROVAL_GET_PENDING: ApprovalRequest | null;
   APPROVAL_RESPOND: { ok: boolean };
   APPROVAL_LIST_PENDING: string[];
 };
+
+/** Aave V3 account snapshot over the wire — bigints as decimal strings (L-WIRE-03). */
+export interface AaveAccountDataDto {
+  readonly totalCollateralBase: string;
+  readonly totalDebtBase: string;
+  readonly availableBorrowsBase: string;
+  readonly currentLiquidationThreshold: string;
+  readonly ltv: string;
+  readonly healthFactor: string;
+}
+
+/** Result of a state-changing Aave action over the wire. */
+export interface AaveActionResultDto {
+  readonly hash: string;
+  readonly fee: string;
+  readonly approveHash?: string;
+}
