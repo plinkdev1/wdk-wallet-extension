@@ -34,6 +34,13 @@ import {
   ensureChainRegistered,
   isSupportedChainId,
 } from '../chains/index.js';
+import {
+  createAaveProtocol,
+  normalizeActionResult,
+  normalizeAccountData,
+  type AaveAccountData,
+  type AaveActionResult,
+} from '../protocols/aave.js';
 import type { RpcAdapter, TransactionStatus } from '../adapters/index.js';
 import { CoingeckoPricingClient } from '@tetherto/wdk-pricing-coingecko-http';
 import type {
@@ -499,6 +506,59 @@ export class WalletWorker implements Pick<WalletWorkerApi, 'vault_hasStored' | '
     } catch {
       return null;
     }
+  }
+
+  /**
+   * Builds the Aave V3 protocol bound to the EVM account at (chain, index).
+   * The account holds the key and never leaves the worklet. Uses a plain
+   * WalletAccountEvm over the configured RPC — no bundler/paymaster required.
+   */
+  private async _aave(chain: EvmChainId, index: number) {
+    if (!isSupportedChainId(chain)) {
+      throw new Error('Unsupported chain (no loader registered): ' + chain);
+    }
+    const wdk = this._requireWdk();
+    await ensureChainRegistered(wdk, chain);
+    const account = await wdk.getAccount(chain, index);
+    return createAaveProtocol(account);
+  }
+
+  /** Aave V3 user snapshot (collateral, debt, borrow capacity, health factor). */
+  async aave_getAccountData(chain: EvmChainId, index: number): Promise<AaveAccountData> {
+    const aave = await this._aave(chain, index);
+    return normalizeAccountData(await aave.getAccountData());
+  }
+
+  /** Quotes the gas/fee for an Aave action without broadcasting. */
+  async aave_quote(chain: EvmChainId, index: number, action: 'supply' | 'withdraw' | 'borrow' | 'repay', token: string, amount: bigint): Promise<bigint> {
+    const aave = await this._aave(chain, index);
+    const fn = { supply: aave.quoteSupply, withdraw: aave.quoteWithdraw, borrow: aave.quoteBorrow, repay: aave.quoteRepay }[action];
+    const { fee } = await fn.call(aave, { token, amount });
+    return typeof fee === 'bigint' ? fee : BigInt(fee ?? 0);
+  }
+
+  /** Supplies `amount` of `token` to the Aave V3 pool. */
+  async aave_supply(chain: EvmChainId, index: number, token: string, amount: bigint): Promise<AaveActionResult> {
+    const aave = await this._aave(chain, index);
+    return normalizeActionResult(await aave.supply({ token, amount }));
+  }
+
+  /** Withdraws `amount` of `token` from the Aave V3 pool. */
+  async aave_withdraw(chain: EvmChainId, index: number, token: string, amount: bigint): Promise<AaveActionResult> {
+    const aave = await this._aave(chain, index);
+    return normalizeActionResult(await aave.withdraw({ token, amount }));
+  }
+
+  /** Borrows `amount` of `token` against supplied collateral. */
+  async aave_borrow(chain: EvmChainId, index: number, token: string, amount: bigint): Promise<AaveActionResult> {
+    const aave = await this._aave(chain, index);
+    return normalizeActionResult(await aave.borrow({ token, amount }));
+  }
+
+  /** Repays `amount` of borrowed `token`. */
+  async aave_repay(chain: EvmChainId, index: number, token: string, amount: bigint): Promise<AaveActionResult> {
+    const aave = await this._aave(chain, index);
+    return normalizeActionResult(await aave.repay({ token, amount }));
   }
 
   /**
