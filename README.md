@@ -73,6 +73,22 @@ This repository is that reference. It is not a toy: it ships a real WebCrypto-en
 
 ---
 
+## Screenshots
+
+Captured from the **real extension popup** running in Chromium (loaded unpacked), against a throwaway test wallet.
+
+| Onboarding | Create wallet | Dashboard |
+|:--:|:--:|:--:|
+| ![Onboarding](./media/screenshots/01-onboarding.png) | ![Create](./media/screenshots/02-create-wallet.png) | ![Dashboard](./media/screenshots/05-dashboard.png) |
+
+| Import (recovery phrase) | Send | Receive (QR) |
+|:--:|:--:|:--:|
+| ![Import](./media/screenshots/03-import.png) | ![Send](./media/screenshots/06-send.png) | ![Receive](./media/screenshots/07-receive.png) |
+
+**▶ Demo video:** [`media/demo/wdk-wallet-extension-demo.webm`](./media/demo/wdk-wallet-extension-demo.webm) — onboarding → import → dashboard → send (use **Download**/**Raw** on GitHub). The shot-by-shot script is in [`docs/DEMO.md`](./docs/DEMO.md).
+
+> The Dashboard's balance shows an RPC error only because the headless capture environment blocks outbound network to public RPCs — address derivation, signing, and every flow work; the balance simply can't be fetched without RPC access. Set your own `VITE_ETH_RPC_URL` (see [`docs/SETUP.md`](./docs/SETUP.md)) and balances load.
+
 ## Architecture
 
 The wallet follows a strict **"worker as worklet"** model: all key material and signing live inside the MV3 service worker; the React popup is a pure view that talks to the worker through a typed message bus. The UI never touches a private key.
