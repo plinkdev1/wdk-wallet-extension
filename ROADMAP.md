@@ -28,16 +28,29 @@ blocks and sequenced them into the roadmap below:
 | EVM accounts (40+ chains) | `@tetherto/wdk-wallet-evm` | ✅ shipped |
 | Solana accounts | `@tetherto/wdk-wallet-solana` | ✅ shipped |
 | Bitcoin accounts (BIP-84) | `@tetherto/wdk-wallet-btc` | ✅ shipped |
+| **TON accounts (v5r1)** | `@tetherto/wdk-wallet-ton` | ✅ **shipped** |
+| **Tron accounts** | `@tetherto/wdk-wallet-tron` | ✅ **shipped** |
 | Gasless stablecoin transfers | `@tetherto/wdk-protocol-eip3009` *(our module)* | ✅ shipped |
-| Lightning / Spark | `@tetherto/wdk-wallet-spark` | ⏳ Phase 2 (validated; needs MV3 bundler shim) |
-| Account abstraction (ERC-4337) | `@tetherto/wdk-wallet-evm-erc-4337` | ⏳ Phase 3 |
-| TON / TON-gasless | `@tetherto/wdk-wallet-ton`, `-ton-gasless` | ⏳ Phase 3 |
-| Tron | `@tetherto/wdk-wallet-tron` | ⏳ Phase 3 |
+| Lightning / Spark | `@tetherto/wdk-wallet-spark` | ⏳ Phase 2 (validated; needs MV3 bundler shim — see below) |
+| Account abstraction (ERC-4337) | `@tetherto/wdk-wallet-evm-erc-4337` | ⏳ Phase 3 (validated; **infrastructure-gated** — see below) |
+| TON-gasless | `@tetherto/wdk-wallet-ton-gasless` | ⏳ Phase 3 |
 | Fiat pricing (balances in $) | `@tetherto/wdk-pricing-coingecko-http`, `-bitfinex-http` | ⏳ Phase 2 |
-| Swaps | `@tetherto/wdk-protocol-swap-velora-evm` | ⏳ Phase 4 |
-| Lending | `@tetherto/wdk-protocol-lending-aave-evm` | ⏳ Phase 4 |
-| Bridging (USDT0) | `@tetherto/wdk-protocol-bridge-usdt0-evm` | ⏳ Phase 4 |
-| Fiat on-ramp | `@tetherto/wdk-protocol-fiat-moonpay` | ⏳ Phase 4 |
+| Swaps | `@tetherto/wdk-protocol-swap-velora-evm` | ⏳ Phase 4 (infrastructure-gated) |
+| Lending | `@tetherto/wdk-protocol-lending-aave-evm` | ⏳ Phase 4 (infrastructure-gated) |
+| Bridging (USDT0) | `@tetherto/wdk-protocol-bridge-usdt0-evm` | ⏳ Phase 4 (infrastructure-gated) |
+| Fiat on-ramp | `@tetherto/wdk-protocol-fiat-moonpay` | ⏳ Phase 4 (needs MoonPay key) |
+
+> **Self-contained vs. infrastructure-gated.** The shipped chains
+> (EVM/Solana/Bitcoin/TON/Tron) are *self-contained*: they work against public
+> RPC/Blockbook/TonCenter/TronGrid endpoints out of the box. **ERC-4337** and the
+> **DeFi protocols** (swap/lend/bridge) are *infrastructure-gated* — they require
+> external services that are deployment-specific and usually keyed: ERC-4337 needs
+> a **bundler + paymaster** (its config is required and validated, so it can't be
+> stubbed); swaps/lending/bridging need DEX/Aave/bridge routers; the MoonPay ramp
+> needs a partner key. These are validated (packages install, APIs confirmed —
+> e.g. ERC-4337 uses Safe accounts via `abstractionkit` with offline
+> `predictSafeAddress`) and scoped behind a single config object; they are
+> deliberately **not** wired with placeholder infra that would fail at runtime.
 
 ---
 
