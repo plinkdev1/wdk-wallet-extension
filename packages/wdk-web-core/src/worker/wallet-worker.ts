@@ -42,6 +42,7 @@ import type {
   EvmChainId,
   SolanaChainId,
   TonChainId,
+  TronChainId,
   SolanaSignature,
   TypedDataPayload,
   WalletWorkerApi,
@@ -53,7 +54,7 @@ export interface WalletWorkerOptions {
   readonly rpcAdapter?: RpcAdapter;
 }
 
-export class WalletWorker implements Pick<WalletWorkerApi, 'vault_hasStored' | 'vault_store' | 'vault_load' | 'vault_clear' | 'account_getEvmAddress' | 'account_getSolanaAddress' | 'account_signMessage' | 'account_signTypedData' | 'account_signSolanaMessage' | 'account_sendTransaction' | 'account_sendSolanaTransaction' | 'account_getBtcAddress' | 'account_getBtcBalance' | 'account_sendBtcTransaction' | 'account_getTonAddress' | 'account_getTonBalance' | 'account_sendTonTransaction' | 'rpc_getBalance' | 'rpc_getTokenBalance' | 'rpc_getTransactionStatus' | 'bip39_generateMnemonic' | 'bip39_validateMnemonic'> {
+export class WalletWorker implements Pick<WalletWorkerApi, 'vault_hasStored' | 'vault_store' | 'vault_load' | 'vault_clear' | 'account_getEvmAddress' | 'account_getSolanaAddress' | 'account_signMessage' | 'account_signTypedData' | 'account_signSolanaMessage' | 'account_sendTransaction' | 'account_sendSolanaTransaction' | 'account_getBtcAddress' | 'account_getBtcBalance' | 'account_sendBtcTransaction' | 'account_getTonAddress' | 'account_getTonBalance' | 'account_sendTonTransaction' | 'account_getTronAddress' | 'account_getTronBalance' | 'account_sendTronTransaction' | 'rpc_getBalance' | 'rpc_getTokenBalance' | 'rpc_getTransactionStatus' | 'bip39_generateMnemonic' | 'bip39_validateMnemonic'> {
   private readonly vault: WebCryptoVault;
   private readonly rpcAdapter: RpcAdapter | null;
   private wdk: WdkManager | null = null;
@@ -280,6 +281,46 @@ export class WalletWorker implements Pick<WalletWorkerApi, 'vault_hasStored' | '
     const result = await tonAccount.sendTransaction({ to, value });
     if (result && typeof result === 'object' && typeof result.hash === 'string') return result.hash;
     throw new Error('account_sendTonTransaction: unexpected return shape from WDK TON account');
+  }
+
+  /** Returns the account's Tron (base58 'T…') address. */
+  async account_getTronAddress(chain: TronChainId, index: number): Promise<string> {
+    if (!isSupportedChainId(chain)) {
+      throw new Error('Unsupported chain (no loader registered): ' + chain);
+    }
+    const wdk = this._requireWdk();
+    await ensureChainRegistered(wdk, chain);
+    const account = await wdk.getAccount(chain, index);
+    const tronAccount = account as unknown as { getAddress(): Promise<string> };
+    return tronAccount.getAddress();
+  }
+
+  /** Reads the account's Tron balance in sun (1 TRX = 1e6 sun). */
+  async account_getTronBalance(chain: TronChainId, index: number): Promise<bigint> {
+    if (!isSupportedChainId(chain)) {
+      throw new Error('Unsupported chain (no loader registered): ' + chain);
+    }
+    const wdk = this._requireWdk();
+    await ensureChainRegistered(wdk, chain);
+    const account = await wdk.getAccount(chain, index);
+    const tronAccount = account as unknown as { getBalance(): Promise<bigint> };
+    return tronAccount.getBalance();
+  }
+
+  /** Sends native TRX (value in sun) on a Tron chain; returns the tx hash. */
+  async account_sendTronTransaction(chain: TronChainId, index: number, to: string, value: bigint): Promise<string> {
+    if (!isSupportedChainId(chain)) {
+      throw new Error('Unsupported chain (no loader registered): ' + chain);
+    }
+    const wdk = this._requireWdk();
+    await ensureChainRegistered(wdk, chain);
+    const account = await wdk.getAccount(chain, index);
+    const tronAccount = account as unknown as {
+      sendTransaction(tx: { to: string; value: bigint }): Promise<{ hash: string }>;
+    };
+    const result = await tronAccount.sendTransaction({ to, value });
+    if (result && typeof result === 'object' && typeof result.hash === 'string') return result.hash;
+    throw new Error('account_sendTronTransaction: unexpected return shape from WDK Tron account');
   }
 
   async account_getEvmAddress(chain: EvmChainId, index: number): Promise<Hex> {

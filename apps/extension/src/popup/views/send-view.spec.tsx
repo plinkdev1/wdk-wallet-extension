@@ -107,6 +107,23 @@ describe('SendView', () => {
     }));
   });
 
+  it('sends native TRX (6-decimal sun) via ACCOUNT_SEND_TRON_TRANSACTION', async () => {
+    sendMock.mockResolvedValue('trontxhash');
+    render(<SendView chain="tron-mainnet" kind="tron" symbol="TRX" accountIndex={0} onBack={() => {}} />);
+    expect(screen.getByText('Send TRX')).toBeInTheDocument();
+    fireEvent.change(screen.getByPlaceholderText('T… address'), { target: { value: 'TQn9Y2khEsLJW1ChVWFMSMeRDow5KcbLSE' } });
+    fireEvent.change(screen.getByPlaceholderText('0.0'), { target: { value: '5' } }); // 5 TRX = 5_000_000 sun
+    fireEvent.click(screen.getByText('Review & send'));
+    await waitFor(() => expect(screen.getByText('trontxhash')).toBeInTheDocument());
+    expect(sendMock).toHaveBeenCalledWith(expect.objectContaining({
+      type: 'ACCOUNT_SEND_TRON_TRANSACTION',
+      chain: 'tron-mainnet',
+      accountIndex: 0,
+      to: 'TQn9Y2khEsLJW1ChVWFMSMeRDow5KcbLSE',
+      value: '5000000',
+    }));
+  });
+
   it('rejects an invalid Bitcoin address', () => {
     render(<SendView chain="bitcoin-mainnet" kind="bitcoin" symbol="BTC" accountIndex={0} onBack={() => {}} />);
     fireEvent.change(screen.getByPlaceholderText('bc1… or legacy address'), { target: { value: '0xdeadbeef' } });

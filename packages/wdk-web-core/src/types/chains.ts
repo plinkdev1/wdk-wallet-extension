@@ -121,14 +121,22 @@ export const TON_CHAIN_IDS = [
 /** TON chain identifiers. */
 export type TonChainId = typeof TON_CHAIN_IDS[number];
 
+/** Tron chain identifiers. BIP-44 coin type 195; @tetherto/wdk-wallet-tron. */
+export const TRON_CHAIN_IDS = [
+  'tron-mainnet',
+] as const satisfies readonly string[];
+
+/** Tron chain identifiers. */
+export type TronChainId = typeof TRON_CHAIN_IDS[number];
+
 /** Any supported chain identifier. */
-export type ChainId = EvmChainId | SolanaChainId | BtcChainId | TonChainId;
+export type ChainId = EvmChainId | SolanaChainId | BtcChainId | TonChainId | TronChainId;
 
 /**
  * Chain family discriminant - used for runtime routing in worker handlers
  * and for code-splitting boundaries in the chain-loader registry.
  */
-export type ChainFamily = 'evm' | 'solana' | 'bitcoin' | 'ton';
+export type ChainFamily = 'evm' | 'solana' | 'bitcoin' | 'ton' | 'tron';
 
 /** Map a ChainId to its family at the type level. */
 export type ChainFamilyOf<T extends ChainId> = T extends EvmChainId
@@ -139,4 +147,6 @@ export type ChainFamilyOf<T extends ChainId> = T extends EvmChainId
       ? 'bitcoin'
       : T extends TonChainId
         ? 'ton'
-        : never;
+        : T extends TronChainId
+          ? 'tron'
+          : never;

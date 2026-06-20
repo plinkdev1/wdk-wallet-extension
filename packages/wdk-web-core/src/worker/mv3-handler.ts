@@ -83,6 +83,9 @@ const ALLOWED_METHODS = {
   account_getTonAddress: true,
   account_getTonBalance: true,
   account_sendTonTransaction: true,
+  account_getTronAddress: true,
+  account_getTronBalance: true,
+  account_sendTronTransaction: true,
   bip39_generateMnemonic: true,
   bip39_validateMnemonic: true,
 } as const satisfies Record<keyof WalletWorkerApi, true>;

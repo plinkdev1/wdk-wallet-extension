@@ -26,12 +26,13 @@
 
 import { useCallback, useState } from 'react';
 import { Badge, Button, Card, ChainSelector, Label, NetworkIcon, TokenIcon, useActiveChain } from '@wdk-starter/wdk-ui';
-import type { BtcChainId, ChainId, EvmChainId, SolanaChainId, TonChainId } from '@wdk-starter/wdk-web-core/types';
+import type { BtcChainId, ChainId, EvmChainId, SolanaChainId, TonChainId, TronChainId } from '@wdk-starter/wdk-web-core/types';
 import { send } from '../lib/sw-client.js';
 import { useMainAccount } from '../hooks/use-main-account.js';
 import { useSolanaAccount } from '../hooks/use-solana-account.js';
 import { useBtcAccount } from '../hooks/use-btc-account.js';
 import { useTonAccount } from '../hooks/use-ton-account.js';
+import { useTronAccount } from '../hooks/use-tron-account.js';
 import { useBalance, formatEthFromWei } from '../hooks/use-balance.js';
 import { useTokenBalances } from '../hooks/use-token-balances.js';
 import type { TokenInfo } from '../lib/tokens.js';
@@ -132,7 +133,8 @@ export function MainView({ onLockRequested, onOpenSettings }: MainViewProps): JS
   const isSolanaChain = activeChain === 'solana-mainnet' || activeChain === 'solana-devnet' || activeChain === 'solana-testnet';
   const isBitcoinChain = activeChain === 'bitcoin-mainnet' || activeChain === 'bitcoin-testnet';
   const isTonChain = activeChain === 'ton-mainnet';
-  const isEvmChain = !isSolanaChain && !isBitcoinChain && !isTonChain;
+  const isTronChain = activeChain === 'tron-mainnet';
+  const isEvmChain = !isSolanaChain && !isBitcoinChain && !isTonChain && !isTronChain;
   const evmChain: EvmChainId = isEvmChain ? (activeChain as EvmChainId) : 'ethereum';
   // B1-2 polish: derive currency symbol from active chain so the balance label
   // shows the right unit (ETH on L1/L2 ETH chains, MATIC on Polygon, BNB on BSC,
@@ -163,6 +165,11 @@ export function MainView({ onLockRequested, onOpenSettings }: MainViewProps): JS
   const { state: tonAccountState } = useTonAccount(
     isTonChain
       ? { chain: activeChain as TonChainId, accountIndex, enabled: true }
+      : { enabled: false },
+  );
+  const { state: tronAccountState } = useTronAccount(
+    isTronChain
+      ? { chain: activeChain as TronChainId, accountIndex, enabled: true }
       : { enabled: false },
   );
   const [locking, setLocking] = useState(false);
@@ -202,7 +209,9 @@ export function MainView({ onLockRequested, onOpenSettings }: MainViewProps): JS
       ? (btcAccountState.status === 'ready' ? btcAccountState.address : null)
       : isTonChain
         ? (tonAccountState.status === 'ready' ? tonAccountState.address : null)
-        : (accountState.status === 'ready' ? accountState.address : null);
+        : isTronChain
+          ? (tronAccountState.status === 'ready' ? tronAccountState.address : null)
+          : (accountState.status === 'ready' ? accountState.address : null);
 
   if (subView === 'receive' && activeAddress) {
     return (
@@ -217,8 +226,8 @@ export function MainView({ onLockRequested, onOpenSettings }: MainViewProps): JS
   if (subView === 'send') {
     return (
       <SendView
-        chain={isSolanaChain ? (activeChain as SolanaChainId) : isBitcoinChain ? (activeChain as BtcChainId) : isTonChain ? (activeChain as TonChainId) : evmChain}
-        kind={isSolanaChain ? 'solana' : isBitcoinChain ? 'bitcoin' : isTonChain ? 'ton' : 'evm'}
+        chain={isSolanaChain ? (activeChain as SolanaChainId) : isBitcoinChain ? (activeChain as BtcChainId) : isTonChain ? (activeChain as TonChainId) : isTronChain ? (activeChain as TronChainId) : evmChain}
+        kind={isSolanaChain ? 'solana' : isBitcoinChain ? 'bitcoin' : isTonChain ? 'ton' : isTronChain ? 'tron' : 'evm'}
         symbol={sendToken ? sendToken.symbol : activeSymbol}
         token={isEvmChain && sendToken ? { address: sendToken.address, decimals: sendToken.decimals } : null}
         accountIndex={accountIndex}
@@ -394,6 +403,51 @@ export function MainView({ onLockRequested, onOpenSettings }: MainViewProps): JS
               Send
             </Button>
             <Button variant="secondary" onClick={() => setSubView('receive')} disabled={tonAccountState.status !== 'ready'} style={{ flex: 1 }}>
+              Receive
+            </Button>
+          </div>
+
+          <Button variant="ghost" size="sm" onClick={() => setSubView('activity')} style={{ alignSelf: 'center' }}>
+            Activity ›
+          </Button>
+        </>
+      )}
+
+      {isTronChain && (
+        <>
+          <Card>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10, padding: 14 }}>
+              <Label>Tron address</Label>
+              {tronAccountState.status === 'loading' && (
+                <div style={{ fontSize: 12, opacity: 0.6 }}>Loading address…</div>
+              )}
+              {tronAccountState.status === 'error' && (
+                <div role="alert" style={{ fontSize: 12, color: 'var(--color-error, #EF4444)', lineHeight: 1.4, wordBreak: 'break-word' }}>
+                  Failed to load address: {tronAccountState.error}
+                </div>
+              )}
+              {tronAccountState.status === 'ready' && (
+                <>
+                  <code style={{ fontSize: 11, wordBreak: 'break-all' }}>{tronAccountState.address}</code>
+                  <div style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
+                    <span style={{ fontSize: 22, fontWeight: 600 }}>
+                      {tronAccountState.balanceSun === null ? '—' : formatTokenAmount(tronAccountState.balanceSun, 6)}
+                    </span>
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><TokenIcon symbol={activeSymbol} size={14} /><span style={{ fontSize: 13, opacity: 0.6 }}>{activeSymbol}</span></span>
+                  </div>
+                </>
+              )}
+              <div style={{ fontSize: 11, opacity: 0.55, lineHeight: 1.4 }}>
+                Balance &amp; send via TronGrid (public endpoint; set your own for production).
+              </div>
+            </div>
+          </Card>
+
+          <div style={{ display: 'flex', gap: 10 }}>
+            <Button onClick={() => { setSendToken(null); setSubView('send'); }} disabled={tronAccountState.status !== 'ready'} style={{ flex: 1 }}>
+              Send
+            </Button>
+            <Button variant="secondary" onClick={() => setSubView('receive')} disabled={tronAccountState.status !== 'ready'} style={{ flex: 1 }}>
               Receive
             </Button>
           </div>

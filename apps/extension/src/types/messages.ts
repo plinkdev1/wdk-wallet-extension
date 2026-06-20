@@ -23,11 +23,11 @@
  */
 
 import type { Hex } from 'viem';
-import type { BtcChainId, ChainId, EvmChainId, SolanaChainId, TonChainId } from '@wdk-starter/wdk-web-core/types';
+import type { BtcChainId, ChainId, EvmChainId, SolanaChainId, TonChainId, TronChainId } from '@wdk-starter/wdk-web-core/types';
 import type { Eip1193Response } from './dapp-messages.js';
 import type { ApprovalRequest } from '../background/approval-flow.js';
 
-export type { BtcChainId, ChainId, EvmChainId, SolanaChainId, TonChainId };
+export type { BtcChainId, ChainId, EvmChainId, SolanaChainId, TonChainId, TronChainId };
 
 export type WalletMessage =
   // Health / lifecycle
@@ -60,6 +60,10 @@ export type WalletMessage =
   | { type: 'ACCOUNT_GET_TON_ADDRESS'; chain: TonChainId; accountIndex: number }
   | { type: 'ACCOUNT_GET_TON_BALANCE'; chain: TonChainId; accountIndex: number }
   | { type: 'ACCOUNT_SEND_TON_TRANSACTION'; chain: TonChainId; accountIndex: number; to: string; value: string }
+  // Tron (value is sun as a decimal string)
+  | { type: 'ACCOUNT_GET_TRON_ADDRESS'; chain: TronChainId; accountIndex: number }
+  | { type: 'ACCOUNT_GET_TRON_BALANCE'; chain: TronChainId; accountIndex: number }
+  | { type: 'ACCOUNT_SEND_TRON_TRANSACTION'; chain: TronChainId; accountIndex: number; to: string; value: string }
   // RPC
   | { type: 'RPC_GET_BALANCE'; chain: ChainId; address: string }
   | { type: 'RPC_GET_TOKEN_BALANCE'; chain: ChainId; address: string; tokenAddress: string }
@@ -100,6 +104,9 @@ export type WalletResponseData = {
   ACCOUNT_GET_TON_ADDRESS: string;
   ACCOUNT_GET_TON_BALANCE: string;
   ACCOUNT_SEND_TON_TRANSACTION: string;
+  ACCOUNT_GET_TRON_ADDRESS: string;
+  ACCOUNT_GET_TRON_BALANCE: string;
+  ACCOUNT_SEND_TRON_TRANSACTION: string;
   RPC_GET_BALANCE: string;
   RPC_GET_TOKEN_BALANCE: string;
   RPC_GET_TRANSACTION_STATUS: 'pending' | 'success' | 'failed';

@@ -10,18 +10,18 @@
 
 import { useCallback, useState } from 'react';
 import { Button, Card, Input, Label } from '@wdk-starter/wdk-ui';
-import type { BtcChainId, EvmChainId, SolanaChainId, TonChainId } from '@wdk-starter/wdk-web-core/types';
+import type { BtcChainId, EvmChainId, SolanaChainId, TonChainId, TronChainId } from '@wdk-starter/wdk-web-core/types';
 import { send } from '../lib/sw-client.js';
 import { addTransaction } from '../hooks/use-transactions.js';
 import { encodeErc20Transfer } from '../lib/erc20.js';
 
 export interface SendViewProps {
-  readonly chain: EvmChainId | SolanaChainId | BtcChainId | TonChainId;
+  readonly chain: EvmChainId | SolanaChainId | BtcChainId | TonChainId | TronChainId;
   readonly symbol: string;
   /** The active account index to send from (BIP-44 derivation). */
   readonly accountIndex: number;
   /** Asset kind — selects address format, decimals, and the send message. Defaults to 'evm'. */
-  readonly kind?: 'evm' | 'solana' | 'bitcoin' | 'ton';
+  readonly kind?: 'evm' | 'solana' | 'bitcoin' | 'ton' | 'tron';
   /** When set (EVM only), sends this ERC-20 token via transfer() calldata instead of native value. */
   readonly token?: { readonly address: string; readonly decimals: number } | null;
   readonly onBack: () => void;
@@ -36,6 +36,8 @@ const SOLANA_ADDRESS = /^[1-9A-HJ-NP-Za-km-z]{32,44}$/;
 const BTC_ADDRESS = /^(bc1|tb1)[0-9ac-hj-np-z]{11,87}$|^[123mn2][a-km-zA-HJ-NP-Z1-9]{25,39}$/;
 // TON: user-friendly base64url (48 chars, e.g. EQ…/UQ…) or raw workchain:hex.
 const TON_ADDRESS = /^[A-Za-z0-9_-]{48}$|^-?\d:[0-9a-fA-F]{64}$/;
+// Tron: base58check, 'T' + 33 chars.
+const TRON_ADDRESS = /^T[1-9A-HJ-NP-Za-km-z]{33}$/;
 
 /** Parses a decimal amount into a base-unit bigint with the given decimals. */
 function parseAmount(input: string, decimals: number): bigint {
@@ -62,18 +64,20 @@ export function SendView({ chain, symbol, accountIndex, kind = 'evm', token, onB
   const isSolana = kind === 'solana';
   const isBitcoin = kind === 'bitcoin';
   const isTon = kind === 'ton';
+  const isTron = kind === 'tron';
 
   const handleSend = useCallback(async (): Promise<void> => {
     setError(null);
-    const decimals = token ? token.decimals : isSolana ? 9 : isBitcoin ? 8 : isTon ? 9 : 18;
+    const decimals = token ? token.decimals : isSolana ? 9 : isBitcoin ? 8 : isTon ? 9 : isTron ? 6 : 18;
     const recipient = to.trim();
-    const addressRe = isSolana ? SOLANA_ADDRESS : isBitcoin ? BTC_ADDRESS : isTon ? TON_ADDRESS : EVM_ADDRESS;
+    const addressRe = isSolana ? SOLANA_ADDRESS : isBitcoin ? BTC_ADDRESS : isTon ? TON_ADDRESS : isTron ? TRON_ADDRESS : EVM_ADDRESS;
     if (!addressRe.test(recipient)) {
       setError(
         isSolana ? 'Enter a valid Solana address (base58).'
           : isBitcoin ? 'Enter a valid Bitcoin address (bech32 or legacy).'
             : isTon ? 'Enter a valid TON address.'
-              : 'Enter a valid recipient address (0x…40 hex).',
+              : isTron ? 'Enter a valid Tron address (T…).'
+                : 'Enter a valid recipient address (0x…40 hex).',
       );
       return;
     }
@@ -98,6 +102,8 @@ export function SendView({ chain, symbol, accountIndex, kind = 'evm', token, onB
         hash = await send({ type: 'ACCOUNT_SEND_BTC_TRANSACTION', chain: chain as BtcChainId, accountIndex, to: recipient, value: value.toString() });
       } else if (isTon) {
         hash = await send({ type: 'ACCOUNT_SEND_TON_TRANSACTION', chain: chain as TonChainId, accountIndex, to: recipient, value: value.toString() });
+      } else if (isTron) {
+        hash = await send({ type: 'ACCOUNT_SEND_TRON_TRANSACTION', chain: chain as TronChainId, accountIndex, to: recipient, value: value.toString() });
       } else if (token) {
         // ERC-20 transfer: call the token contract with transfer() calldata, value 0.
         hash = await send({ type: 'ACCOUNT_SEND_TRANSACTION', chain: chain as EvmChainId, accountIndex, to: token.address, value: '0', data: encodeErc20Transfer(recipient, value) });
@@ -111,7 +117,7 @@ export function SendView({ chain, symbol, accountIndex, kind = 'evm', token, onB
       setError(e instanceof Error ? e.message : 'Transaction failed.');
       setPhase({ status: 'form' });
     }
-  }, [to, amount, chain, accountIndex, isSolana, isBitcoin, isTon, token, symbol, onSent]);
+  }, [to, amount, chain, accountIndex, isSolana, isBitcoin, isTon, isTron, token, symbol, onSent]);
 
   return (
     <div style={{ padding: 20, display: 'flex', flexDirection: 'column', gap: 16, flex: 1, fontFamily: 'var(--font-body)', color: 'var(--text-primary)' }}>
@@ -125,7 +131,7 @@ export function SendView({ chain, symbol, accountIndex, kind = 'evm', token, onB
           <div style={{ display: 'flex', flexDirection: 'column', gap: 14, padding: 16 }}>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
               <Label>Recipient address</Label>
-              <Input value={to} onChange={(e) => setTo(e.target.value)} placeholder={isSolana ? 'Base58 address' : isBitcoin ? 'bc1… or legacy address' : isTon ? 'EQ… / UQ… address' : '0x…'} />
+              <Input value={to} onChange={(e) => setTo(e.target.value)} placeholder={isSolana ? 'Base58 address' : isBitcoin ? 'bc1… or legacy address' : isTon ? 'EQ… / UQ… address' : isTron ? 'T… address' : '0x…'} />
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
               <Label>Amount ({symbol})</Label>
