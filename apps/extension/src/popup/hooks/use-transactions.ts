@@ -29,8 +29,8 @@ export interface TxRecord {
   readonly decimals: number;
   /** Unix milliseconds when broadcast. */
   readonly ts: number;
-  /** Local status. 'submitted' until confirmation is observed on an explorer. */
-  readonly status: 'submitted';
+  /** Lifecycle status. 'submitted' on broadcast; resolved by on-chain polling. */
+  readonly status: 'submitted' | 'pending' | 'success' | 'failed';
 }
 
 function read(): TxRecord[] {
@@ -60,6 +60,20 @@ export function addTransaction(tx: Omit<TxRecord, 'status'>): void {
 /** Clears all stored history. */
 export function clearTransactions(): void {
   write([]);
+}
+
+/** Updates the persisted status of a transaction by hash (no-op if absent). */
+export function updateTransactionStatus(hash: string, status: TxRecord['status']): void {
+  const txs = read();
+  let changed = false;
+  const next = txs.map((t) => {
+    if (t.hash === hash && t.status !== status) {
+      changed = true;
+      return { ...t, status };
+    }
+    return t;
+  });
+  if (changed) write(next);
 }
 
 export interface UseTransactionsResult {

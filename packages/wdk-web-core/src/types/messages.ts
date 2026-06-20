@@ -91,6 +91,7 @@ export interface WalletWorkerApi {
   // RPC operations
   rpc_getBalance(chain: ChainId, address: string): Promise<bigint>;
   rpc_getTokenBalance(chain: ChainId, address: string, tokenAddress: string): Promise<bigint>;
+  rpc_getTransactionStatus(chain: ChainId, hash: string): Promise<'pending' | 'success' | 'failed'>;
 }
 
 /**

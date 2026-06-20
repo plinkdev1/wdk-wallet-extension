@@ -145,5 +145,18 @@ export function createExtensionRpcAdapter(): RpcAdapter {
         args: [address as Address],
       });
     },
+    async getTransactionStatus(chain, hash) {
+      // EVM-only here: no override (e.g. Solana) → report pending (unreadable
+      // via this adapter). The Activity poller treats 'pending' as keep-trying.
+      const rpcUrl = EVM_RPC_OVERRIDES[chain];
+      if (!rpcUrl) return 'pending';
+      const client = getClient(chain);
+      try {
+        const receipt = await client.getTransactionReceipt({ hash: hash as `0x${string}` });
+        return receipt.status === 'success' ? 'success' : 'failed';
+      } catch {
+        return 'pending'; // not yet mined or transient RPC error
+      }
+    },
   };
 }

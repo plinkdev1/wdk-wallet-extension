@@ -26,11 +26,20 @@ import { createPublicClient, http, type Address, type PublicClient } from 'viem'
 import { CHAIN_LOADERS, isSupportedChainId } from '../chains/index.js';
 import type { ChainId } from '../types/index.js';
 
+/** Lifecycle of a broadcast transaction as observed on-chain. */
+export type TransactionStatus = 'pending' | 'success' | 'failed';
+
 export interface RpcAdapter {
   /** Native-token balance: wei for EVM, lamports for Solana. */
   getBalance(chain: ChainId, address: string): Promise<bigint>;
   /** Token balance in base units. EVM uses ERC-20 balanceOf; Solana is v1.1. */
   getTokenBalance(chain: ChainId, address: string, tokenAddress: string): Promise<bigint>;
+  /**
+   * On-chain status of a broadcast transaction. EVM reads the receipt
+   * (success/reverted); Solana reads signature statuses. 'pending' means not
+   * yet mined/confirmed (or temporarily unreadable) — safe to keep polling.
+   */
+  getTransactionStatus(chain: ChainId, hash: string): Promise<TransactionStatus>;
 }
 
 const ERC20_BALANCE_OF_ABI = [
@@ -103,7 +112,50 @@ export function createHttpRpcAdapter(): RpcAdapter {
       }
       throw new Error('Unknown chain family: ' + family);
     },
+
+    async getTransactionStatus(chain, hash) {
+      const { family, rpcUrl } = await resolveChainConfig(chain);
+      if (family === 'evm') {
+        const client = getEvmClient(chain, rpcUrl);
+        try {
+          const receipt = await client.getTransactionReceipt({ hash: hash as `0x${string}` });
+          return receipt.status === 'success' ? 'success' : 'failed';
+        } catch {
+          // Receipt not found yet (unmined) or transient RPC error — keep polling.
+          return 'pending';
+        }
+      }
+      if (family === 'solana') {
+        return getSolanaSignatureStatus(rpcUrl, hash);
+      }
+      throw new Error('Unknown chain family: ' + family);
+    },
   };
+}
+
+async function getSolanaSignatureStatus(rpcUrl: string, signature: string): Promise<TransactionStatus> {
+  let data: { result?: { value?: Array<{ confirmationStatus?: string; err?: unknown } | null> } };
+  try {
+    const response = await fetch(rpcUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        jsonrpc: '2.0',
+        id: 1,
+        method: 'getSignatureStatuses',
+        params: [[signature], { searchTransactionHistory: true }],
+      }),
+    });
+    if (!response.ok) return 'pending';
+    data = await response.json() as typeof data;
+  } catch {
+    return 'pending';
+  }
+  const entry = data.result?.value?.[0];
+  if (!entry) return 'pending';
+  if (entry.err) return 'failed';
+  if (entry.confirmationStatus === 'confirmed' || entry.confirmationStatus === 'finalized') return 'success';
+  return 'pending';
 }
 
 async function getSolanaNativeBalance(rpcUrl: string, address: string): Promise<bigint> {
@@ -140,6 +192,10 @@ export interface MockRpcAdapterOptions {
   readonly onGetBalance?: (chain: ChainId, address: string) => Promise<bigint> | bigint;
   /** Optional per-call handler for getTokenBalance. Overrides tokenBalances Map when provided. */
   readonly onGetTokenBalance?: (chain: ChainId, address: string, tokenAddress: string) => Promise<bigint> | bigint;
+  /** Pre-populated transaction statuses. Key format: 'chainId:hash'. Defaults to 'pending'. */
+  readonly transactionStatuses?: ReadonlyMap<string, TransactionStatus>;
+  /** Optional per-call handler for getTransactionStatus. Overrides the map when provided. */
+  readonly onGetTransactionStatus?: (chain: ChainId, hash: string) => Promise<TransactionStatus> | TransactionStatus;
 }
 
 /** In-memory mock RPC adapter. Used in tests + dev fixtures. No network. */
@@ -152,6 +208,10 @@ export function createMockRpcAdapter(options: MockRpcAdapterOptions = {}): RpcAd
     async getTokenBalance(chain, address, tokenAddress) {
       if (options.onGetTokenBalance) return options.onGetTokenBalance(chain, address, tokenAddress);
       return options.tokenBalances?.get(chain + ':' + address + ':' + tokenAddress) ?? 0n;
+    },
+    async getTransactionStatus(chain, hash) {
+      if (options.onGetTransactionStatus) return options.onGetTransactionStatus(chain, hash);
+      return options.transactionStatuses?.get(chain + ':' + hash) ?? 'pending';
     },
   };
 }

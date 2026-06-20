@@ -26,6 +26,21 @@ describe('rpc adapter', () => {
       expect(await adapter.getBalance('ethereum', '0xabc')).toBe(99n);
       expect(handler).toHaveBeenCalledWith('ethereum', '0xabc');
     });
+
+    it("defaults getTransactionStatus to 'pending' and reads the statuses Map", async () => {
+      const adapter = createMockRpcAdapter({
+        transactionStatuses: new Map([['ethereum:0xhash', 'success']]),
+      });
+      expect(await adapter.getTransactionStatus('ethereum', '0xunknown')).toBe('pending');
+      expect(await adapter.getTransactionStatus('ethereum', '0xhash')).toBe('success');
+    });
+
+    it('routes to onGetTransactionStatus handler when provided', async () => {
+      const handler = vi.fn(async () => 'failed' as const);
+      const adapter = createMockRpcAdapter({ onGetTransactionStatus: handler });
+      expect(await adapter.getTransactionStatus('ethereum', '0xhash')).toBe('failed');
+      expect(handler).toHaveBeenCalledWith('ethereum', '0xhash');
+    });
   });
 
   describe('createHttpRpcAdapter', () => {

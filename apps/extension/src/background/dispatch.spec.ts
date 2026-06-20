@@ -24,6 +24,7 @@ describe('SW message dispatcher (F-SEC-01 — Object.hasOwn whitelisting)', () =
       ACCOUNT_SEND_SOLANA_TRANSACTION: vi.fn(async () => 'soL1gnatureBase58'),
       RPC_GET_BALANCE: vi.fn(async () => '0'),
       RPC_GET_TOKEN_BALANCE: vi.fn(async () => '0'),
+      RPC_GET_TRANSACTION_STATUS: vi.fn(async () => 'pending' as const),
       DAPP_REQUEST: vi.fn(async () => ({ result: 'ok' })) as any,
       BIP39_GENERATE_MNEMONIC: vi.fn(async () => 'abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about') as any,
       BIP39_VALIDATE_MNEMONIC: vi.fn(async () => true) as any,

@@ -34,7 +34,7 @@ import {
   ensureChainRegistered,
   isSupportedChainId,
 } from '../chains/index.js';
-import type { RpcAdapter } from '../adapters/index.js';
+import type { RpcAdapter, TransactionStatus } from '../adapters/index.js';
 import type {
   Base58Address,
   ChainId,
@@ -51,7 +51,7 @@ export interface WalletWorkerOptions {
   readonly rpcAdapter?: RpcAdapter;
 }
 
-export class WalletWorker implements Pick<WalletWorkerApi, 'vault_hasStored' | 'vault_store' | 'vault_load' | 'vault_clear' | 'account_getEvmAddress' | 'account_getSolanaAddress' | 'account_signMessage' | 'account_signTypedData' | 'account_signSolanaMessage' | 'account_sendTransaction' | 'account_sendSolanaTransaction' | 'rpc_getBalance' | 'rpc_getTokenBalance' | 'bip39_generateMnemonic' | 'bip39_validateMnemonic'> {
+export class WalletWorker implements Pick<WalletWorkerApi, 'vault_hasStored' | 'vault_store' | 'vault_load' | 'vault_clear' | 'account_getEvmAddress' | 'account_getSolanaAddress' | 'account_signMessage' | 'account_signTypedData' | 'account_signSolanaMessage' | 'account_sendTransaction' | 'account_sendSolanaTransaction' | 'rpc_getBalance' | 'rpc_getTokenBalance' | 'rpc_getTransactionStatus' | 'bip39_generateMnemonic' | 'bip39_validateMnemonic'> {
   private readonly vault: WebCryptoVault;
   private readonly rpcAdapter: RpcAdapter | null;
   private wdk: WdkManager | null = null;
@@ -328,6 +328,18 @@ export class WalletWorker implements Pick<WalletWorkerApi, 'vault_hasStored' | '
       throw new Error('No RPC adapter configured on WalletWorker. Pass options.rpcAdapter (e.g. createHttpRpcAdapter() or createMockRpcAdapter()) to the constructor.');
     }
     return this.rpcAdapter.getTokenBalance(chain, address, tokenAddress);
+  }
+
+  /**
+   * Reads the on-chain status of a broadcast transaction (pending / success /
+   * failed). Delegates to the RPC adapter; powers the Activity tab's live
+   * status monitoring.
+   */
+  async rpc_getTransactionStatus(chain: ChainId, hash: string): Promise<TransactionStatus> {
+    if (!this.rpcAdapter) {
+      throw new Error('No RPC adapter configured on WalletWorker. Pass options.rpcAdapter (e.g. createHttpRpcAdapter() or createMockRpcAdapter()) to the constructor.');
+    }
+    return this.rpcAdapter.getTransactionStatus(chain, hash);
   }
 
   /**

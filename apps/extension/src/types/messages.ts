@@ -55,6 +55,7 @@ export type WalletMessage =
   // RPC
   | { type: 'RPC_GET_BALANCE'; chain: ChainId; address: string }
   | { type: 'RPC_GET_TOKEN_BALANCE'; chain: ChainId; address: string; tokenAddress: string }
+  | { type: 'RPC_GET_TRANSACTION_STATUS'; chain: ChainId; hash: string }
   // dApp pipeline (B4.3)
   | { type: 'DAPP_REQUEST'; id: string; origin: string; method: string; params?: readonly unknown[] }
   // Approval flow (B4.4)
@@ -87,6 +88,7 @@ export type WalletResponseData = {
   ACCOUNT_SEND_SOLANA_TRANSACTION: string;
   RPC_GET_BALANCE: string;
   RPC_GET_TOKEN_BALANCE: string;
+  RPC_GET_TRANSACTION_STATUS: 'pending' | 'success' | 'failed';
   DAPP_REQUEST: Eip1193Response;
   APPROVAL_GET_PENDING: ApprovalRequest | null;
   APPROVAL_RESPOND: { ok: boolean };

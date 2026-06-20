@@ -7,8 +7,9 @@
  */
 
 import { useMemo, useState } from 'react';
-import { Badge, Button, Card } from '@wdk-starter/wdk-ui';
+import { Button, Card } from '@wdk-starter/wdk-ui';
 import { useTransactions, type TxRecord } from '../hooks/use-transactions.js';
+import { useTransactionStatuses, type LiveStatus } from '../hooks/use-transaction-statuses.js';
 import { explorerTxUrl } from '../lib/explorers.js';
 
 export interface ActivityViewProps {
@@ -41,8 +42,17 @@ function truncate(addr: string): string {
   return addr.length > 14 ? `${addr.slice(0, 6)}…${addr.slice(-4)}` : addr;
 }
 
+/** Resolves the status shown for a row: live poll result first, then stored. */
+function effectiveStatus(tx: TxRecord, live: Record<string, LiveStatus>): LiveStatus {
+  const polled = live[tx.hash];
+  if (polled) return polled;
+  if (tx.status === 'success' || tx.status === 'failed') return tx.status;
+  return 'pending';
+}
+
 export function ActivityView({ onBack, chainName }: ActivityViewProps): JSX.Element {
   const { transactions } = useTransactions();
+  const liveStatuses = useTransactionStatuses(transactions);
   const [filter, setFilter] = useState<string>('all');
 
   const chains = useMemo(() => {
@@ -79,7 +89,7 @@ export function ActivityView({ onBack, chainName }: ActivityViewProps): JSX.Elem
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
           {visible.map((tx) => (
-            <TxRow key={tx.hash + tx.ts} tx={tx} chainLabel={nameOf(tx.chain)} />
+            <TxRow key={tx.hash + tx.ts} tx={tx} chainLabel={nameOf(tx.chain)} status={effectiveStatus(tx, liveStatuses)} />
           ))}
         </div>
       )}
@@ -87,7 +97,22 @@ export function ActivityView({ onBack, chainName }: ActivityViewProps): JSX.Elem
   );
 }
 
-function TxRow({ tx, chainLabel }: { tx: TxRecord; chainLabel: string }): JSX.Element {
+const STATUS_STYLE: Record<LiveStatus, { label: string; color: string }> = {
+  pending: { label: 'Pending', color: '#E3A008' },
+  success: { label: 'Confirmed', color: '#3FB950' },
+  failed: { label: 'Failed', color: '#EF4444' },
+};
+
+function StatusPill({ status }: { status: LiveStatus }): JSX.Element {
+  const s = STATUS_STYLE[status];
+  return (
+    <span style={{ fontSize: 10, fontWeight: 600, color: s.color, border: `1px solid ${s.color}`, borderRadius: 999, padding: '1px 7px' }}>
+      {s.label}
+    </span>
+  );
+}
+
+function TxRow({ tx, chainLabel, status }: { tx: TxRecord; chainLabel: string; status: LiveStatus }): JSX.Element {
   const url = explorerTxUrl(tx.chain, tx.hash);
   return (
     <Card>
@@ -96,13 +121,12 @@ function TxRow({ tx, chainLabel }: { tx: TxRecord; chainLabel: string }): JSX.El
           <span style={{ fontSize: 13 }}>Sent to {truncate(tx.to)}</span>
           <span style={{ fontSize: 11, opacity: 0.6 }}>{chainLabel} · {relativeTime(tx.ts)}</span>
         </div>
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 3 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 4 }}>
           <span style={{ fontSize: 13, fontWeight: 600 }}>-{formatBaseUnits(tx.value, tx.decimals)} {tx.symbol}</span>
-          {url ? (
-            <a href={url} target="_blank" rel="noreferrer" style={{ fontSize: 11 }}>view ↗</a>
-          ) : (
-            <Badge>{tx.status}</Badge>
-          )}
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+            <StatusPill status={status} />
+            {url && <a href={url} target="_blank" rel="noreferrer" style={{ fontSize: 11 }}>view ↗</a>}
+          </span>
         </div>
       </div>
     </Card>

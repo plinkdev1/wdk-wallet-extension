@@ -11,7 +11,7 @@ Reference implementation for the Tether WDK **Browser Extension Starter** bounty
 [![CI](https://github.com/plinkdev1/wdk-wallet-extension/actions/workflows/ci.yml/badge.svg)](https://github.com/plinkdev1/wdk-wallet-extension/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-F4642F.svg)](./LICENSE)
 [![Manifest V3](https://img.shields.io/badge/Manifest-V3-1f6feb.svg)](#architecture)
-[![Tests](https://img.shields.io/badge/tests-835%20passing-3fb950.svg)](#quality--testing)
+[![Tests](https://img.shields.io/badge/tests-839%20passing-3fb950.svg)](#quality--testing)
 
 </div>
 
@@ -21,7 +21,7 @@ Reference implementation for the Tether WDK **Browser Extension Starter** bounty
 
 WDK gives developers a powerful, framework-agnostic toolkit for building self-custodial wallets — but until now there was **no reference browser-extension implementation**. The browser extension is one of the most in-demand wallet formats (MetaMask, Phantom, Rabby), and building one correctly means solving a hard set of problems: Manifest V3 service-worker key custody, secure local storage, dApp injection standards, and an approval UX that users trust.
 
-This repository is that reference. It is not a toy: it ships a real WebCrypto-encrypted vault, real WDK-backed key derivation and signing across EVM and Solana, standards-compliant dApp connectivity (EIP-1193 + EIP-6963), and **835 passing automated tests**. It is engineered so that another team can fork it and ship a production wallet, or read it to learn how the pieces fit.
+This repository is that reference. It is not a toy: it ships a real WebCrypto-encrypted vault, real WDK-backed key derivation and signing across EVM and Solana, standards-compliant dApp connectivity (EIP-1193 + EIP-6963), and **839 passing automated tests**. It is engineered so that another team can fork it and ship a production wallet, or read it to learn how the pieces fit.
 
 > **Engineering philosophy:** the wallet is the *product*, but the leverage is the *architecture*. All wallet logic lives in two reusable, framework-agnostic packages (`wdk-web-core` engine + `wdk-ui` component library). The extension is the first surface to consume them; the same packages power the [WDK Template Wallet](https://github.com/plinkdev1/wdk-wallet-template) and other WDK reference products. Build once, ship everywhere.
 
@@ -70,7 +70,7 @@ This repository is that reference. It is not a toy: it ships a real WebCrypto-en
 - Clean, dark-mode-first popup UI with a reusable component library, theming, and a brand picker.
 - Guided onboarding (create / import), unlock screen with adaptive feedback, and a dashboard with live balances.
 - **Send** (recipient + amount, validated, signed & broadcast via WDK) and **Receive** (QR code + copyable address) flows.
-- **Activity** — persistent transaction history with per-chain filtering and live explorer links.
+- **Activity** — persistent transaction history with per-chain filtering, **real-time status monitoring** (Pending → Confirmed/Failed via on-chain polling), and explorer links.
 - **Token balances + transfers** — USDt & XAUt (and other configured ERC-20s) shown per chain, and sendable via `transfer()` calldata (tap a token to send).
 
 ---
@@ -226,10 +226,10 @@ This repository is transparent about what is implemented vs. planned — see the
 
 | Package | Tests | Typecheck |
 |---|---|---|
-| `@wdk-starter/wdk-web-core` | 97 ✅ | strict, clean |
+| `@wdk-starter/wdk-web-core` | 100 ✅ | strict, clean |
 | `@wdk-starter/wdk-ui` | 350 ✅ | strict, clean |
-| `@wdk-starter/extension` | 388 ✅ | strict, clean |
-| **Total** | **835 ✅** | |
+| `@wdk-starter/extension` | 389 ✅ | strict, clean |
+| **Total** | **839 ✅** | |
 
 TypeScript runs in **strict** mode with `noUncheckedIndexedAccess` and `exactOptionalPropertyTypes` everywhere. CI (`.github/workflows/ci.yml`) runs typecheck + tests + build on every push. A derivation regression test pins a known mnemonic to a known address so any drift in the signing stack fails loudly.
 
@@ -254,7 +254,7 @@ pnpm typecheck     # strict typecheck, all packages
 The wallet is a living reference implementation. Near-term, high-value increments:
 
 1. **Indexer-backed assets** — token balances and transfers ship today (tap-to-send); next is auto-discovery of arbitrary held tokens and richer history via the indexer adapter.
-3. **In-wallet status polling** — transaction history with per-chain filtering ships today (with explorer links for live status); in-wallet receipt confirmation tracking is the next step.
+3. **Deeper monitoring** — Activity ships history, per-chain filtering, and real-time status (EVM receipts + Solana signature statuses) today; next is push-style updates and richer per-tx detail views.
 4. **Bitcoin & Lightning** — native BTC and Lightning (Spark) accounts via the corresponding WDK wallet packages.
 5. **Multiple wallets** — more than one independent seed per installation.
 
