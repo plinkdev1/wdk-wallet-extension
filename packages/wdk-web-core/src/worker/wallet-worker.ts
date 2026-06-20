@@ -62,6 +62,12 @@ import {
   type MoonPayConfig,
   type MoonPayBuyQuote,
 } from '../protocols/moonpay.js';
+import {
+  createErc4337Manager,
+  gasConfig,
+  normalizeErc4337Result,
+  type Erc4337SendResult,
+} from '../protocols/erc4337.js';
 import type { RpcAdapter, TransactionStatus } from '../adapters/index.js';
 import { CoingeckoPricingClient } from '@tetherto/wdk-pricing-coingecko-http';
 import type {
@@ -87,6 +93,19 @@ export interface WalletWorkerOptions {
    * present and ready; only the app's own key is missing.
    */
   readonly moonpayConfig?: MoonPayConfig;
+  /**
+   * Optional ERC-4337 config (app-supplied bundler/paymaster URLs + a per-chain
+   * RPC provider resolver). If omitted, erc4337_* methods report "not
+   * configured" — the smart-account integration is present and ready.
+   */
+  readonly erc4337Config?: Erc4337WorkerConfig;
+}
+
+export interface Erc4337WorkerConfig {
+  readonly bundlerUrl: string;
+  readonly paymasterUrl?: string;
+  /** Resolves the RPC provider URL for a chain (reuses the wallet's RPC config). */
+  readonly providerFor: (chain: string) => string | undefined;
 }
 
 /** Symbol → CoinGecko id for USD pricing. Small by design; extend as assets are added. */
@@ -108,12 +127,21 @@ export class WalletWorker implements Pick<WalletWorkerApi, 'vault_hasStored' | '
   private readonly vault: WebCryptoVault;
   private readonly rpcAdapter: RpcAdapter | null;
   private readonly moonpayConfig: MoonPayConfig | null;
+  private readonly erc4337Config: Erc4337WorkerConfig | null;
   private wdk: WdkManager | null = null;
+  /**
+   * Retained decrypted mnemonic, set on vault_load and cleared on lock/clear.
+   * Needed to construct an ERC-4337 smart-account manager on demand. It is the
+   * same secret WdkManager already holds, in the same in-memory worklet — the
+   * trust boundary is unchanged.
+   */
+  private _mnemonic: string | null = null;
 
   constructor(options: WalletWorkerOptions = {}) {
     this.vault = options.vault ?? createWebCryptoVault();
     this.rpcAdapter = options.rpcAdapter ?? null;
     this.moonpayConfig = options.moonpayConfig ?? null;
+    this.erc4337Config = options.erc4337Config ?? null;
   }
 
   /**
@@ -153,6 +181,7 @@ export class WalletWorker implements Pick<WalletWorkerApi, 'vault_hasStored' | '
       if (WdkManager.isValidSeed(mnemonic)) {
         this.wdk?.dispose();
         this.wdk = new WdkManager(mnemonic);
+        this._mnemonic = mnemonic; // retained for on-demand ERC-4337 manager construction
       }
     } catch {
       // Silent - contract honors returning the bytes regardless.
@@ -163,6 +192,7 @@ export class WalletWorker implements Pick<WalletWorkerApi, 'vault_hasStored' | '
   async vault_clear(): Promise<void> {
     this.wdk?.dispose();
     this.wdk = null;
+    this._mnemonic = null;
     await this.vault.clear();
   }
 
@@ -186,6 +216,7 @@ export class WalletWorker implements Pick<WalletWorkerApi, 'vault_hasStored' | '
   async lock(): Promise<void> {
     this.wdk?.dispose();
     this.wdk = null;
+    this._mnemonic = null;
   }
 
   /**
@@ -661,6 +692,49 @@ export class WalletWorker implements Pick<WalletWorkerApi, 'vault_hasStored' | '
     const mp = createMoonPayProtocol(this.moonpayConfig);
     const { buyUrl } = await mp.buy({ fiatCurrency, cryptoAsset, baseCurrencyAmount: fiatAmount, walletAddress: recipient });
     return buyUrl;
+  }
+
+  /** Whether an ERC-4337 bundler is configured by the host app. */
+  async erc4337_isConfigured(): Promise<boolean> {
+    return Boolean(this.erc4337Config?.bundlerUrl);
+  }
+
+  /** Builds an ERC-4337 smart account at (chain, index) from the retained seed. */
+  private async _smartAccount(chain: EvmChainId, index: number) {
+    const cfg = this.erc4337Config;
+    if (!cfg?.bundlerUrl) {
+      throw new Error('ERC-4337 is not configured. Set VITE_BUNDLER_URL (and optionally VITE_PAYMASTER_URL) to enable smart accounts.');
+    }
+    if (!this._mnemonic) throw new Error('WalletWorker: locked. Call vault_load(password) first.');
+    const providerUrl = cfg.providerFor(chain);
+    if (!providerUrl) throw new Error('No RPC provider configured for chain: ' + chain);
+    const manager = createErc4337Manager(this._mnemonic, providerUrl, { bundlerUrl: cfg.bundlerUrl, ...(cfg.paymasterUrl ? { paymasterUrl: cfg.paymasterUrl } : {}) });
+    return manager.getAccount(index);
+  }
+
+  /** The counterfactual smart-account address at (chain, index). */
+  async erc4337_getAddress(chain: EvmChainId, index: number): Promise<string> {
+    const account = await this._smartAccount(chain, index);
+    return account.getAddress();
+  }
+
+  /** The smart account's native balance (wei). */
+  async erc4337_getBalance(chain: EvmChainId, index: number): Promise<bigint> {
+    const account = await this._smartAccount(chain, index);
+    return BigInt(await account.getBalance());
+  }
+
+  /** Quotes the gas fee for a gasless send (pays in `paymasterToken` if given). */
+  async erc4337_quoteSend(chain: EvmChainId, index: number, to: string, value: bigint, paymasterToken?: string): Promise<bigint> {
+    const account = await this._smartAccount(chain, index);
+    const raw = await account.quoteSendTransaction({ to, value }, gasConfig(paymasterToken));
+    return normalizeErc4337Result(raw).fee;
+  }
+
+  /** Sends a gasless native transfer as a UserOperation via the bundler. */
+  async erc4337_sendTransaction(chain: EvmChainId, index: number, to: string, value: bigint, paymasterToken?: string): Promise<Erc4337SendResult> {
+    const account = await this._smartAccount(chain, index);
+    return normalizeErc4337Result(await account.sendTransaction({ to, value }, gasConfig(paymasterToken)));
   }
 
   /**
