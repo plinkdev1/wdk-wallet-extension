@@ -29,7 +29,7 @@ blocks and sequenced them into the roadmap below:
 | Solana accounts | `@tetherto/wdk-wallet-solana` | ✅ shipped |
 | Bitcoin accounts (BIP-84) | `@tetherto/wdk-wallet-btc` | ✅ shipped |
 | Gasless stablecoin transfers | `@tetherto/wdk-protocol-eip3009` *(our module)* | ✅ shipped |
-| Lightning / Spark | `@tetherto/wdk-wallet-spark` | ⏳ Phase 2 |
+| Lightning / Spark | `@tetherto/wdk-wallet-spark` | ⏳ Phase 2 (validated; needs MV3 bundler shim) |
 | Account abstraction (ERC-4337) | `@tetherto/wdk-wallet-evm-erc-4337` | ⏳ Phase 3 |
 | TON / TON-gasless | `@tetherto/wdk-wallet-ton`, `-ton-gasless` | ⏳ Phase 3 |
 | Tron | `@tetherto/wdk-wallet-tron` | ⏳ Phase 3 |
@@ -64,8 +64,20 @@ The current build is a production-grade MV3 wallet, not a prototype:
 
 1. **Lightning / Spark** (`@tetherto/wdk-wallet-spark`) — instant, low-fee BTC
    payments. The Bitcoin base layer already ships; Spark adds an L2 account family
-   following the exact chain-loader pattern Bitcoin uses (`src/chains/spark-*.ts`
-   + worker `account_*Spark*` methods + a Lightning send/receive (invoice) UI).
+   following the exact chain-loader pattern Bitcoin uses (`src/chains/spark.ts`
+   + worker `account_*Spark*` methods + a Lightning send/receive (BOLT11 invoice) UI).
+
+   > **Validated, with one scoped blocker.** We installed the package and confirmed
+   > the account API (address, balance, `sendTransaction`, `createLightningInvoice`,
+   > `payLightningInvoice`). The engine wiring is a straight copy of the Bitcoin
+   > integration. The remaining task is **browser-bundling the Spark SDK for MV3**:
+   > `@buildonspark/spark-sdk` is Bare/Node/React-Native-first, and its dependency
+   > tree imports the extensionless `@noble/hashes/hmac` (removed in `@noble/hashes`
+   > v2, which only exports `./hmac.js`), so Vite resolves its Node build and fails.
+   > The fix is a Vite `resolve.alias` (`@noble/hashes/hmac` → `…/hmac.js`) plus a
+   > browser-condition pin to the SDK's `index.browser.js` — or consuming Spark via
+   > the **Bare worklet** path (how WDK intends it for mobile). Scoped as the first
+   > Phase-2 task; deliberately not rushed into the shipped build.
 2. **Fiat values** (`@tetherto/wdk-pricing-*`) — show balances and amounts in USD;
    a pricing adapter alongside the RPC/indexer adapters in `wdk-web-core`.
 3. **Token auto-discovery** — enumerate held ERC-20/SPL tokens via the indexer
