@@ -119,6 +119,15 @@ export function createSwHandlers({ engine, worker, approvalFlow, connectionState
       return worker.account_signSolanaMessage(msg.chain, msg.accountIndex, bytes);
     },
 
+    ACCOUNT_SEND_TRANSACTION: async (msg) => {
+      // User-initiated EVM transfer from the popup. value arrives as a base-unit
+      // decimal string (L-WIRE-03); WDK signs + broadcasts and returns the hash.
+      return worker.account_sendTransaction(msg.chain, msg.accountIndex, {
+        to: msg.to,
+        value: BigInt(msg.value),
+      });
+    },
+
     RPC_GET_BALANCE: async (msg) => {
       const balance = await worker.rpc_getBalance(msg.chain, msg.address);
       return balance.toString();

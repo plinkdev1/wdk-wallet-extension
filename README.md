@@ -11,7 +11,7 @@ Reference implementation for the Tether WDK **Browser Extension Starter** bounty
 [![CI](https://github.com/plinkdev1/wdk-wallet-extension/actions/workflows/ci.yml/badge.svg)](https://github.com/plinkdev1/wdk-wallet-extension/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-F4642F.svg)](./LICENSE)
 [![Manifest V3](https://img.shields.io/badge/Manifest-V3-1f6feb.svg)](#architecture)
-[![Tests](https://img.shields.io/badge/tests-811%20passing-3fb950.svg)](#quality--testing)
+[![Tests](https://img.shields.io/badge/tests-817%20passing-3fb950.svg)](#quality--testing)
 
 </div>
 
@@ -69,6 +69,7 @@ This repository is that reference. It is not a toy: it ships a real WebCrypto-en
 ### UX
 - Clean, dark-mode-first popup UI with a reusable component library, theming, and a brand picker.
 - Guided onboarding (create / import), unlock screen with adaptive feedback, and a dashboard with live balances.
+- **Send** (recipient + amount, validated, signed & broadcast via WDK) and **Receive** (QR code + copyable address) flows.
 
 ---
 
@@ -208,8 +209,8 @@ This repository is transparent about what is implemented vs. planned — see the
 |---|---|---|
 | `@wdk-starter/wdk-web-core` | 96 ✅ | strict, clean |
 | `@wdk-starter/wdk-ui` | 350 ✅ | strict, clean |
-| `@wdk-starter/extension` | 365 ✅ | strict, clean |
-| **Total** | **811 ✅** | |
+| `@wdk-starter/extension` | 371 ✅ | strict, clean |
+| **Total** | **817 ✅** | |
 
 TypeScript runs in **strict** mode with `noUncheckedIndexedAccess` and `exactOptionalPropertyTypes` everywhere. CI (`.github/workflows/ci.yml`) runs typecheck + tests + build on every push. A derivation regression test pins a known mnemonic to a known address so any drift in the signing stack fails loudly.
 
@@ -233,8 +234,7 @@ pnpm typecheck     # strict typecheck, all packages
 
 The wallet is a living reference implementation. Near-term, high-value increments:
 
-1. **Send & Receive UI** — receive (QR + copy) and a guided send wizard (paste / scan address, amount, review) for native and token assets.
-2. **Token assets** — USDt and XAUt ERC-20 balances and transfers via the indexer adapter.
+1. **Token assets** — USDt and XAUt ERC-20 balances and transfers (extending the existing native Send flow) via the indexer adapter.
 3. **Activity** — transaction history with filtering and real-time status monitoring.
 4. **Bitcoin & Lightning** — native BTC and Lightning (Spark) accounts via the corresponding WDK wallet packages.
 5. **Multiple wallets** — more than one independent seed per installation.

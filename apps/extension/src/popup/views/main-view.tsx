@@ -30,6 +30,8 @@ import type { ChainId, EvmChainId } from '@wdk-starter/wdk-web-core/types';
 import { send } from '../lib/sw-client.js';
 import { useMainAccount } from '../hooks/use-main-account.js';
 import { useBalance, formatEthFromWei } from '../hooks/use-balance.js';
+import { ReceiveView } from './receive-view.js';
+import { SendView } from './send-view.js';
 
 export interface MainViewProps {
   /**
@@ -119,6 +121,8 @@ export function MainView({ onLockRequested, onOpenSettings }: MainViewProps): JS
   // shows the right unit (ETH on L1/L2 ETH chains, MATIC on Polygon, BNB on BSC,
   // SOL on Solana once those chains land in the picker, etc.).
   const activeSymbol = CHAIN_OPTIONS.find((o) => o.id === activeChain)?.symbol ?? 'ETH';
+  const activeName = CHAIN_OPTIONS.find((o) => o.id === activeChain)?.name ?? 'this network';
+  const [subView, setSubView] = useState<'main' | 'receive' | 'send'>('main');
   const { state: accountState } = useMainAccount({ chain: evmChain });
   const { state: balanceState } = useBalance(
     !isSolanaChain && accountState.status === 'ready' ? { address: accountState.address, chain: evmChain } : {},
@@ -151,6 +155,28 @@ export function MainView({ onLockRequested, onOpenSettings }: MainViewProps): JS
       console.error('[MainView] clipboard write failed:', err);
     }
   }, [accountState]);
+
+  // Sub-views own the full surface; they're reached from the Send/Receive
+  // actions and only available on EVM chains with a derived address.
+  if (subView === 'receive' && accountState.status === 'ready') {
+    return (
+      <ReceiveView
+        address={accountState.address}
+        chainName={activeName}
+        symbol={activeSymbol}
+        onBack={() => setSubView('main')}
+      />
+    );
+  }
+  if (subView === 'send') {
+    return (
+      <SendView
+        chain={evmChain}
+        symbol={activeSymbol}
+        onBack={() => setSubView('main')}
+      />
+    );
+  }
 
   return (
     <div
@@ -289,6 +315,24 @@ export function MainView({ onLockRequested, onOpenSettings }: MainViewProps): JS
           )}
         </div>
       </Card>
+
+      <div style={{ display: 'flex', gap: 10 }}>
+        <Button
+          onClick={() => setSubView('send')}
+          disabled={accountState.status !== 'ready'}
+          style={{ flex: 1 }}
+        >
+          Send
+        </Button>
+        <Button
+          variant="secondary"
+          onClick={() => setSubView('receive')}
+          disabled={accountState.status !== 'ready'}
+          style={{ flex: 1 }}
+        >
+          Receive
+        </Button>
+      </div>
       </>)}
 
     </div>
