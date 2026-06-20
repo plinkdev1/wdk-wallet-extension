@@ -69,6 +69,12 @@ This repository is that reference. It is not a toy: it ships a real WebCrypto-en
 - **EIP-6963** multi-wallet announcement (coexists cleanly with MetaMask and other wallets).
 - Per-origin **connection allow-list** and a full **approval flow** (connect, `personal_sign`, `eth_signTypedData`, `eth_sendTransaction`, `wallet_addEthereumChain`) with dedicated review UIs.
 
+### DeFi protocols (EVM)
+- **Lending — Aave V3.** Supply, withdraw, borrow, and repay USDT/USDC on Ethereum, Polygon, and Arbitrum, with a live position panel (collateral, debt, borrow capacity, health factor) via `@tetherto/wdk-protocol-lending-aave-evm`.
+- **Swap — Velora (ParaSwap).** DEX-aggregated token swaps (USDT/USDC/WETH) with a quote step (expected output + fee) then execute, via `@tetherto/wdk-protocol-swap-velora-evm`.
+- **Bridge — USDT0.** Cross-chain USDT transfer over LayerZero OFT (Ethereum ⇄ Arbitrum) with the required approve handled for you, via `@tetherto/wdk-protocol-bridge-usdt0-evm`.
+- Each protocol runs on a plain EVM account over the configured RPC (**no bundler required**) and is bound to the keyed account **inside the service worker** — keys never cross the trust boundary. Each SDK is bundle-proven into the MV3 service worker. *(ERC-4337 gasless and the MoonPay on-ramp are engine-ready but gated on a bundler/paymaster and a partner key — see [ROADMAP.md](./ROADMAP.md).)*
+
 ### UX
 - Clean, dark-mode-first popup UI with a reusable component library, theming, and a brand picker.
 - Guided onboarding (create / import), unlock screen with adaptive feedback, and a dashboard with live balances.

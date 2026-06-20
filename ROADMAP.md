@@ -45,18 +45,23 @@ blocks and sequenced them into the roadmap below:
 Probed and confirmed from each package's deps/config. "You provide" = a key or
 endpoint that is deployment-specific and can't ship in an open-source repo.
 
-| Item | Engine work | You provide |
+| Item | Status | You provide |
 |---|---|---|
-| **ERC-4337** (`-evm-erc-4337`, abstractionkit/Safe) | chain-style loader + worker; `predictSafeAddress` is offline | a **bundler URL + paymaster** (config is required & validated) |
-| **Swap** (`-swap-velora-evm`, `@velora-dex/sdk`) | swap quote/execute on an EVM account + a swap UI | usually **nothing** (Velora public API) — optional partner key for higher limits |
-| **Lending** (`-lending-aave-evm`, on-chain Aave) | supply/borrow on Aave pools + a lending UI | just an **RPC** (contracts are on-chain via the Aave address-book) |
-| **Bridge** (`-bridge-usdt0-evm`, LayerZero) | cross-chain USDT0 transfer + a bridge UI | just **RPCs** for the chains involved |
-| **Fiat on-ramp** (`-fiat-moonpay`) | buy-crypto widget | a **MoonPay partner API key** (no keyless mode) |
+| **Lending** (`-lending-aave-evm`, Aave V3) | ✅ **SHIPPED** — engine + LendingView (supply/withdraw/borrow/repay + position) | nothing (public RPC) |
+| **Swap** (`-swap-velora-evm`, ParaSwap/Velora) | ✅ **SHIPPED** — engine + SwapView (quote → execute) | nothing (Velora public API) |
+| **Bridge** (`-bridge-usdt0-evm`, LayerZero OFT) | ✅ **SHIPPED** — engine + BridgeView (Ethereum ⇄ Arbitrum USDT0) | nothing (public RPCs) |
+| **ERC-4337** (`-evm-erc-4337`, abstractionkit/Safe) | engine-ready; `predictSafeAddress` is offline | a **bundler URL + paymaster** (config is required & validated) |
+| **Fiat on-ramp** (`-fiat-moonpay`) | scoped | a **MoonPay partner API key** (no keyless mode) |
 
-Each is a *new feature surface* (a swap/lending/bridge form), not a chain drop-in,
-and most pull in the ERC-4337 dependency for the optional account-abstraction path.
-They are scoped, validated, and ready to wire as soon as the endpoint/key above is
-supplied (Aave/Bridge/Velora can run on public infra today).
+The three **public-infra DeFi protocols are now live** — each a new feature
+surface (swap / lending / bridge form) running on a plain EVM account over the
+configured RPC, with the protocol bound to the keyed account **inside the
+worklet** so keys never cross the trust boundary. Each SDK was **bundle-proven**
+into the MV3 service worker before any UI was built (no Bare/Node failure;
+`@noble/hashes` stays at v1.x, so Bitcoin is unaffected). ERC-4337 (gasless,
+smart-account) and the MoonPay on-ramp remain gated on a bundler/paymaster and a
+partner key respectively — both are deployment-specific secrets that can't ship
+in an open-source repo.
 
 > **Self-contained vs. infrastructure-gated.** The shipped chains
 > (EVM/Solana/Bitcoin/TON/Tron) are *self-contained*: they work against public
