@@ -102,6 +102,8 @@ export function createStubHandlers(): HandlerRegistry {
     AAVE_REPAY: notImplemented('AAVE_REPAY'),
     VELORA_QUOTE_SWAP: notImplemented('VELORA_QUOTE_SWAP'),
     VELORA_SWAP: notImplemented('VELORA_SWAP'),
+    USDT0_QUOTE_BRIDGE: notImplemented('USDT0_QUOTE_BRIDGE'),
+    USDT0_BRIDGE: notImplemented('USDT0_BRIDGE'),
     DAPP_REQUEST: notImplemented('DAPP_REQUEST'),
     // B4.4: approval-flow handshake stubs (real impls in createSwHandlers).
     APPROVAL_GET_PENDING: notImplemented('APPROVAL_GET_PENDING'),

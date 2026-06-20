@@ -80,6 +80,9 @@ export type WalletMessage =
   // Velora (ParaSwap) DEX swaps (amounts are base-unit decimal strings; L-WIRE-03)
   | { type: 'VELORA_QUOTE_SWAP'; chain: EvmChainId; accountIndex: number; tokenIn: string; tokenOut: string; tokenInAmount: string }
   | { type: 'VELORA_SWAP'; chain: EvmChainId; accountIndex: number; tokenIn: string; tokenOut: string; tokenInAmount?: string; tokenOutAmount?: string }
+  // USDT0 cross-chain bridge (amount is a base-unit decimal string; L-WIRE-03)
+  | { type: 'USDT0_QUOTE_BRIDGE'; chain: EvmChainId; accountIndex: number; targetChain: string; recipient: string; token: string; amount: string; oftContractAddress: string }
+  | { type: 'USDT0_BRIDGE'; chain: EvmChainId; accountIndex: number; targetChain: string; recipient: string; token: string; amount: string; oftContractAddress: string }
   // dApp pipeline (B4.3)
   | { type: 'DAPP_REQUEST'; id: string; origin: string; method: string; params?: readonly unknown[] }
   // Approval flow (B4.4)
@@ -131,6 +134,8 @@ export type WalletResponseData = {
   AAVE_REPAY: AaveActionResultDto;
   VELORA_QUOTE_SWAP: VeloraQuoteDto;
   VELORA_SWAP: VeloraSwapResultDto;
+  USDT0_QUOTE_BRIDGE: { readonly fee: string };
+  USDT0_BRIDGE: { readonly hash: string; readonly fee: string; readonly approveHash?: string };
   DAPP_REQUEST: Eip1193Response;
   APPROVAL_GET_PENDING: ApprovalRequest | null;
   APPROVAL_RESPOND: { ok: boolean };

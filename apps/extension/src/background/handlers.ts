@@ -237,6 +237,15 @@ export function createSwHandlers({ engine, worker, approvalFlow, connectionState
       return { hash: r.hash, fee: r.fee.toString(), tokenInAmount: r.tokenInAmount.toString(), tokenOutAmount: r.tokenOutAmount.toString(), ...(r.approveHash ? { approveHash: r.approveHash } : {}) };
     },
 
+    USDT0_QUOTE_BRIDGE: async (msg) => {
+      const q = await worker.usdt0_quoteBridge(msg.chain, msg.accountIndex, msg.targetChain, msg.recipient, msg.token, BigInt(msg.amount), msg.oftContractAddress);
+      return { fee: q.fee.toString() };
+    },
+    USDT0_BRIDGE: async (msg) => {
+      const r = await worker.usdt0_bridge(msg.chain, msg.accountIndex, msg.targetChain, msg.recipient, msg.token, BigInt(msg.amount), msg.oftContractAddress);
+      return { hash: r.hash, fee: r.fee.toString(), ...(r.approveHash ? { approveHash: r.approveHash } : {}) };
+    },
+
     DAPP_REQUEST: async (msg) => {
       // ctx.id threads the DAPP_REQUEST envelope id through to approvalFlow.open()
       // so the popup's APPROVAL_GET_PENDING(id) call matches.
