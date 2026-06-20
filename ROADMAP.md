@@ -91,6 +91,17 @@ The current build is a production-grade MV3 wallet, not a prototype:
    > browser-condition pin to the SDK's `index.browser.js` — or consuming Spark via
    > the **Bare worklet** path (how WDK intends it for mobile). Scoped as the first
    > Phase-2 task; deliberately not rushed into the shipped build.
+   >
+   > **Shim attempt (recorded).** We tried the obvious fix — a Vite `resolve.alias`
+   > rewriting `@noble/hashes/<x>` → `@noble/hashes/<x>.js`. It **breaks the working
+   > Bitcoin build**: `@tetherto/wdk-wallet-btc` resolves `@noble/hashes` **v1**
+   > (which *does* expose the extensionless `./hmac`), so the alias points it at a
+   > `./hmac.js` that v1's export map doesn't publish. BTC and Spark import the same
+   > specifier but resolve different majors, so a *global* alias can't serve both.
+   > The clean fix is one of: (a) a custom `resolveId` Vite plugin that appends `.js`
+   > only when the extensionless path fails; (b) a monorepo-wide `@noble/hashes` v2
+   > override (risks bitcoinjs-lib's v1 assumptions); or (c) the Bare-worklet path.
+   > Reverted cleanly — the 5-chain build stays green.
 2. **Fiat values** (`@tetherto/wdk-pricing-*`) — show balances and amounts in USD;
    a pricing adapter alongside the RPC/indexer adapters in `wdk-web-core`.
 3. **Token auto-discovery** — enumerate held ERC-20/SPL tokens via the indexer
