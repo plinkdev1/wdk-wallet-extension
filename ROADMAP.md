@@ -40,6 +40,24 @@ blocks and sequenced them into the roadmap below:
 | Bridging (USDT0) | `@tetherto/wdk-protocol-bridge-usdt0-evm` | ⏳ Phase 4 (infrastructure-gated) |
 | Fiat on-ramp | `@tetherto/wdk-protocol-fiat-moonpay` | ⏳ Phase 4 (needs MoonPay key) |
 
+### What each infrastructure-gated item needs to go live
+
+Probed and confirmed from each package's deps/config. "You provide" = a key or
+endpoint that is deployment-specific and can't ship in an open-source repo.
+
+| Item | Engine work | You provide |
+|---|---|---|
+| **ERC-4337** (`-evm-erc-4337`, abstractionkit/Safe) | chain-style loader + worker; `predictSafeAddress` is offline | a **bundler URL + paymaster** (config is required & validated) |
+| **Swap** (`-swap-velora-evm`, `@velora-dex/sdk`) | swap quote/execute on an EVM account + a swap UI | usually **nothing** (Velora public API) — optional partner key for higher limits |
+| **Lending** (`-lending-aave-evm`, on-chain Aave) | supply/borrow on Aave pools + a lending UI | just an **RPC** (contracts are on-chain via the Aave address-book) |
+| **Bridge** (`-bridge-usdt0-evm`, LayerZero) | cross-chain USDT0 transfer + a bridge UI | just **RPCs** for the chains involved |
+| **Fiat on-ramp** (`-fiat-moonpay`) | buy-crypto widget | a **MoonPay partner API key** (no keyless mode) |
+
+Each is a *new feature surface* (a swap/lending/bridge form), not a chain drop-in,
+and most pull in the ERC-4337 dependency for the optional account-abstraction path.
+They are scoped, validated, and ready to wire as soon as the endpoint/key above is
+supplied (Aave/Bridge/Velora can run on public infra today).
+
 > **Self-contained vs. infrastructure-gated.** The shipped chains
 > (EVM/Solana/Bitcoin/TON/Tron) are *self-contained*: they work against public
 > RPC/Blockbook/TonCenter/TronGrid endpoints out of the box. **ERC-4337** and the
