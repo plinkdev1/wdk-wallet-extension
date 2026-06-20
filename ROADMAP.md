@@ -45,23 +45,24 @@ blocks and sequenced them into the roadmap below:
 Probed and confirmed from each package's deps/config. "You provide" = a key or
 endpoint that is deployment-specific and can't ship in an open-source repo.
 
-| Item | Status | You provide |
+| Item | Status | Dev configures |
 |---|---|---|
 | **Lending** (`-lending-aave-evm`, Aave V3) | ✅ **SHIPPED** — engine + LendingView (supply/withdraw/borrow/repay + position) | nothing (public RPC) |
 | **Swap** (`-swap-velora-evm`, ParaSwap/Velora) | ✅ **SHIPPED** — engine + SwapView (quote → execute) | nothing (Velora public API) |
 | **Bridge** (`-bridge-usdt0-evm`, LayerZero OFT) | ✅ **SHIPPED** — engine + BridgeView (Ethereum ⇄ Arbitrum USDT0) | nothing (public RPCs) |
-| **ERC-4337** (`-evm-erc-4337`, abstractionkit/Safe) | engine-ready; `predictSafeAddress` is offline | a **bundler URL + paymaster** (config is required & validated) |
-| **Fiat on-ramp** (`-fiat-moonpay`) | scoped | a **MoonPay partner API key** (no keyless mode) |
+| **ERC-4337** (`-evm-erc-4337`, smart accounts) | ✅ **SHIPPED** — engine + SmartAccountView (address, balance, gasless send) | own `VITE_BUNDLER_URL` (+ optional `VITE_PAYMASTER_URL`) |
+| **Fiat on-ramp** (`-fiat-moonpay`) | ✅ **SHIPPED** — engine + BuyView (quote → widget) | own `VITE_MOONPAY_API_KEY` (publishable) |
 
-The three **public-infra DeFi protocols are now live** — each a new feature
-surface (swap / lending / bridge form) running on a plain EVM account over the
-configured RPC, with the protocol bound to the keyed account **inside the
-worklet** so keys never cross the trust boundary. Each SDK was **bundle-proven**
-into the MV3 service worker before any UI was built (no Bare/Node failure;
-`@noble/hashes` stays at v1.x, so Bitcoin is unaffected). ERC-4337 (gasless,
-smart-account) and the MoonPay on-ramp remain gated on a bundler/paymaster and a
-partner key respectively — both are deployment-specific secrets that can't ship
-in an open-source repo.
+**All five protocol packages are now fully integrated** (engine + worker + UI +
+tests). As a **template standard** (not a branded product), each is wired so a
+downstream developer drops in their *own* infrastructure and it works — the
+ERC-4337 and MoonPay views render a clear "configure" notice until the dev sets
+the env var, then activate immediately (see [`.env.example`](./.env.example)). No
+provider key, bundler, or partner secret is hard-coded. Each protocol is bound to
+the keyed account **inside the worklet** so keys never cross the trust boundary,
+and every SDK was **bundle-proven** into the MV3 service worker before any UI was
+built (no Bare/Node failure; `@noble/hashes` stays at v1.x, so Bitcoin is
+unaffected).
 
 > **Self-contained vs. infrastructure-gated.** The shipped chains
 > (EVM/Solana/Bitcoin/TON/Tron) are *self-contained*: they work against public

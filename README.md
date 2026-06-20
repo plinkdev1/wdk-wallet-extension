@@ -69,11 +69,17 @@ This repository is that reference. It is not a toy: it ships a real WebCrypto-en
 - **EIP-6963** multi-wallet announcement (coexists cleanly with MetaMask and other wallets).
 - Per-origin **connection allow-list** and a full **approval flow** (connect, `personal_sign`, `eth_signTypedData`, `eth_sendTransaction`, `wallet_addEthereumChain`) with dedicated review UIs.
 
-### DeFi protocols (EVM)
+### DeFi, account-abstraction & on-ramp protocols (EVM)
+Every WDK protocol package is **fully integrated** (engine + worker + UI + tests). The three below need no keys:
 - **Lending — Aave V3.** Supply, withdraw, borrow, and repay USDT/USDC on Ethereum, Polygon, and Arbitrum, with a live position panel (collateral, debt, borrow capacity, health factor) via `@tetherto/wdk-protocol-lending-aave-evm`.
 - **Swap — Velora (ParaSwap).** DEX-aggregated token swaps (USDT/USDC/WETH) with a quote step (expected output + fee) then execute, via `@tetherto/wdk-protocol-swap-velora-evm`.
 - **Bridge — USDT0.** Cross-chain USDT transfer over LayerZero OFT (Ethereum ⇄ Arbitrum) with the required approve handled for you, via `@tetherto/wdk-protocol-bridge-usdt0-evm`.
-- Each protocol runs on a plain EVM account over the configured RPC (**no bundler required**) and is bound to the keyed account **inside the service worker** — keys never cross the trust boundary. Each SDK is bundle-proven into the MV3 service worker. *(ERC-4337 gasless and the MoonPay on-ramp are engine-ready but gated on a bundler/paymaster and a partner key — see [ROADMAP.md](./ROADMAP.md).)*
+
+These two are also **fully implemented** and activate from **your own** infrastructure config (this is a template — nothing hard-coded; a "configure" notice shows until you set the env var):
+- **Smart accounts / gasless — ERC-4337.** Counterfactual smart-account address, native balance, and gasless `UserOperation` sends (pay gas in an ERC-20 via a paymaster, or native) via `@tetherto/wdk-wallet-evm-erc-4337`. Set `VITE_BUNDLER_URL` (+ optional `VITE_PAYMASTER_URL`).
+- **Fiat on-ramp — MoonPay.** Quote + buy-widget URL generation via `@tetherto/wdk-protocol-fiat-moonpay`. Set `VITE_MOONPAY_API_KEY` (publishable); production URL signing is delegated to your backend (`VITE_MOONPAY_SIGN_URL`). Defaults to MoonPay sandbox.
+
+Each protocol is bound to the keyed account **inside the service worker** (keys never cross the trust boundary) and every SDK is **bundle-proven** into the MV3 service worker. See [`.env.example`](./.env.example) for the full config surface.
 
 ### UX
 - Clean, dark-mode-first popup UI with a reusable component library, theming, and a brand picker.
