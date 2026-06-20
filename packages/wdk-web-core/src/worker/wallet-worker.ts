@@ -41,6 +41,13 @@ import {
   type AaveAccountData,
   type AaveActionResult,
 } from '../protocols/aave.js';
+import {
+  createVeloraProtocol,
+  normalizeQuote as normalizeVeloraQuote,
+  normalizeSwapResult as normalizeVeloraSwap,
+  type VeloraQuote,
+  type VeloraSwapResult,
+} from '../protocols/velora.js';
 import type { RpcAdapter, TransactionStatus } from '../adapters/index.js';
 import { CoingeckoPricingClient } from '@tetherto/wdk-pricing-coingecko-http';
 import type {
@@ -559,6 +566,34 @@ export class WalletWorker implements Pick<WalletWorkerApi, 'vault_hasStored' | '
   async aave_repay(chain: EvmChainId, index: number, token: string, amount: bigint): Promise<AaveActionResult> {
     const aave = await this._aave(chain, index);
     return normalizeActionResult(await aave.repay({ token, amount }));
+  }
+
+  /** Builds the Velora swap protocol bound to the keyed EVM account in the worklet. */
+  private async _velora(chain: EvmChainId, index: number) {
+    if (!isSupportedChainId(chain)) {
+      throw new Error('Unsupported chain (no loader registered): ' + chain);
+    }
+    const wdk = this._requireWdk();
+    await ensureChainRegistered(wdk, chain);
+    const account = await wdk.getAccount(chain, index);
+    return createVeloraProtocol(account);
+  }
+
+  /** Quotes a tokenIn→tokenOut swap (exact-in) without broadcasting. */
+  async velora_quoteSwap(chain: EvmChainId, index: number, tokenIn: string, tokenOut: string, tokenInAmount: bigint): Promise<VeloraQuote> {
+    const v = await this._velora(chain, index);
+    return normalizeVeloraQuote(await v.quoteSwap({ tokenIn, tokenOut, tokenInAmount }));
+  }
+
+  /** Executes a swap. Provide exactly one of tokenInAmount (sell) or tokenOutAmount (buy). */
+  async velora_swap(chain: EvmChainId, index: number, tokenIn: string, tokenOut: string, tokenInAmount?: bigint, tokenOutAmount?: bigint): Promise<VeloraSwapResult> {
+    const v = await this._velora(chain, index);
+    return normalizeVeloraSwap(await v.swap({
+      tokenIn,
+      tokenOut,
+      ...(tokenInAmount !== undefined ? { tokenInAmount } : {}),
+      ...(tokenOutAmount !== undefined ? { tokenOutAmount } : {}),
+    }));
   }
 
   /**

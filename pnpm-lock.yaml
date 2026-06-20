@@ -166,6 +166,9 @@ importers:
       '@tetherto/wdk-protocol-lending-aave-evm':
         specifier: 1.0.0-beta.4
         version: 1.0.0-beta.4(bare-abort-controller@1.1.2)(bare-buffer@3.6.1)(bare-events@2.9.1(bare-abort-controller@1.1.2))(bare-pipe@4.2.2(bare-abort-controller@1.1.2)(bare-buffer@3.6.1))(bare-tcp@2.5.1(bare-abort-controller@1.1.2)(bare-buffer@3.6.1)(bare-pipe@4.2.2(bare-abort-controller@1.1.2)(bare-buffer@3.6.1)))(bare-url@2.4.5)(sodium-javascript@0.8.0)(typescript@5.5.4)(viem@2.21.0(typescript@5.5.4)(zod@3.25.76))(zod@3.25.76)
+      '@tetherto/wdk-protocol-swap-velora-evm':
+        specifier: 1.0.0-beta.4
+        version: 1.0.0-beta.4(axios@1.16.0)(bare-abort-controller@1.1.2)(bare-buffer@3.6.1)(bare-events@2.9.1(bare-abort-controller@1.1.2))(bare-pipe@4.2.2(bare-abort-controller@1.1.2)(bare-buffer@3.6.1))(bare-tcp@2.5.1(bare-abort-controller@1.1.2)(bare-buffer@3.6.1)(bare-pipe@4.2.2(bare-abort-controller@1.1.2)(bare-buffer@3.6.1)))(bare-url@2.4.5)(sodium-javascript@0.8.0)(typescript@5.5.4)(viem@2.21.0(typescript@5.5.4)(zod@3.25.76))(zod@3.25.76)
       '@tetherto/wdk-wallet-btc':
         specifier: 1.0.0-beta.9
         version: 1.0.0-beta.9(bare-abort-controller@1.1.2)(bare-buffer@3.6.1)(bare-events@2.9.1(bare-abort-controller@1.1.2))(bare-pipe@4.2.2(bare-abort-controller@1.1.2)(bare-buffer@3.6.1))(bare-tcp@2.5.1(bare-abort-controller@1.1.2)(bare-buffer@3.6.1)(bare-pipe@4.2.2(bare-abort-controller@1.1.2)(bare-buffer@3.6.1)))(bare-url@2.4.5)(sodium-javascript@0.8.0)
@@ -768,6 +771,9 @@ packages:
   '@nodelib/fs.walk@1.2.8':
     resolution: {integrity: sha512-oGB+UxlgWcgQkgwo8GcEGwemoTFt3FIO9ababBmaGwXIoBKZ+GTy0pP185beGg7Llih/NSHSV2XAs1lnznocSg==}
     engines: {node: '>= 8'}
+
+  '@paraswap/core@2.4.0':
+    resolution: {integrity: sha512-msv0Etc5f7H2UDnDd23wKzNnx64fj1iwt8IlBORTFIpxJ1+fa+TqNO7lhtohfRiVmU3dnnAMcjEi4D+WHSWpvw==}
 
   '@peculiar/asn1-schema@2.8.0':
     resolution: {integrity: sha512-7YT0U/ze0tF2QOBbE15gKZwy5tvgGyLRiRHLzhlbOpf7BT032oBSd0haZqXn5W6l26WLlu3dyxzjM+2638/z2Q==}
@@ -1669,6 +1675,9 @@ packages:
   '@tetherto/wdk-protocol-lending-aave-evm@1.0.0-beta.4':
     resolution: {integrity: sha512-cIDyUUPcKnbm4weFS1CAXUakssqIKYRwovZY4ZTgmS2nO3SX+3Tp5+uM5XhgIDc/uzhuGJoPOgo+H77hjjZAlg==}
 
+  '@tetherto/wdk-protocol-swap-velora-evm@1.0.0-beta.4':
+    resolution: {integrity: sha512-G7sbRpMhDakxB2I6eS9SqUh9TTVth6xQFF2XaQriOrxmPdvxF6CQAtZKixHUb3lMXx3dsftImrFiCzKk1zExVA==}
+
   '@tetherto/wdk-safe-protocol-kit@6.1.3':
     resolution: {integrity: sha512-KazAj6y5Ywfm1SbDWdQXetHQ9Rl/8+vwWLICAl+j0Qm1QbryLBz7fbwawSt1l5wT+RYRV64HfqIetlQQaNK6YA==}
     peerDependencies:
@@ -1771,6 +1780,25 @@ packages:
 
   '@types/react@18.3.12':
     resolution: {integrity: sha512-D2wOSq/d6Agt28q7rSI3jhU7G6aiuzljDGZ2hTZHIkrTLUI+AF3WMeKkEZ9nN2fkBAlcktT6vcZjDFiIhMYEQw==}
+
+  '@velora-dex/sdk@9.0.0':
+    resolution: {integrity: sha512-9aHpJ+dNXhR8zx1Pz+cCjDZDDQVR2/DfWPRZiXRCfAUTbpAWxFwsUXrKjCZMp9G9kM1gay8iN6H0TDUnvt624g==}
+    engines: {node: '>=18'}
+    deprecated: 9.4.1
+    peerDependencies:
+      axios: '>=0.25.0 <2.0.0'
+      ethers: ^5.5.0 || ^6.0.0
+      viem: ^2.21.0
+      web3: ^4.14.0
+    peerDependenciesMeta:
+      axios:
+        optional: true
+      ethers:
+        optional: true
+      viem:
+        optional: true
+      web3:
+        optional: true
 
   '@vitejs/plugin-react@4.3.4':
     resolution: {integrity: sha512-SCCPBJtYLdE8PX/7ZQAs1QAZ8Jqwih+0VBLum1EGqmCCQal+MIUqLCzj3ZUy8ufbC0cAM4LRlSTm7IQJwWT4ug==}
@@ -3516,6 +3544,14 @@ packages:
   tronweb@6.3.0:
     resolution: {integrity: sha512-5CAjDO4/KfymgjKFgnXgfKKQp0xgOn8otCBYjgYAEIpLZDKNAk14Z0dDeg0UqYuceCiyMHjW7a19Rsz8EmhAOw==}
 
+  ts-essentials@10.2.1:
+    resolution: {integrity: sha512-+Id1fRkuir+CsgK2x04/icS2b4V1hQmq7ObzIrDjhN0ozfRYivnP7aaKMVJfLApQm0trjR39A6NIMVchiB9Erw==}
+    peerDependencies:
+      typescript: '>=4.5.0'
+    peerDependenciesMeta:
+      typescript:
+        optional: true
+
   tslib@2.7.0:
     resolution: {integrity: sha512-gLXCKdN1/j47AiHiOkJN69hJmcbGTHI0ImLmbYLHykhgeN0jVGola9yVjFgzCUklsZQMW55o+dW7IXv3RCXDzA==}
 
@@ -4239,6 +4275,8 @@ snapshots:
     dependencies:
       '@nodelib/fs.scandir': 2.1.5
       fastq: 1.20.1
+
+  '@paraswap/core@2.4.0': {}
 
   '@peculiar/asn1-schema@2.8.0':
     dependencies:
@@ -5418,6 +5456,32 @@ snapshots:
       - viem
       - zod
 
+  '@tetherto/wdk-protocol-swap-velora-evm@1.0.0-beta.4(axios@1.16.0)(bare-abort-controller@1.1.2)(bare-buffer@3.6.1)(bare-events@2.9.1(bare-abort-controller@1.1.2))(bare-pipe@4.2.2(bare-abort-controller@1.1.2)(bare-buffer@3.6.1))(bare-tcp@2.5.1(bare-abort-controller@1.1.2)(bare-buffer@3.6.1)(bare-pipe@4.2.2(bare-abort-controller@1.1.2)(bare-buffer@3.6.1)))(bare-url@2.4.5)(sodium-javascript@0.8.0)(typescript@5.5.4)(viem@2.21.0(typescript@5.5.4)(zod@3.25.76))(zod@3.25.76)':
+    dependencies:
+      '@tetherto/wdk-wallet': 1.0.0-beta.11(bare-pipe@4.2.2(bare-abort-controller@1.1.2)(bare-buffer@3.6.1))(bare-tcp@2.5.1(bare-abort-controller@1.1.2)(bare-buffer@3.6.1)(bare-pipe@4.2.2(bare-abort-controller@1.1.2)(bare-buffer@3.6.1)))
+      '@tetherto/wdk-wallet-evm': 1.0.0-beta.12(bare-abort-controller@1.1.2)(bare-buffer@3.6.1)(bare-events@2.9.1(bare-abort-controller@1.1.2))(bare-pipe@4.2.2(bare-abort-controller@1.1.2)(bare-buffer@3.6.1))(bare-tcp@2.5.1(bare-abort-controller@1.1.2)(bare-buffer@3.6.1)(bare-pipe@4.2.2(bare-abort-controller@1.1.2)(bare-buffer@3.6.1)))(bare-url@2.4.5)(sodium-javascript@0.8.0)
+      '@tetherto/wdk-wallet-evm-erc-4337': 1.0.0-beta.5(bare-abort-controller@1.1.2)(bare-buffer@3.6.1)(bare-events@2.9.1(bare-abort-controller@1.1.2))(bare-pipe@4.2.2(bare-abort-controller@1.1.2)(bare-buffer@3.6.1))(bare-tcp@2.5.1(bare-abort-controller@1.1.2)(bare-buffer@3.6.1)(bare-pipe@4.2.2(bare-abort-controller@1.1.2)(bare-buffer@3.6.1)))(bare-url@2.4.5)(sodium-javascript@0.8.0)(typescript@5.5.4)(zod@3.25.76)
+      '@velora-dex/sdk': 9.0.0(axios@1.16.0)(ethers@6.13.5)(typescript@5.5.4)(viem@2.21.0(typescript@5.5.4)(zod@3.25.76))
+      bare-node-runtime: 1.5.0(bare-pipe@4.2.2(bare-abort-controller@1.1.2)(bare-buffer@3.6.1))(bare-tcp@2.5.1(bare-abort-controller@1.1.2)(bare-buffer@3.6.1)(bare-pipe@4.2.2(bare-abort-controller@1.1.2)(bare-buffer@3.6.1)))
+      ethers: 6.13.5
+    transitivePeerDependencies:
+      - axios
+      - bare-abort-controller
+      - bare-buffer
+      - bare-events
+      - bare-pipe
+      - bare-tcp
+      - bare-url
+      - bufferutil
+      - debug
+      - react-native-b4a
+      - sodium-javascript
+      - typescript
+      - utf-8-validate
+      - viem
+      - web3
+      - zod
+
   '@tetherto/wdk-safe-protocol-kit@6.1.3(ethers@6.14.4)(typescript@5.5.4)(zod@3.25.76)':
     dependencies:
       '@safe-global/safe-deployments': 1.37.56
@@ -5777,6 +5841,17 @@ snapshots:
     dependencies:
       '@types/prop-types': 15.7.15
       csstype: 3.2.3
+
+  '@velora-dex/sdk@9.0.0(axios@1.16.0)(ethers@6.13.5)(typescript@5.5.4)(viem@2.21.0(typescript@5.5.4)(zod@3.25.76))':
+    dependencies:
+      '@paraswap/core': 2.4.0
+      ts-essentials: 10.2.1(typescript@5.5.4)
+    optionalDependencies:
+      axios: 1.16.0
+      ethers: 6.13.5
+      viem: 2.21.0(typescript@5.5.4)(zod@3.25.76)
+    transitivePeerDependencies:
+      - typescript
 
   '@vitejs/plugin-react@4.3.4(vite@5.4.0(@types/node@22.7.5))':
     dependencies:
@@ -8025,6 +8100,10 @@ snapshots:
       - bufferutil
       - debug
       - utf-8-validate
+
+  ts-essentials@10.2.1(typescript@5.5.4):
+    optionalDependencies:
+      typescript: 5.5.4
 
   tslib@2.7.0: {}
 
