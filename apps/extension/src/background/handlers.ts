@@ -250,6 +250,15 @@ export function createSwHandlers({ engine, worker, approvalFlow, connectionState
     MOONPAY_QUOTE_BUY: async (msg) => worker.moonpay_quoteBuy(msg.fiatCurrency, msg.cryptoAsset, msg.fiatAmount),
     MOONPAY_BUY: async (msg) => worker.moonpay_buy(msg.fiatCurrency, msg.cryptoAsset, msg.fiatAmount, msg.recipient),
 
+    ERC4337_IS_CONFIGURED: async () => worker.erc4337_isConfigured(),
+    ERC4337_GET_ADDRESS: async (msg) => worker.erc4337_getAddress(msg.chain, msg.accountIndex),
+    ERC4337_GET_BALANCE: async (msg) => (await worker.erc4337_getBalance(msg.chain, msg.accountIndex)).toString(),
+    ERC4337_QUOTE_SEND: async (msg) => (await worker.erc4337_quoteSend(msg.chain, msg.accountIndex, msg.to, BigInt(msg.value), msg.paymasterToken)).toString(),
+    ERC4337_SEND: async (msg) => {
+      const r = await worker.erc4337_sendTransaction(msg.chain, msg.accountIndex, msg.to, BigInt(msg.value), msg.paymasterToken);
+      return { hash: r.hash, fee: r.fee.toString() };
+    },
+
     DAPP_REQUEST: async (msg) => {
       // ctx.id threads the DAPP_REQUEST envelope id through to approvalFlow.open()
       // so the popup's APPROVAL_GET_PENDING(id) call matches.

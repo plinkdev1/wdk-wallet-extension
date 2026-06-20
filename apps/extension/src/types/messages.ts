@@ -87,6 +87,12 @@ export type WalletMessage =
   | { type: 'MOONPAY_IS_CONFIGURED' }
   | { type: 'MOONPAY_QUOTE_BUY'; fiatCurrency: string; cryptoAsset: string; fiatAmount: number }
   | { type: 'MOONPAY_BUY'; fiatCurrency: string; cryptoAsset: string; fiatAmount: number; recipient: string }
+  // ERC-4337 smart account / gasless (value is a wei decimal string; L-WIRE-03)
+  | { type: 'ERC4337_IS_CONFIGURED' }
+  | { type: 'ERC4337_GET_ADDRESS'; chain: EvmChainId; accountIndex: number }
+  | { type: 'ERC4337_GET_BALANCE'; chain: EvmChainId; accountIndex: number }
+  | { type: 'ERC4337_QUOTE_SEND'; chain: EvmChainId; accountIndex: number; to: string; value: string; paymasterToken?: string }
+  | { type: 'ERC4337_SEND'; chain: EvmChainId; accountIndex: number; to: string; value: string; paymasterToken?: string }
   // dApp pipeline (B4.3)
   | { type: 'DAPP_REQUEST'; id: string; origin: string; method: string; params?: readonly unknown[] }
   // Approval flow (B4.4)
@@ -143,6 +149,11 @@ export type WalletResponseData = {
   MOONPAY_IS_CONFIGURED: boolean;
   MOONPAY_QUOTE_BUY: MoonPayBuyQuoteDto | null;
   MOONPAY_BUY: string;
+  ERC4337_IS_CONFIGURED: boolean;
+  ERC4337_GET_ADDRESS: string;
+  ERC4337_GET_BALANCE: string;
+  ERC4337_QUOTE_SEND: string;
+  ERC4337_SEND: { readonly hash: string; readonly fee: string };
   DAPP_REQUEST: Eip1193Response;
   APPROVAL_GET_PENDING: ApprovalRequest | null;
   APPROVAL_RESPOND: { ok: boolean };

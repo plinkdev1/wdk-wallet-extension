@@ -107,6 +107,11 @@ export function createStubHandlers(): HandlerRegistry {
     MOONPAY_IS_CONFIGURED: notImplemented('MOONPAY_IS_CONFIGURED'),
     MOONPAY_QUOTE_BUY: notImplemented('MOONPAY_QUOTE_BUY'),
     MOONPAY_BUY: notImplemented('MOONPAY_BUY'),
+    ERC4337_IS_CONFIGURED: notImplemented('ERC4337_IS_CONFIGURED'),
+    ERC4337_GET_ADDRESS: notImplemented('ERC4337_GET_ADDRESS'),
+    ERC4337_GET_BALANCE: notImplemented('ERC4337_GET_BALANCE'),
+    ERC4337_QUOTE_SEND: notImplemented('ERC4337_QUOTE_SEND'),
+    ERC4337_SEND: notImplemented('ERC4337_SEND'),
     DAPP_REQUEST: notImplemented('DAPP_REQUEST'),
     // B4.4: approval-flow handshake stubs (real impls in createSwHandlers).
     APPROVAL_GET_PENDING: notImplemented('APPROVAL_GET_PENDING'),

@@ -113,6 +113,15 @@ const ERC20_BALANCE_OF_ABI = [
   },
 ] as const;
 
+/**
+ * The configured EVM RPC URL for a chain (env override or public fallback).
+ * Exposed so the ERC-4337 smart-account manager can reuse the same provider
+ * endpoints the wallet already uses.
+ */
+export function evmRpcUrlFor(chain: string): string | undefined {
+  return EVM_RPC_OVERRIDES[chain as ChainId];
+}
+
 export function createExtensionRpcAdapter(): RpcAdapter {
   // Per-adapter viem client cache (keyed by chain:rpcUrl).
   const clientCache = new Map<string, PublicClient>();

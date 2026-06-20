@@ -31,7 +31,7 @@
 import './polyfill-document.js';
 import '@wdk-starter/wdk-web-core/polyfill-globals';
 import { WalletWorker } from '@wdk-starter/wdk-web-core/worker';
-import { createExtensionRpcAdapter } from './rpc-adapter.js';
+import { createExtensionRpcAdapter, evmRpcUrlFor } from './rpc-adapter.js';
 
 import { createDispatcher } from './dispatch.js';
 import { createEngine } from './engine.js';
@@ -61,7 +61,23 @@ const moonpayConfig = moonpayApiKey
     }
   : undefined;
 
-const worker = new WalletWorker({ rpcAdapter: createExtensionRpcAdapter(), ...(moonpayConfig ? { moonpayConfig } : {}) });
+// ERC-4337 smart-account config — app-supplied bundler (+ optional paymaster).
+// Absent bundler => the smart-account UI shows a "configure" notice; the
+// integration is fully present and activates the moment a bundler is set.
+const bundlerUrl = import.meta.env.VITE_BUNDLER_URL;
+const erc4337Config = bundlerUrl
+  ? {
+      bundlerUrl,
+      ...(import.meta.env.VITE_PAYMASTER_URL ? { paymasterUrl: import.meta.env.VITE_PAYMASTER_URL } : {}),
+      providerFor: (chain: string) => evmRpcUrlFor(chain),
+    }
+  : undefined;
+
+const worker = new WalletWorker({
+  rpcAdapter: createExtensionRpcAdapter(),
+  ...(moonpayConfig ? { moonpayConfig } : {}),
+  ...(erc4337Config ? { erc4337Config } : {}),
+});
 const approvalFlow = createApprovalFlow();
 const connectionState = createConnectionState();
 const eventBus = createBrowserDappEventBus();
