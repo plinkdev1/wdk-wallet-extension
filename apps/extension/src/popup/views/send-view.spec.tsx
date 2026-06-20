@@ -73,4 +73,33 @@ describe('SendView', () => {
       value: '1500000000',
     }));
   });
+
+  it('sends an ERC-20 token to the token contract via transfer() calldata', async () => {
+    sendMock.mockResolvedValue('0xtokentx');
+    render(
+      <SendView
+        chain="ethereum"
+        kind="evm"
+        symbol="USDt"
+        token={{ address: '0xdAC17F958D2ee523a2206206994597C13D831ec7', decimals: 6 }}
+        accountIndex={0}
+        onBack={() => {}}
+      />,
+    );
+    expect(screen.getByText('Send USDt')).toBeInTheDocument();
+    fireEvent.change(screen.getByPlaceholderText('0x…'), { target: { value: '0x70997970C51812dc3A010C7d01b50e0d17dc79C8' } });
+    fireEvent.change(screen.getByPlaceholderText('0.0'), { target: { value: '1' } }); // 1 USDt = 1_000_000 base units
+    fireEvent.click(screen.getByText('Review & send'));
+    await waitFor(() => expect(screen.getByText('0xtokentx')).toBeInTheDocument());
+    expect(sendMock).toHaveBeenCalledWith(expect.objectContaining({
+      type: 'ACCOUNT_SEND_TRANSACTION',
+      chain: 'ethereum',
+      to: '0xdAC17F958D2ee523a2206206994597C13D831ec7',
+      value: '0',
+      data:
+        '0xa9059cbb' +
+        '00000000000000000000000070997970c51812dc3a010c7d01b50e0d17dc79c8' +
+        '00000000000000000000000000000000000000000000000000000000000f4240',
+    }));
+  });
 });

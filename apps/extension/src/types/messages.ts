@@ -50,7 +50,7 @@ export type WalletMessage =
   | { type: 'ACCOUNT_SIGN_SOLANA_MESSAGE'; chain: SolanaChainId; accountIndex: number; message: string }
   // User-initiated EVM transfer from the popup. `value` is a base-unit decimal
   // string (bigint is not structured-cloneable over chrome.runtime — L-WIRE-03).
-  | { type: 'ACCOUNT_SEND_TRANSACTION'; chain: EvmChainId; accountIndex: number; to: string; value: string }
+  | { type: 'ACCOUNT_SEND_TRANSACTION'; chain: EvmChainId; accountIndex: number; to: string; value: string; data?: string }
   | { type: 'ACCOUNT_SEND_SOLANA_TRANSACTION'; chain: SolanaChainId; accountIndex: number; to: string; value: string }
   // RPC
   | { type: 'RPC_GET_BALANCE'; chain: ChainId; address: string }

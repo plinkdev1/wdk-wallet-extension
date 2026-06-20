@@ -122,10 +122,11 @@ export function createSwHandlers({ engine, worker, approvalFlow, connectionState
     ACCOUNT_SEND_TRANSACTION: async (msg) => {
       // User-initiated EVM transfer from the popup. value arrives as a base-unit
       // decimal string (L-WIRE-03); WDK signs + broadcasts and returns the hash.
-      return worker.account_sendTransaction(msg.chain, msg.accountIndex, {
-        to: msg.to,
-        value: BigInt(msg.value),
-      });
+      // Optional `data` carries ERC-20 transfer calldata (token sends); for a
+      // plain native transfer it is absent and WDK does a value-only send.
+      const tx: Record<string, unknown> = { to: msg.to, value: BigInt(msg.value) };
+      if (msg.data) tx.data = msg.data;
+      return worker.account_sendTransaction(msg.chain, msg.accountIndex, tx);
     },
 
     ACCOUNT_SEND_SOLANA_TRANSACTION: async (msg) => {

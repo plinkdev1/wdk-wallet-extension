@@ -32,6 +32,7 @@ import { useMainAccount } from '../hooks/use-main-account.js';
 import { useSolanaAccount } from '../hooks/use-solana-account.js';
 import { useBalance, formatEthFromWei } from '../hooks/use-balance.js';
 import { useTokenBalances } from '../hooks/use-token-balances.js';
+import type { TokenInfo } from '../lib/tokens.js';
 import { ReceiveView } from './receive-view.js';
 import { SendView } from './send-view.js';
 import { ActivityView } from './activity-view.js';
@@ -134,6 +135,8 @@ export function MainView({ onLockRequested, onOpenSettings }: MainViewProps): JS
   const activeSymbol = CHAIN_OPTIONS.find((o) => o.id === activeChain)?.symbol ?? 'ETH';
   const activeName = CHAIN_OPTIONS.find((o) => o.id === activeChain)?.name ?? 'this network';
   const [subView, setSubView] = useState<'main' | 'receive' | 'send' | 'activity'>('main');
+  /** When set, the Send view sends this ERC-20 token instead of the native asset. */
+  const [sendToken, setSendToken] = useState<TokenInfo | null>(null);
   const [accountIndex, setAccountIndex] = useState(0);
   const { state: accountState } = useMainAccount({ chain: evmChain, accountIndex });
   const { state: balanceState } = useBalance(
@@ -197,9 +200,10 @@ export function MainView({ onLockRequested, onOpenSettings }: MainViewProps): JS
       <SendView
         chain={isSolanaChain ? (activeChain as SolanaChainId) : evmChain}
         kind={isSolanaChain ? 'solana' : 'evm'}
-        symbol={activeSymbol}
+        symbol={sendToken ? sendToken.symbol : activeSymbol}
+        token={!isSolanaChain && sendToken ? { address: sendToken.address, decimals: sendToken.decimals } : null}
         accountIndex={accountIndex}
-        onBack={() => setSubView('main')}
+        onBack={() => { setSendToken(null); setSubView('main'); }}
       />
     );
   }
@@ -278,7 +282,7 @@ export function MainView({ onLockRequested, onOpenSettings }: MainViewProps): JS
           </Card>
 
           <div style={{ display: 'flex', gap: 10 }}>
-            <Button onClick={() => setSubView('send')} disabled={solanaAccountState.status !== 'ready'} style={{ flex: 1 }}>
+            <Button onClick={() => { setSendToken(null); setSubView('send'); }} disabled={solanaAccountState.status !== 'ready'} style={{ flex: 1 }}>
               Send
             </Button>
             <Button variant="secondary" onClick={() => setSubView('receive')} disabled={solanaAccountState.status !== 'ready'} style={{ flex: 1 }}>
@@ -331,14 +335,22 @@ export function MainView({ onLockRequested, onOpenSettings }: MainViewProps): JS
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10, padding: 14 }}>
             <Label>Tokens</Label>
             {tokenBalancesState.balances.map(({ token, balance }) => (
-              <div key={token.address} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <button
+                key={token.address}
+                onClick={() => { setSendToken(token); setSubView('send'); }}
+                title={`Send ${token.symbol}`}
+                style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', padding: '4px 0', background: 'none', border: 'none', cursor: 'pointer', color: 'inherit', font: 'inherit' }}
+              >
                 <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 13 }}>
                   <TokenIcon symbol={token.symbol} size={16} />{token.symbol}
                 </span>
-                <span style={{ fontSize: 13, fontWeight: 600 }}>
-                  {balance === null ? '—' : formatTokenAmount(balance, token.decimals)}
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+                  <span style={{ fontSize: 13, fontWeight: 600 }}>
+                    {balance === null ? '—' : formatTokenAmount(balance, token.decimals)}
+                  </span>
+                  <span style={{ fontSize: 11, opacity: 0.5 }}>Send ›</span>
                 </span>
-              </div>
+              </button>
             ))}
           </div>
         </Card>
@@ -402,7 +414,7 @@ export function MainView({ onLockRequested, onOpenSettings }: MainViewProps): JS
 
       <div style={{ display: 'flex', gap: 10 }}>
         <Button
-          onClick={() => setSubView('send')}
+          onClick={() => { setSendToken(null); setSubView('send'); }}
           disabled={accountState.status !== 'ready'}
           style={{ flex: 1 }}
         >

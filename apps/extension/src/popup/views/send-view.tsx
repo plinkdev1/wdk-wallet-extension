@@ -13,6 +13,7 @@ import { Button, Card, Input, Label } from '@wdk-starter/wdk-ui';
 import type { EvmChainId, SolanaChainId } from '@wdk-starter/wdk-web-core/types';
 import { send } from '../lib/sw-client.js';
 import { addTransaction } from '../hooks/use-transactions.js';
+import { encodeErc20Transfer } from '../lib/erc20.js';
 
 export interface SendViewProps {
   readonly chain: EvmChainId | SolanaChainId;
@@ -21,6 +22,8 @@ export interface SendViewProps {
   readonly accountIndex: number;
   /** Asset kind — selects address format, decimals, and the send message. Defaults to 'evm'. */
   readonly kind?: 'evm' | 'solana';
+  /** When set (EVM only), sends this ERC-20 token via transfer() calldata instead of native value. */
+  readonly token?: { readonly address: string; readonly decimals: number } | null;
   readonly onBack: () => void;
   /** Called after a successful broadcast so the parent can refresh the balance. */
   readonly onSent?: () => void;
@@ -46,7 +49,7 @@ type Phase =
   | { status: 'sending' }
   | { status: 'sent'; hash: string };
 
-export function SendView({ chain, symbol, accountIndex, kind = 'evm', onBack, onSent }: SendViewProps): JSX.Element {
+export function SendView({ chain, symbol, accountIndex, kind = 'evm', token, onBack, onSent }: SendViewProps): JSX.Element {
   const [to, setTo] = useState('');
   const [amount, setAmount] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -55,7 +58,7 @@ export function SendView({ chain, symbol, accountIndex, kind = 'evm', onBack, on
 
   const handleSend = useCallback(async (): Promise<void> => {
     setError(null);
-    const decimals = isSolana ? 9 : 18;
+    const decimals = token ? token.decimals : isSolana ? 9 : 18;
     const recipient = to.trim();
     const valid = (isSolana ? SOLANA_ADDRESS : EVM_ADDRESS).test(recipient);
     if (!valid) {
@@ -76,9 +79,15 @@ export function SendView({ chain, symbol, accountIndex, kind = 'evm', onBack, on
 
     setPhase({ status: 'sending' });
     try {
-      const hash = isSolana
-        ? await send({ type: 'ACCOUNT_SEND_SOLANA_TRANSACTION', chain: chain as SolanaChainId, accountIndex, to: recipient, value: value.toString() })
-        : await send({ type: 'ACCOUNT_SEND_TRANSACTION', chain: chain as EvmChainId, accountIndex, to: recipient, value: value.toString() });
+      let hash: string;
+      if (isSolana) {
+        hash = await send({ type: 'ACCOUNT_SEND_SOLANA_TRANSACTION', chain: chain as SolanaChainId, accountIndex, to: recipient, value: value.toString() });
+      } else if (token) {
+        // ERC-20 transfer: call the token contract with transfer() calldata, value 0.
+        hash = await send({ type: 'ACCOUNT_SEND_TRANSACTION', chain: chain as EvmChainId, accountIndex, to: token.address, value: '0', data: encodeErc20Transfer(recipient, value) });
+      } else {
+        hash = await send({ type: 'ACCOUNT_SEND_TRANSACTION', chain: chain as EvmChainId, accountIndex, to: recipient, value: value.toString() });
+      }
       addTransaction({ hash, chain, to: recipient, value: value.toString(), symbol, decimals, ts: Date.now() });
       setPhase({ status: 'sent', hash });
       onSent?.();
@@ -86,7 +95,7 @@ export function SendView({ chain, symbol, accountIndex, kind = 'evm', onBack, on
       setError(e instanceof Error ? e.message : 'Transaction failed.');
       setPhase({ status: 'form' });
     }
-  }, [to, amount, chain, accountIndex, isSolana, symbol, onSent]);
+  }, [to, amount, chain, accountIndex, isSolana, token, symbol, onSent]);
 
   return (
     <div style={{ padding: 20, display: 'flex', flexDirection: 'column', gap: 16, flex: 1, fontFamily: 'var(--font-body)', color: 'var(--text-primary)' }}>
