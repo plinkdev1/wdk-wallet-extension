@@ -48,6 +48,14 @@ import {
   type VeloraQuote,
   type VeloraSwapResult,
 } from '../protocols/velora.js';
+import {
+  createUsdt0Protocol,
+  normalizeUsdt0Quote,
+  normalizeUsdt0Result,
+  type ApprovableEvmAccount,
+  type Usdt0Quote,
+  type Usdt0BridgeResult,
+} from '../protocols/usdt0.js';
 import type { RpcAdapter, TransactionStatus } from '../adapters/index.js';
 import { CoingeckoPricingClient } from '@tetherto/wdk-pricing-coingecko-http';
 import type {
@@ -594,6 +602,29 @@ export class WalletWorker implements Pick<WalletWorkerApi, 'vault_hasStored' | '
       ...(tokenInAmount !== undefined ? { tokenInAmount } : {}),
       ...(tokenOutAmount !== undefined ? { tokenOutAmount } : {}),
     }));
+  }
+
+  /** Quotes the native fee to bridge `amount` of `token` from `chain` to `targetChain` via USDT0. */
+  async usdt0_quoteBridge(chain: EvmChainId, index: number, targetChain: string, recipient: string, token: string, amount: bigint, oftContractAddress: string): Promise<Usdt0Quote> {
+    if (!isSupportedChainId(chain)) throw new Error('Unsupported chain (no loader registered): ' + chain);
+    const wdk = this._requireWdk();
+    await ensureChainRegistered(wdk, chain);
+    const account = await wdk.getAccount(chain, index);
+    const bridge = createUsdt0Protocol(account);
+    return normalizeUsdt0Quote(await bridge.quoteBridge({ targetChain, recipient, token, amount, oftContractAddress }));
+  }
+
+  /** Approves the OFT spender then bridges `amount` of `token` to `targetChain` via USDT0. */
+  async usdt0_bridge(chain: EvmChainId, index: number, targetChain: string, recipient: string, token: string, amount: bigint, oftContractAddress: string): Promise<Usdt0BridgeResult> {
+    if (!isSupportedChainId(chain)) throw new Error('Unsupported chain (no loader registered): ' + chain);
+    const wdk = this._requireWdk();
+    await ensureChainRegistered(wdk, chain);
+    const account = await wdk.getAccount(chain, index);
+    const approval = await (account as unknown as ApprovableEvmAccount).approve({ token, spender: oftContractAddress, amount });
+    const approveHash = typeof approval === 'string' ? approval : (approval && typeof approval === 'object' && 'hash' in approval ? String(approval.hash) : undefined);
+    const bridge = createUsdt0Protocol(account);
+    const result = await bridge.bridge({ targetChain, recipient, token, amount, oftContractAddress });
+    return normalizeUsdt0Result(result, approveHash);
   }
 
   /**
