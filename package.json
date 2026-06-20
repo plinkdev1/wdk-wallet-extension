@@ -1,0 +1,31 @@
+{
+  "name": "wdk-wallet-extension",
+  "version": "1.0.0",
+  "private": true,
+  "description": "WDK Wallet Extension — a production-grade, self-custodial Chrome/Brave browser extension wallet built on Tether's Wallet Development Kit (WDK). Reference implementation for the Tether WDK 'Browser Extension Starter' bounty.",
+  "type": "module",
+  "license": "MIT",
+  "packageManager": "pnpm@10.15.1",
+  "engines": {
+    "node": ">=20"
+  },
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
+  "scripts": {
+    "build": "pnpm -F @wdk-starter/wdk-web-core build && pnpm -F @wdk-starter/wdk-ui build && pnpm -F @wdk-starter/extension build",
+    "build:packages": "pnpm -F @wdk-starter/wdk-web-core build && pnpm -F @wdk-starter/wdk-ui build",
+    "build:extension": "pnpm -F @wdk-starter/extension build",
+    "dev": "pnpm -F @wdk-starter/extension dev",
+    "typecheck": "pnpm -r --filter=\"./packages/**\" --filter=\"./apps/**\" typecheck",
+    "test": "pnpm -r --filter=\"./packages/**\" --filter=\"./apps/**\" test",
+    "clean": "pnpm -r --filter=\"./packages/**\" --filter=\"./apps/**\" clean",
+    "gen:mnemonic": "node scripts/gen-test-mnemonic.mjs"
+  },
+  "devDependencies": {
+    "bip39": "3.1.0",
+    "typescript": "5.5.4",
+    "viem": "2.21.0"
+  }
+}

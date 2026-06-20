@@ -1,0 +1,46 @@
+{
+  "name": "@wdk-starter/extension",
+  "version": "0.1.0-dev",
+  "private": true,
+  "type": "module",
+  "description": "Browser extension wallet built on @wdk-starter/wdk-web-core and Tether WDK. MV3 service worker host with embedded WDK engine, EIP-1193 + Solana Wallet Standard dApp injection, per-origin connection permissions. WDK Bounty submission for the Browser Extension Starter category.",
+  "license": "MIT",
+  "scripts": {
+    "dev": "vite",
+    "build:inpage": "esbuild src/inpage/index.ts --bundle --format=iife --outfile=public/inpage.js --target=es2020",
+    "build": "pnpm typecheck && pnpm build:inpage && vite build",
+    "typecheck": "tsc --noEmit",
+    "test": "pnpm typecheck && vitest run --passWithNoTests",
+    "clean": "node -e \"require('fs').rmSync('dist',{recursive:true,force:true})\""
+  },
+  "dependencies": {
+    "@tetherto/wdk": "1.0.0-beta.9",
+    "@tetherto/wdk-wallet-evm": "1.0.0-beta.12",
+    "@tetherto/wdk-wallet-solana": "1.0.0-beta.8",
+    "@wdk-starter/wdk-ui": "workspace:*",
+    "@wdk-starter/wdk-web-core": "workspace:*",
+    "bip39": "3.1.0",
+    "buffer": "6.0.3",
+    "process": "0.11.10",
+    "react": "18.3.1",
+    "react-dom": "18.3.1",
+    "sodium-javascript": "0.8.0",
+    "stream-browserify": "3.0.0",
+    "viem": "2.21.0"
+  },
+  "devDependencies": {
+    "@crxjs/vite-plugin": "2.4.0",
+    "@testing-library/jest-dom": "6.6.3",
+    "@testing-library/react": "16.1.0",
+    "@types/chrome": "0.0.270",
+    "@types/react": "18.3.12",
+    "@types/react-dom": "18.3.1",
+    "@vitejs/plugin-react": "4.3.4",
+    "esbuild": "^0.28.0",
+    "jsdom": "25.0.1",
+    "typescript": "5.5.4",
+    "vite": "5.4.0",
+    "vite-plugin-node-polyfills": "0.22.0",
+    "vitest": "2.1.8"
+  }
+}

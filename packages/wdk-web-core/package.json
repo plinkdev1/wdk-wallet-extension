@@ -1,0 +1,77 @@
+{
+  "name": "@wdk-starter/wdk-web-core",
+  "version": "0.1.0-dev",
+  "private": false,
+  "type": "module",
+  "description": "Framework-agnostic engine powering WDK browser wallet products (Next.js Template + Browser Extension). Provides vault, chain loaders, EIP-3009 builder, Comlink/MV3 message-bus surfaces, and typed account registry. Phase 1 carryover of the Phase 0 prototype.",
+  "license": "MIT",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./types": {
+      "types": "./dist/types/index.d.ts",
+      "default": "./dist/types/index.js"
+    },
+    "./polyfill-globals": {
+      "types": "./dist/polyfill-globals.d.ts",
+      "default": "./dist/polyfill-globals.js"
+    },
+    "./vault": {
+      "types": "./dist/vault/index.d.ts",
+      "default": "./dist/vault/index.js"
+    },
+    "./chains": {
+      "types": "./dist/chains/index.d.ts",
+      "default": "./dist/chains/index.js"
+    },
+    "./worker": {
+      "types": "./dist/worker/index.d.ts",
+      "default": "./dist/worker/index.js"
+    },
+    "./worker/*": {
+      "types": "./dist/worker/*.d.ts",
+      "default": "./dist/worker/*.js"
+    },
+    "./adapters/relayer": {
+      "types": "./dist/adapters/relayer.d.ts",
+      "default": "./dist/adapters/relayer.js"
+    },
+    "./storage": {
+      "types": "./dist/storage/index.d.ts",
+      "default": "./dist/storage/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "clean": "node -e \"require('fs').rmSync('dist',{recursive:true,force:true})\""
+  },
+  "dependencies": {
+    "@tetherto/wdk": "1.0.0-beta.9",
+    "@tetherto/wdk-wallet-evm": "1.0.0-beta.12",
+    "@tetherto/wdk-wallet-solana": "1.0.0-beta.8",
+    "bip39": "3.1.0",
+    "bs58": "6.0.0",
+    "buffer": "6.0.3",
+    "comlink": "4.4.1",
+    "idb": "8.0.2",
+    "process": "0.11.10",
+    "sodium-javascript": "0.8.0",
+    "viem": "2.21.0"
+  },
+  "devDependencies": {
+    "fake-indexeddb": "6.0.0",
+    "vite-plugin-node-polyfills": "0.22.0",
+    "vitest": "2.1.8"
+  }
+}
