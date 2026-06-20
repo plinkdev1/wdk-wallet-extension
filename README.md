@@ -21,7 +21,7 @@ Reference implementation for the Tether WDK **Browser Extension Starter** bounty
 
 WDK gives developers a powerful, framework-agnostic toolkit for building self-custodial wallets — but until now there was **no reference browser-extension implementation**. The browser extension is one of the most in-demand wallet formats (MetaMask, Phantom, Rabby), and building one correctly means solving a hard set of problems: Manifest V3 service-worker key custody, secure local storage, dApp injection standards, and an approval UX that users trust.
 
-This repository is that reference. It is not a toy: it ships a real WebCrypto-encrypted vault, real WDK-backed key derivation and signing across EVM and Solana, standards-compliant dApp connectivity (EIP-1193 + EIP-6963), and **811 passing automated tests**. It is engineered so that another team can fork it and ship a production wallet, or read it to learn how the pieces fit.
+This repository is that reference. It is not a toy: it ships a real WebCrypto-encrypted vault, real WDK-backed key derivation and signing across EVM and Solana, standards-compliant dApp connectivity (EIP-1193 + EIP-6963), and **828 passing automated tests**. It is engineered so that another team can fork it and ship a production wallet, or read it to learn how the pieces fit.
 
 > **Engineering philosophy:** the wallet is the *product*, but the leverage is the *architecture*. All wallet logic lives in two reusable, framework-agnostic packages (`wdk-web-core` engine + `wdk-ui` component library). The extension is the first surface to consume them; the same packages power the [WDK Template Wallet](https://github.com/plinkdev1/wdk-wallet-template) and other WDK reference products. Build once, ship everywhere.
 
