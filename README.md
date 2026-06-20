@@ -252,14 +252,22 @@ pnpm typecheck     # strict typecheck, all packages
 
 ## Roadmap
 
-The wallet is a living reference implementation. Near-term, high-value increments:
+📍 **The full, phased product roadmap is in [`ROADMAP.md`](./ROADMAP.md)** — it
+shows what's shipped (EVM + Solana + Bitcoin + tokens + activity + dApp), and
+sequences the broader WDK vision (Lightning/Spark, account abstraction, TON/Tron,
+in-wallet swaps/lending/bridging, fiat on-ramp, fiat pricing) against real,
+published `@tetherto/*` packages. It is written so reviewers can see the depth and
+the standard we're aiming to set across all WDK surfaces.
 
-1. **Indexer-backed assets** — token balances and transfers ship today (tap-to-send); next is auto-discovery of arbitrary held tokens and richer history via the indexer adapter.
-3. **Deeper monitoring** — Activity ships history, per-chain filtering, and real-time status (EVM receipts + Solana signature statuses) today; next is push-style updates and richer per-tx detail views.
-4. **Lightning (Spark)** — `@tetherto/wdk-wallet-spark` accounts for instant BTC payments (BTC base-layer send/receive ships today; see [ROADMAP.md](./ROADMAP.md)).
-5. **Multiple wallets** — more than one independent seed per installation.
+Near-term, high-value increments:
 
-Each lands behind the existing test gates with no regression to the 811-test baseline.
+1. **Lightning (Spark)** — `@tetherto/wdk-wallet-spark` accounts for instant BTC payments (BTC base-layer send/receive ships today).
+2. **Fiat values** — balances in USD via `@tetherto/wdk-pricing-*` adapters.
+3. **Indexer-backed assets** — auto-discovery of held tokens and richer history via the indexer adapter (static USDt/XAUt registry + tap-to-send ship today).
+4. **Deeper monitoring** — push-style status updates and per-tx detail views (history, filtering, and real-time EVM/Solana status ship today).
+5. **Account abstraction & more chains** — ERC-4337 gasless smart accounts, TON, Tron.
+
+Each lands behind the existing test gates with no regression to the current baseline.
 
 ---
 
