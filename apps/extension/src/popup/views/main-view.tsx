@@ -42,6 +42,7 @@ import { SendView } from './send-view.js';
 import { LendingView } from './lending-view.js';
 import { SwapView } from './swap-view.js';
 import { BridgeView } from './bridge-view.js';
+import { BuyView } from './buy-view.js';
 import { ActivityView } from './activity-view.js';
 
 export interface MainViewProps {
@@ -145,7 +146,7 @@ export function MainView({ onLockRequested, onOpenSettings }: MainViewProps): JS
   // SOL on Solana once those chains land in the picker, etc.).
   const activeSymbol = CHAIN_OPTIONS.find((o) => o.id === activeChain)?.symbol ?? 'ETH';
   const activeName = CHAIN_OPTIONS.find((o) => o.id === activeChain)?.name ?? 'this network';
-  const [subView, setSubView] = useState<'main' | 'receive' | 'send' | 'activity' | 'lending' | 'swap' | 'bridge'>('main');
+  const [subView, setSubView] = useState<'main' | 'receive' | 'send' | 'activity' | 'lending' | 'swap' | 'bridge' | 'buy'>('main');
   /** When set, the Send view sends this ERC-20 token instead of the native asset. */
   const [sendToken, setSendToken] = useState<TokenInfo | null>(null);
   const [accountIndex, setAccountIndex] = useState(0);
@@ -286,6 +287,16 @@ export function MainView({ onLockRequested, onOpenSettings }: MainViewProps): JS
         chainName={activeName}
         accountIndex={accountIndex}
         ownAddress={accountState.status === 'ready' ? accountState.address : ''}
+        onBack={() => setSubView('main')}
+      />
+    );
+  }
+  if (subView === 'buy' && activeAddress) {
+    return (
+      <BuyView
+        chain={activeChain}
+        chainName={activeName}
+        address={activeAddress}
         onBack={() => setSubView('main')}
       />
     );
@@ -662,6 +673,12 @@ export function MainView({ onLockRequested, onOpenSettings }: MainViewProps): JS
         Activity ›
       </Button>
       </>)}
+
+      {activeAddress && (
+        <Button variant="ghost" size="sm" onClick={() => setSubView('buy')} style={{ alignSelf: 'center' }}>
+          Buy crypto ↗
+        </Button>
+      )}
 
     </div>
   );

@@ -166,6 +166,9 @@ importers:
       '@tetherto/wdk-protocol-bridge-usdt0-evm':
         specifier: 1.0.0-beta.4
         version: 1.0.0-beta.4(@ton/crypto@3.3.0)(bare-abort-controller@1.1.2)(bare-buffer@3.6.1)(bare-events@2.9.1(bare-abort-controller@1.1.2))(bare-pipe@4.2.2(bare-abort-controller@1.1.2)(bare-buffer@3.6.1))(bare-tcp@2.5.1(bare-abort-controller@1.1.2)(bare-buffer@3.6.1)(bare-pipe@4.2.2(bare-abort-controller@1.1.2)(bare-buffer@3.6.1)))(bare-url@2.4.5)(sodium-javascript@0.8.0)(typescript@5.5.4)(zod@3.25.76)
+      '@tetherto/wdk-protocol-fiat-moonpay':
+        specifier: 1.0.0-beta.2
+        version: 1.0.0-beta.2(bare-pipe@4.2.2(bare-abort-controller@1.1.2)(bare-buffer@3.6.1))(bare-tcp@2.5.1(bare-abort-controller@1.1.2)(bare-buffer@3.6.1)(bare-pipe@4.2.2(bare-abort-controller@1.1.2)(bare-buffer@3.6.1)))
       '@tetherto/wdk-protocol-lending-aave-evm':
         specifier: 1.0.0-beta.4
         version: 1.0.0-beta.4(bare-abort-controller@1.1.2)(bare-buffer@3.6.1)(bare-events@2.9.1(bare-abort-controller@1.1.2))(bare-pipe@4.2.2(bare-abort-controller@1.1.2)(bare-buffer@3.6.1))(bare-tcp@2.5.1(bare-abort-controller@1.1.2)(bare-buffer@3.6.1)(bare-pipe@4.2.2(bare-abort-controller@1.1.2)(bare-buffer@3.6.1)))(bare-url@2.4.5)(sodium-javascript@0.8.0)(typescript@5.5.4)(viem@2.21.0(typescript@5.5.4)(zod@3.25.76))(zod@3.25.76)
@@ -1741,6 +1744,9 @@ packages:
   '@tetherto/wdk-protocol-bridge-usdt0-evm@1.0.0-beta.4':
     resolution: {integrity: sha512-+w3tD3UuhGDsfNAKPY/OJcwcsqMSvnvZXyMmFaexBWgjnhVM2qzqEhYzkJ1osLwClLvtJzfcRfBw0fKKIMFZFA==}
 
+  '@tetherto/wdk-protocol-fiat-moonpay@1.0.0-beta.2':
+    resolution: {integrity: sha512-M+4AvAwH5uAV0dl7JJvvuRafv1depRnRpY+BmqYHCr1P3PO9abhmF+KGKzUU+k3A4s11/v9mwJsG5vUVroc7wQ==}
+
   '@tetherto/wdk-protocol-lending-aave-evm@1.0.0-beta.4':
     resolution: {integrity: sha512-cIDyUUPcKnbm4weFS1CAXUakssqIKYRwovZY4ZTgmS2nO3SX+3Tp5+uM5XhgIDc/uzhuGJoPOgo+H77hjjZAlg==}
 
@@ -2415,6 +2421,9 @@ packages:
 
   bignumber.js@9.1.2:
     resolution: {integrity: sha512-2/mKyZH9K85bzOEfhXDBFZTGd1CTs+5IHpeFQo9luiBG7hghdC851Pj2WAhb6E3R6b9tZj/XKhbg4fum+Kepug==}
+
+  bignumber.js@9.3.1:
+    resolution: {integrity: sha512-Ko0uX15oIUS7wJ3Rb30Fs6SkVbLmPBAKdlm7q9+ak9bbIeFf0MwuBsQV6z7+X768/cHsfg+WlysDWJcmthjsjQ==}
 
   bindings@1.5.0:
     resolution: {integrity: sha512-p2q/t/mhvuOj/UeLlV6566GD/guowlr0hHxClI0W9m7MWYkL1F0hLo+0Aexs9HSPCtR1SXQ0TD3MMKrXZajbiQ==}
@@ -5702,6 +5711,16 @@ snapshots:
       - utf-8-validate
       - zod
 
+  '@tetherto/wdk-protocol-fiat-moonpay@1.0.0-beta.2(bare-pipe@4.2.2(bare-abort-controller@1.1.2)(bare-buffer@3.6.1))(bare-tcp@2.5.1(bare-abort-controller@1.1.2)(bare-buffer@3.6.1)(bare-pipe@4.2.2(bare-abort-controller@1.1.2)(bare-buffer@3.6.1)))':
+    dependencies:
+      '@tetherto/wdk-wallet': 1.0.0-beta.11(bare-pipe@4.2.2(bare-abort-controller@1.1.2)(bare-buffer@3.6.1))(bare-tcp@2.5.1(bare-abort-controller@1.1.2)(bare-buffer@3.6.1)(bare-pipe@4.2.2(bare-abort-controller@1.1.2)(bare-buffer@3.6.1)))
+      bare-node-runtime: 1.5.0(bare-pipe@4.2.2(bare-abort-controller@1.1.2)(bare-buffer@3.6.1))(bare-tcp@2.5.1(bare-abort-controller@1.1.2)(bare-buffer@3.6.1)(bare-pipe@4.2.2(bare-abort-controller@1.1.2)(bare-buffer@3.6.1)))
+      bignumber.js: 9.3.1
+    transitivePeerDependencies:
+      - bare-pipe
+      - bare-tcp
+      - react-native-b4a
+
   '@tetherto/wdk-protocol-lending-aave-evm@1.0.0-beta.4(bare-abort-controller@1.1.2)(bare-buffer@3.6.1)(bare-events@2.9.1(bare-abort-controller@1.1.2))(bare-pipe@4.2.2(bare-abort-controller@1.1.2)(bare-buffer@3.6.1))(bare-tcp@2.5.1(bare-abort-controller@1.1.2)(bare-buffer@3.6.1)(bare-pipe@4.2.2(bare-abort-controller@1.1.2)(bare-buffer@3.6.1)))(bare-url@2.4.5)(sodium-javascript@0.8.0)(typescript@5.5.4)(viem@2.21.0(typescript@5.5.4)(zod@3.25.76))(zod@3.25.76)':
     dependencies:
       '@bgd-labs/aave-address-book': 4.33.0(viem@2.21.0(typescript@5.5.4)(zod@3.25.76))
@@ -6925,6 +6944,8 @@ snapshots:
   bech32@2.0.0: {}
 
   bignumber.js@9.1.2: {}
+
+  bignumber.js@9.3.1: {}
 
   bindings@1.5.0:
     dependencies:

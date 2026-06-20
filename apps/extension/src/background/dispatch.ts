@@ -104,6 +104,9 @@ export function createStubHandlers(): HandlerRegistry {
     VELORA_SWAP: notImplemented('VELORA_SWAP'),
     USDT0_QUOTE_BRIDGE: notImplemented('USDT0_QUOTE_BRIDGE'),
     USDT0_BRIDGE: notImplemented('USDT0_BRIDGE'),
+    MOONPAY_IS_CONFIGURED: notImplemented('MOONPAY_IS_CONFIGURED'),
+    MOONPAY_QUOTE_BUY: notImplemented('MOONPAY_QUOTE_BUY'),
+    MOONPAY_BUY: notImplemented('MOONPAY_BUY'),
     DAPP_REQUEST: notImplemented('DAPP_REQUEST'),
     // B4.4: approval-flow handshake stubs (real impls in createSwHandlers).
     APPROVAL_GET_PENDING: notImplemented('APPROVAL_GET_PENDING'),

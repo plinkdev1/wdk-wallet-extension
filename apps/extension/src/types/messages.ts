@@ -83,6 +83,10 @@ export type WalletMessage =
   // USDT0 cross-chain bridge (amount is a base-unit decimal string; L-WIRE-03)
   | { type: 'USDT0_QUOTE_BRIDGE'; chain: EvmChainId; accountIndex: number; targetChain: string; recipient: string; token: string; amount: string; oftContractAddress: string }
   | { type: 'USDT0_BRIDGE'; chain: EvmChainId; accountIndex: number; targetChain: string; recipient: string; token: string; amount: string; oftContractAddress: string }
+  // MoonPay fiat on-ramp (fiatAmount is a JS number — whole/decimal fiat units)
+  | { type: 'MOONPAY_IS_CONFIGURED' }
+  | { type: 'MOONPAY_QUOTE_BUY'; fiatCurrency: string; cryptoAsset: string; fiatAmount: number }
+  | { type: 'MOONPAY_BUY'; fiatCurrency: string; cryptoAsset: string; fiatAmount: number; recipient: string }
   // dApp pipeline (B4.3)
   | { type: 'DAPP_REQUEST'; id: string; origin: string; method: string; params?: readonly unknown[] }
   // Approval flow (B4.4)
@@ -136,6 +140,9 @@ export type WalletResponseData = {
   VELORA_SWAP: VeloraSwapResultDto;
   USDT0_QUOTE_BRIDGE: { readonly fee: string };
   USDT0_BRIDGE: { readonly hash: string; readonly fee: string; readonly approveHash?: string };
+  MOONPAY_IS_CONFIGURED: boolean;
+  MOONPAY_QUOTE_BUY: MoonPayBuyQuoteDto | null;
+  MOONPAY_BUY: string;
   DAPP_REQUEST: Eip1193Response;
   APPROVAL_GET_PENDING: ApprovalRequest | null;
   APPROVAL_RESPOND: { ok: boolean };
@@ -157,6 +164,14 @@ export interface AaveActionResultDto {
   readonly hash: string;
   readonly fee: string;
   readonly approveHash?: string;
+}
+
+/** MoonPay buy quote over the wire — fiat/crypto amounts as JS numbers. */
+export interface MoonPayBuyQuoteDto {
+  readonly fiatAmount: number;
+  readonly cryptoAmount: number;
+  readonly feeAmount: number;
+  readonly totalAmount: number;
 }
 
 /** Velora swap quote over the wire — bigints as decimal strings. */

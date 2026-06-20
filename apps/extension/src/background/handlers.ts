@@ -246,6 +246,10 @@ export function createSwHandlers({ engine, worker, approvalFlow, connectionState
       return { hash: r.hash, fee: r.fee.toString(), ...(r.approveHash ? { approveHash: r.approveHash } : {}) };
     },
 
+    MOONPAY_IS_CONFIGURED: async () => worker.moonpay_isConfigured(),
+    MOONPAY_QUOTE_BUY: async (msg) => worker.moonpay_quoteBuy(msg.fiatCurrency, msg.cryptoAsset, msg.fiatAmount),
+    MOONPAY_BUY: async (msg) => worker.moonpay_buy(msg.fiatCurrency, msg.cryptoAsset, msg.fiatAmount, msg.recipient),
+
     DAPP_REQUEST: async (msg) => {
       // ctx.id threads the DAPP_REQUEST envelope id through to approvalFlow.open()
       // so the popup's APPROVAL_GET_PENDING(id) call matches.

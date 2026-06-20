@@ -48,7 +48,20 @@ import {
 console.log('[bg] WDK Wallet SW booting - B4.9b: + wallet_switchEthereumChain + chainChanged event push');
 
 const engine = createEngine();
-const worker = new WalletWorker({ rpcAdapter: createExtensionRpcAdapter() });
+
+// MoonPay on-ramp config — app-supplied publishable key (Vite statically inlines
+// these at build). Absent key => the on-ramp UI shows a "configure" notice; the
+// integration is fully present and activates the moment a key is provided.
+const moonpayApiKey = import.meta.env.VITE_MOONPAY_API_KEY;
+const moonpayConfig = moonpayApiKey
+  ? {
+      apiKey: moonpayApiKey,
+      environment: (import.meta.env.VITE_MOONPAY_ENV === 'production' ? 'production' : 'sandbox') as 'production' | 'sandbox',
+      ...(import.meta.env.VITE_MOONPAY_SIGN_URL ? { signUrl: import.meta.env.VITE_MOONPAY_SIGN_URL } : {}),
+    }
+  : undefined;
+
+const worker = new WalletWorker({ rpcAdapter: createExtensionRpcAdapter(), ...(moonpayConfig ? { moonpayConfig } : {}) });
 const approvalFlow = createApprovalFlow();
 const connectionState = createConnectionState();
 const eventBus = createBrowserDappEventBus();

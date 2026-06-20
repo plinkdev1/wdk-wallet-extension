@@ -56,6 +56,12 @@ import {
   type Usdt0Quote,
   type Usdt0BridgeResult,
 } from '../protocols/usdt0.js';
+import {
+  createMoonPayProtocol,
+  normalizeBuyQuote,
+  type MoonPayConfig,
+  type MoonPayBuyQuote,
+} from '../protocols/moonpay.js';
 import type { RpcAdapter, TransactionStatus } from '../adapters/index.js';
 import { CoingeckoPricingClient } from '@tetherto/wdk-pricing-coingecko-http';
 import type {
@@ -75,6 +81,12 @@ export interface WalletWorkerOptions {
   readonly vault?: WebCryptoVault;
   /** Optional RPC adapter for rpc_getBalance. If omitted, rpc_getBalance throws. */
   readonly rpcAdapter?: RpcAdapter;
+  /**
+   * Optional MoonPay on-ramp config (app-supplied publishable key + environment).
+   * If omitted, moonpay_* methods report "not configured" — the integration is
+   * present and ready; only the app's own key is missing.
+   */
+  readonly moonpayConfig?: MoonPayConfig;
 }
 
 /** Symbol → CoinGecko id for USD pricing. Small by design; extend as assets are added. */
@@ -95,11 +107,13 @@ function getPricingClient(): CoingeckoPricingClient {
 export class WalletWorker implements Pick<WalletWorkerApi, 'vault_hasStored' | 'vault_store' | 'vault_load' | 'vault_clear' | 'account_getEvmAddress' | 'account_getSolanaAddress' | 'account_signMessage' | 'account_signTypedData' | 'account_signSolanaMessage' | 'account_sendTransaction' | 'account_sendSolanaTransaction' | 'account_getBtcAddress' | 'account_getBtcBalance' | 'account_sendBtcTransaction' | 'account_getTonAddress' | 'account_getTonBalance' | 'account_sendTonTransaction' | 'account_getTronAddress' | 'account_getTronBalance' | 'account_sendTronTransaction' | 'rpc_getBalance' | 'rpc_getTokenBalance' | 'rpc_getTransactionStatus' | 'pricing_getUsdPrice' | 'bip39_generateMnemonic' | 'bip39_validateMnemonic'> {
   private readonly vault: WebCryptoVault;
   private readonly rpcAdapter: RpcAdapter | null;
+  private readonly moonpayConfig: MoonPayConfig | null;
   private wdk: WdkManager | null = null;
 
   constructor(options: WalletWorkerOptions = {}) {
     this.vault = options.vault ?? createWebCryptoVault();
     this.rpcAdapter = options.rpcAdapter ?? null;
+    this.moonpayConfig = options.moonpayConfig ?? null;
   }
 
   /**
@@ -625,6 +639,28 @@ export class WalletWorker implements Pick<WalletWorkerApi, 'vault_hasStored' | '
     const bridge = createUsdt0Protocol(account);
     const result = await bridge.bridge({ targetChain, recipient, token, amount, oftContractAddress });
     return normalizeUsdt0Result(result, approveHash);
+  }
+
+  /** Whether a MoonPay on-ramp key is configured by the host app. */
+  async moonpay_isConfigured(): Promise<boolean> {
+    return Boolean(this.moonpayConfig?.apiKey);
+  }
+
+  /** Quotes a fiat→crypto buy. Returns null if MoonPay isn't configured. */
+  async moonpay_quoteBuy(fiatCurrency: string, cryptoAsset: string, fiatAmount: number): Promise<MoonPayBuyQuote | null> {
+    if (!this.moonpayConfig?.apiKey) return null;
+    const mp = createMoonPayProtocol(this.moonpayConfig);
+    return normalizeBuyQuote(await mp.quoteBuy({ fiatCurrency, cryptoAsset, baseCurrencyAmount: fiatAmount }));
+  }
+
+  /** Generates a MoonPay buy-widget URL for `recipient`. Throws if not configured. */
+  async moonpay_buy(fiatCurrency: string, cryptoAsset: string, fiatAmount: number, recipient: string): Promise<string> {
+    if (!this.moonpayConfig?.apiKey) {
+      throw new Error('MoonPay is not configured. Set VITE_MOONPAY_API_KEY (publishable key) to enable the on-ramp.');
+    }
+    const mp = createMoonPayProtocol(this.moonpayConfig);
+    const { buyUrl } = await mp.buy({ fiatCurrency, cryptoAsset, baseCurrencyAmount: fiatAmount, walletAddress: recipient });
+    return buyUrl;
   }
 
   /**
