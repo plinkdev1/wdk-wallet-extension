@@ -21,6 +21,7 @@ describe('SW message dispatcher (F-SEC-01 — Object.hasOwn whitelisting)', () =
       ACCOUNT_SIGN_TYPED_DATA: vi.fn(async () => '0xdead' as `0x${string}`),
       ACCOUNT_SIGN_SOLANA_MESSAGE: vi.fn(async () => 'sigsig'),
       ACCOUNT_SEND_TRANSACTION: vi.fn(async () => '0xtxhash' as `0x${string}`),
+      ACCOUNT_SEND_SOLANA_TRANSACTION: vi.fn(async () => 'soL1gnatureBase58'),
       RPC_GET_BALANCE: vi.fn(async () => '0'),
       RPC_GET_TOKEN_BALANCE: vi.fn(async () => '0'),
       DAPP_REQUEST: vi.fn(async () => ({ result: 'ok' })) as any,

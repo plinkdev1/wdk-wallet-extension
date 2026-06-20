@@ -11,7 +11,7 @@ Reference implementation for the Tether WDK **Browser Extension Starter** bounty
 [![CI](https://github.com/plinkdev1/wdk-wallet-extension/actions/workflows/ci.yml/badge.svg)](https://github.com/plinkdev1/wdk-wallet-extension/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-F4642F.svg)](./LICENSE)
 [![Manifest V3](https://img.shields.io/badge/Manifest-V3-1f6feb.svg)](#architecture)
-[![Tests](https://img.shields.io/badge/tests-828%20passing-3fb950.svg)](#quality--testing)
+[![Tests](https://img.shields.io/badge/tests-831%20passing-3fb950.svg)](#quality--testing)
 
 </div>
 
@@ -21,7 +21,7 @@ Reference implementation for the Tether WDK **Browser Extension Starter** bounty
 
 WDK gives developers a powerful, framework-agnostic toolkit for building self-custodial wallets — but until now there was **no reference browser-extension implementation**. The browser extension is one of the most in-demand wallet formats (MetaMask, Phantom, Rabby), and building one correctly means solving a hard set of problems: Manifest V3 service-worker key custody, secure local storage, dApp injection standards, and an approval UX that users trust.
 
-This repository is that reference. It is not a toy: it ships a real WebCrypto-encrypted vault, real WDK-backed key derivation and signing across EVM and Solana, standards-compliant dApp connectivity (EIP-1193 + EIP-6963), and **828 passing automated tests**. It is engineered so that another team can fork it and ship a production wallet, or read it to learn how the pieces fit.
+This repository is that reference. It is not a toy: it ships a real WebCrypto-encrypted vault, real WDK-backed key derivation and signing across EVM and Solana, standards-compliant dApp connectivity (EIP-1193 + EIP-6963), and **831 passing automated tests**. It is engineered so that another team can fork it and ship a production wallet, or read it to learn how the pieces fit.
 
 > **Engineering philosophy:** the wallet is the *product*, but the leverage is the *architecture*. All wallet logic lives in two reusable, framework-agnostic packages (`wdk-web-core` engine + `wdk-ui` component library). The extension is the first surface to consume them; the same packages power the [WDK Template Wallet](https://github.com/plinkdev1/wdk-wallet-template) and other WDK reference products. Build once, ship everywhere.
 
@@ -58,7 +58,7 @@ This repository is that reference. It is not a toy: it ships a real WebCrypto-en
 
 ### Multi-chain
 - **EVM:** Plasma, Ethereum, Polygon, Arbitrum (+ ~40 additional EVM networks available in the registry).
-- **Solana:** mainnet, devnet, testnet.
+- **Solana:** mainnet, devnet, testnet — address derivation, message signing, and **native SOL send + receive (QR)**.
 - Per-chain RPC configuration with environment-variable overrides; sensible public-RPC fallbacks out of the box.
 
 ### dApp connectivity
@@ -212,7 +212,7 @@ A wallet's job is to protect a secret. The threat model and mitigations are docu
 |---|---|
 | **EVM — Plasma, Ethereum, Polygon, Arbitrum** | ✅ implemented (derivation, signing, balances, dApp) |
 | **EVM — ~40 additional networks** (Optimism, Base, BSC, Avalanche, …) | ✅ in registry |
-| **Solana** — mainnet / devnet / testnet | ✅ implemented (derivation, signing) |
+| **Solana** — mainnet / devnet / testnet | ✅ implemented (derivation, signing, **native SOL send + receive**) |
 | **USDt / XAUt** ERC-20 token **balances** | ✅ implemented (Ethereum, Polygon, Arbitrum, Optimism, …) |
 | USDt / XAUt **transfers** | 🚧 on the roadmap (the native Send flow exists; token-transfer encoding is next) |
 | **Bitcoin** (native + WDK `wdk-wallet-bitcoin`) | 🚧 on the roadmap |
@@ -228,8 +228,8 @@ This repository is transparent about what is implemented vs. planned — see the
 |---|---|---|
 | `@wdk-starter/wdk-web-core` | 97 ✅ | strict, clean |
 | `@wdk-starter/wdk-ui` | 350 ✅ | strict, clean |
-| `@wdk-starter/extension` | 381 ✅ | strict, clean |
-| **Total** | **828 ✅** | |
+| `@wdk-starter/extension` | 384 ✅ | strict, clean |
+| **Total** | **831 ✅** | |
 
 TypeScript runs in **strict** mode with `noUncheckedIndexedAccess` and `exactOptionalPropertyTypes` everywhere. CI (`.github/workflows/ci.yml`) runs typecheck + tests + build on every push. A derivation regression test pins a known mnemonic to a known address so any drift in the signing stack fails loudly.
 

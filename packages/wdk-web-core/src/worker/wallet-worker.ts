@@ -51,7 +51,7 @@ export interface WalletWorkerOptions {
   readonly rpcAdapter?: RpcAdapter;
 }
 
-export class WalletWorker implements Pick<WalletWorkerApi, 'vault_hasStored' | 'vault_store' | 'vault_load' | 'vault_clear' | 'account_getEvmAddress' | 'account_getSolanaAddress' | 'account_signMessage' | 'account_signTypedData' | 'account_signSolanaMessage' | 'account_sendTransaction' | 'rpc_getBalance' | 'rpc_getTokenBalance' | 'bip39_generateMnemonic' | 'bip39_validateMnemonic'> {
+export class WalletWorker implements Pick<WalletWorkerApi, 'vault_hasStored' | 'vault_store' | 'vault_load' | 'vault_clear' | 'account_getEvmAddress' | 'account_getSolanaAddress' | 'account_signMessage' | 'account_signTypedData' | 'account_signSolanaMessage' | 'account_sendTransaction' | 'account_sendSolanaTransaction' | 'rpc_getBalance' | 'rpc_getTokenBalance' | 'bip39_generateMnemonic' | 'bip39_validateMnemonic'> {
   private readonly vault: WebCryptoVault;
   private readonly rpcAdapter: RpcAdapter | null;
   private wdk: WdkManager | null = null;
@@ -170,6 +170,27 @@ export class WalletWorker implements Pick<WalletWorkerApi, 'vault_hasStored' | '
     if (typeof result === 'string') return result;
     if (result && typeof result === 'object' && 'hash' in result) return result.hash;
     throw new Error('account_sendTransaction: unexpected return shape from WDK EVM account');
+  }
+
+  /**
+   * Sends native SOL on a Solana chain. WDK's WalletAccountSolana accepts a
+   * SimpleSolanaTransaction ({ to, value }) where value is lamports; it builds,
+   * signs, and broadcasts, returning a TransactionResult whose hash is the
+   * base58 signature. (account.transfer() is SPL-only and not used here.)
+   */
+  async account_sendSolanaTransaction(chain: SolanaChainId, index: number, to: string, value: bigint): Promise<string> {
+    if (!isSupportedChainId(chain)) {
+      throw new Error('Unsupported chain (no loader registered, deferred to v1.1): ' + chain);
+    }
+    const wdk = this._requireWdk();
+    await ensureChainRegistered(wdk, chain);
+    const account = await wdk.getAccount(chain, index);
+    const solanaAccount = account as unknown as {
+      sendTransaction(tx: { to: string; value: bigint }): Promise<{ hash: string }>;
+    };
+    const result = await solanaAccount.sendTransaction({ to, value });
+    if (result && typeof result === 'object' && typeof result.hash === 'string') return result.hash;
+    throw new Error('account_sendSolanaTransaction: unexpected return shape from WDK Solana account');
   }
 
   async account_getEvmAddress(chain: EvmChainId, index: number): Promise<Hex> {

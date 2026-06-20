@@ -51,6 +51,7 @@ export type WalletMessage =
   // User-initiated EVM transfer from the popup. `value` is a base-unit decimal
   // string (bigint is not structured-cloneable over chrome.runtime — L-WIRE-03).
   | { type: 'ACCOUNT_SEND_TRANSACTION'; chain: EvmChainId; accountIndex: number; to: string; value: string }
+  | { type: 'ACCOUNT_SEND_SOLANA_TRANSACTION'; chain: SolanaChainId; accountIndex: number; to: string; value: string }
   // RPC
   | { type: 'RPC_GET_BALANCE'; chain: ChainId; address: string }
   | { type: 'RPC_GET_TOKEN_BALANCE'; chain: ChainId; address: string; tokenAddress: string }
@@ -83,6 +84,7 @@ export type WalletResponseData = {
   ACCOUNT_SIGN_TYPED_DATA: Hex;
   ACCOUNT_SIGN_SOLANA_MESSAGE: string;
   ACCOUNT_SEND_TRANSACTION: Hex;
+  ACCOUNT_SEND_SOLANA_TRANSACTION: string;
   RPC_GET_BALANCE: string;
   RPC_GET_TOKEN_BALANCE: string;
   DAPP_REQUEST: Eip1193Response;

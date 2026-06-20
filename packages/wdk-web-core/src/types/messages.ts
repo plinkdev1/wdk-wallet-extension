@@ -46,6 +46,9 @@ export interface WalletWorkerApi {
    */
   account_sendTransaction(chain: EvmChainId, index: number, tx: Record<string, unknown>): Promise<Hex>;
 
+  /** Sends native SOL (value in lamports) on a Solana chain; returns the base58 signature. */
+  account_sendSolanaTransaction(chain: SolanaChainId, index: number, to: string, value: bigint): Promise<string>;
+
   // Solana account operations
   account_getSolanaAddress(chain: SolanaChainId, index: number): Promise<Base58Address>;
   account_signSolanaMessage(chain: SolanaChainId, index: number, message: Uint8Array): Promise<SolanaSignature>;

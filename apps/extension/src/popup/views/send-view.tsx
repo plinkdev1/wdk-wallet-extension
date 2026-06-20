@@ -1,39 +1,44 @@
 /**
- * SendView - a user-initiated native-asset transfer on the active EVM chain.
+ * SendView - a user-initiated native-asset transfer on the active chain.
  *
- * Flow: enter recipient + amount -> validate -> ACCOUNT_SEND_TRANSACTION to the
- * SW (which signs + broadcasts via WDK) -> show the transaction hash. The keys
- * never leave the service worker; this view only collects intent.
+ * Handles both EVM (0x address, 18 decimals, ACCOUNT_SEND_TRANSACTION) and
+ * Solana (base58 address, 9 decimals / lamports, ACCOUNT_SEND_SOLANA_TRANSACTION)
+ * via the `kind` prop (defaults to 'evm'). Flow: enter recipient + amount ->
+ * validate -> message the SW (which signs + broadcasts via WDK) -> show the hash.
+ * The keys never leave the service worker; this view only collects intent.
  */
 
 import { useCallback, useState } from 'react';
 import { Button, Card, Input, Label } from '@wdk-starter/wdk-ui';
-import type { EvmChainId } from '@wdk-starter/wdk-web-core/types';
+import type { EvmChainId, SolanaChainId } from '@wdk-starter/wdk-web-core/types';
 import { send } from '../lib/sw-client.js';
 import { addTransaction } from '../hooks/use-transactions.js';
 
 export interface SendViewProps {
-  readonly chain: EvmChainId;
+  readonly chain: EvmChainId | SolanaChainId;
   readonly symbol: string;
   /** The active account index to send from (BIP-44 derivation). */
   readonly accountIndex: number;
+  /** Asset kind — selects address format, decimals, and the send message. Defaults to 'evm'. */
+  readonly kind?: 'evm' | 'solana';
   readonly onBack: () => void;
   /** Called after a successful broadcast so the parent can refresh the balance. */
   readonly onSent?: () => void;
 }
 
 const EVM_ADDRESS = /^0x[0-9a-fA-F]{40}$/;
+const SOLANA_ADDRESS = /^[1-9A-HJ-NP-Za-km-z]{32,44}$/;
 
-/** Parses a decimal token amount into an 18-decimal base-unit string. */
-function parseToWei(input: string): bigint {
+/** Parses a decimal amount into a base-unit bigint with the given decimals. */
+function parseAmount(input: string, decimals: number): bigint {
   const trimmed = input.trim();
   if (!/^\d*\.?\d*$/.test(trimmed) || trimmed === '' || trimmed === '.') {
     throw new Error('Enter a valid amount.');
   }
   const [whole = '0', frac = ''] = trimmed.split('.');
-  if (frac.length > 18) throw new Error('Too many decimals.');
-  const padded = frac.padEnd(18, '0');
-  return BigInt(whole || '0') * 10n ** 18n + BigInt(padded || '0');
+  if (frac.length > decimals) throw new Error('Too many decimals.');
+  const padded = frac.padEnd(decimals, '0');
+  return BigInt(whole || '0') * 10n ** BigInt(decimals) + BigInt(padded || '0');
 }
 
 type Phase =
@@ -41,21 +46,25 @@ type Phase =
   | { status: 'sending' }
   | { status: 'sent'; hash: string };
 
-export function SendView({ chain, symbol, accountIndex, onBack, onSent }: SendViewProps): JSX.Element {
+export function SendView({ chain, symbol, accountIndex, kind = 'evm', onBack, onSent }: SendViewProps): JSX.Element {
   const [to, setTo] = useState('');
   const [amount, setAmount] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [phase, setPhase] = useState<Phase>({ status: 'form' });
+  const isSolana = kind === 'solana';
 
   const handleSend = useCallback(async (): Promise<void> => {
     setError(null);
-    if (!EVM_ADDRESS.test(to.trim())) {
-      setError('Enter a valid recipient address (0x…40 hex).');
+    const decimals = isSolana ? 9 : 18;
+    const recipient = to.trim();
+    const valid = (isSolana ? SOLANA_ADDRESS : EVM_ADDRESS).test(recipient);
+    if (!valid) {
+      setError(isSolana ? 'Enter a valid Solana address (base58).' : 'Enter a valid recipient address (0x…40 hex).');
       return;
     }
     let value: bigint;
     try {
-      value = parseToWei(amount);
+      value = parseAmount(amount, decimals);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Invalid amount.');
       return;
@@ -67,21 +76,17 @@ export function SendView({ chain, symbol, accountIndex, onBack, onSent }: SendVi
 
     setPhase({ status: 'sending' });
     try {
-      const hash = await send({
-        type: 'ACCOUNT_SEND_TRANSACTION',
-        chain,
-        accountIndex,
-        to: to.trim(),
-        value: value.toString(),
-      });
-      addTransaction({ hash, chain, to: to.trim(), value: value.toString(), symbol, decimals: 18, ts: Date.now() });
+      const hash = isSolana
+        ? await send({ type: 'ACCOUNT_SEND_SOLANA_TRANSACTION', chain: chain as SolanaChainId, accountIndex, to: recipient, value: value.toString() })
+        : await send({ type: 'ACCOUNT_SEND_TRANSACTION', chain: chain as EvmChainId, accountIndex, to: recipient, value: value.toString() });
+      addTransaction({ hash, chain, to: recipient, value: value.toString(), symbol, decimals, ts: Date.now() });
       setPhase({ status: 'sent', hash });
       onSent?.();
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Transaction failed.');
       setPhase({ status: 'form' });
     }
-  }, [to, amount, chain, accountIndex, onSent]);
+  }, [to, amount, chain, accountIndex, isSolana, symbol, onSent]);
 
   return (
     <div style={{ padding: 20, display: 'flex', flexDirection: 'column', gap: 16, flex: 1, fontFamily: 'var(--font-body)', color: 'var(--text-primary)' }}>
@@ -95,7 +100,7 @@ export function SendView({ chain, symbol, accountIndex, onBack, onSent }: SendVi
           <div style={{ display: 'flex', flexDirection: 'column', gap: 14, padding: 16 }}>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
               <Label>Recipient address</Label>
-              <Input value={to} onChange={(e) => setTo(e.target.value)} placeholder="0x…" />
+              <Input value={to} onChange={(e) => setTo(e.target.value)} placeholder={isSolana ? 'Base58 address' : '0x…'} />
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
               <Label>Amount ({symbol})</Label>

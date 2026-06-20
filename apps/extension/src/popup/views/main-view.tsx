@@ -26,9 +26,10 @@
 
 import { useCallback, useState } from 'react';
 import { Badge, Button, Card, ChainSelector, Label, NetworkIcon, TokenIcon, useActiveChain } from '@wdk-starter/wdk-ui';
-import type { ChainId, EvmChainId } from '@wdk-starter/wdk-web-core/types';
+import type { ChainId, EvmChainId, SolanaChainId } from '@wdk-starter/wdk-web-core/types';
 import { send } from '../lib/sw-client.js';
 import { useMainAccount } from '../hooks/use-main-account.js';
+import { useSolanaAccount } from '../hooks/use-solana-account.js';
 import { useBalance, formatEthFromWei } from '../hooks/use-balance.js';
 import { useTokenBalances } from '../hooks/use-token-balances.js';
 import { ReceiveView } from './receive-view.js';
@@ -141,6 +142,11 @@ export function MainView({ onLockRequested, onOpenSettings }: MainViewProps): JS
   const { state: tokenBalancesState } = useTokenBalances(
     !isSolanaChain && accountState.status === 'ready' ? { chain: evmChain, address: accountState.address } : {},
   );
+  const { state: solanaAccountState } = useSolanaAccount(
+    isSolanaChain
+      ? { chain: activeChain as SolanaChainId, accountIndex, enabled: true }
+      : { enabled: false },
+  );
   const [locking, setLocking] = useState(false);
   const [copied, setCopied] = useState(false);
 
@@ -172,10 +178,14 @@ export function MainView({ onLockRequested, onOpenSettings }: MainViewProps): JS
 
   // Sub-views own the full surface; they're reached from the Send/Receive
   // actions and only available on EVM chains with a derived address.
-  if (subView === 'receive' && accountState.status === 'ready') {
+  const activeAddress = isSolanaChain
+    ? (solanaAccountState.status === 'ready' ? solanaAccountState.address : null)
+    : (accountState.status === 'ready' ? accountState.address : null);
+
+  if (subView === 'receive' && activeAddress) {
     return (
       <ReceiveView
-        address={accountState.address}
+        address={activeAddress}
         chainName={activeName}
         symbol={activeSymbol}
         onBack={() => setSubView('main')}
@@ -185,7 +195,8 @@ export function MainView({ onLockRequested, onOpenSettings }: MainViewProps): JS
   if (subView === 'send') {
     return (
       <SendView
-        chain={evmChain}
+        chain={isSolanaChain ? (activeChain as SolanaChainId) : evmChain}
+        kind={isSolanaChain ? 'solana' : 'evm'}
         symbol={activeSymbol}
         accountIndex={accountIndex}
         onBack={() => setSubView('main')}
@@ -245,14 +256,40 @@ export function MainView({ onLockRequested, onOpenSettings }: MainViewProps): JS
       </header>
 
       {isSolanaChain && (
-        <Card>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 10, padding: 14 }}>
-            <Label>Solana</Label>
-            <div style={{ fontSize: 13, opacity: 0.75, lineHeight: 1.4 }}>
-              <strong>{activeChain}</strong> is registered in the wallet. Account address + balance for Solana chains land in a future phase (the EVM hooks don&apos;t apply here; a dedicated useSolanaAccount + Solana RPC adapter come next).
+        <>
+          <Card>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10, padding: 14 }}>
+              <Label>Solana address</Label>
+              {solanaAccountState.status === 'loading' && (
+                <div style={{ fontSize: 12, opacity: 0.6 }}>Loading address…</div>
+              )}
+              {solanaAccountState.status === 'error' && (
+                <div role="alert" style={{ fontSize: 12, color: 'var(--color-error, #EF4444)', lineHeight: 1.4, wordBreak: 'break-word' }}>
+                  Failed to load address: {solanaAccountState.error}
+                </div>
+              )}
+              {solanaAccountState.status === 'ready' && (
+                <code style={{ fontSize: 11, wordBreak: 'break-all' }}>{solanaAccountState.address}</code>
+              )}
+              <div style={{ fontSize: 11, opacity: 0.55, lineHeight: 1.4 }}>
+                Native SOL send & receive are live. On-chain balance display uses a dedicated Solana RPC adapter (next).
+              </div>
             </div>
+          </Card>
+
+          <div style={{ display: 'flex', gap: 10 }}>
+            <Button onClick={() => setSubView('send')} disabled={solanaAccountState.status !== 'ready'} style={{ flex: 1 }}>
+              Send
+            </Button>
+            <Button variant="secondary" onClick={() => setSubView('receive')} disabled={solanaAccountState.status !== 'ready'} style={{ flex: 1 }}>
+              Receive
+            </Button>
           </div>
-        </Card>
+
+          <Button variant="ghost" size="sm" onClick={() => setSubView('activity')} style={{ alignSelf: 'center' }}>
+            Activity ›
+          </Button>
+        </>
       )}
       {!isSolanaChain && (<>
       <Card>

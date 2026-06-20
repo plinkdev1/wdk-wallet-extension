@@ -128,6 +128,12 @@ export function createSwHandlers({ engine, worker, approvalFlow, connectionState
       });
     },
 
+    ACCOUNT_SEND_SOLANA_TRANSACTION: async (msg) => {
+      // User-initiated native SOL transfer from the popup. value arrives as a
+      // lamports decimal string; WDK builds, signs + broadcasts, returns the sig.
+      return worker.account_sendSolanaTransaction(msg.chain, msg.accountIndex, msg.to, BigInt(msg.value));
+    },
+
     RPC_GET_BALANCE: async (msg) => {
       const balance = await worker.rpc_getBalance(msg.chain, msg.address);
       return balance.toString();

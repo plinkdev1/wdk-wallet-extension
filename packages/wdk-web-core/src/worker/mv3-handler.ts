@@ -75,6 +75,7 @@ const ALLOWED_METHODS = {
   rpc_getBalance: true,
   rpc_getTokenBalance: true,
   account_sendTransaction: true,
+  account_sendSolanaTransaction: true,
   bip39_generateMnemonic: true,
   bip39_validateMnemonic: true,
 } as const satisfies Record<keyof WalletWorkerApi, true>;
