@@ -11,7 +11,7 @@ Reference implementation for the Tether WDK **Browser Extension Starter** bounty
 [![CI](https://github.com/plinkdev1/wdk-wallet-extension/actions/workflows/ci.yml/badge.svg)](https://github.com/plinkdev1/wdk-wallet-extension/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-F4642F.svg)](./LICENSE)
 [![Manifest V3](https://img.shields.io/badge/Manifest-V3-1f6feb.svg)](#architecture)
-[![Tests](https://img.shields.io/badge/tests-817%20passing-3fb950.svg)](#quality--testing)
+[![Tests](https://img.shields.io/badge/tests-828%20passing-3fb950.svg)](#quality--testing)
 
 </div>
 
@@ -71,6 +71,7 @@ This repository is that reference. It is not a toy: it ships a real WebCrypto-en
 - Guided onboarding (create / import), unlock screen with adaptive feedback, and a dashboard with live balances.
 - **Send** (recipient + amount, validated, signed & broadcast via WDK) and **Receive** (QR code + copyable address) flows.
 - **Activity** — persistent transaction history with per-chain filtering and live explorer links.
+- **Token balances** — USDt & XAUt (and other configured ERC-20s) shown per chain.
 
 ---
 
@@ -212,7 +213,8 @@ A wallet's job is to protect a secret. The threat model and mitigations are docu
 | **EVM — Plasma, Ethereum, Polygon, Arbitrum** | ✅ implemented (derivation, signing, balances, dApp) |
 | **EVM — ~40 additional networks** (Optimism, Base, BSC, Avalanche, …) | ✅ in registry |
 | **Solana** — mainnet / devnet / testnet | ✅ implemented (derivation, signing) |
-| **USDt / XAUt** ERC-20 token balances & transfers | 🚧 on the roadmap (see below) |
+| **USDt / XAUt** ERC-20 token **balances** | ✅ implemented (Ethereum, Polygon, Arbitrum, Optimism, …) |
+| USDt / XAUt **transfers** | 🚧 on the roadmap (the native Send flow exists; token-transfer encoding is next) |
 | **Bitcoin** (native + WDK `wdk-wallet-bitcoin`) | 🚧 on the roadmap |
 | **Lightning (Spark)** | 🚧 on the roadmap |
 
@@ -224,10 +226,10 @@ This repository is transparent about what is implemented vs. planned — see the
 
 | Package | Tests | Typecheck |
 |---|---|---|
-| `@wdk-starter/wdk-web-core` | 96 ✅ | strict, clean |
+| `@wdk-starter/wdk-web-core` | 97 ✅ | strict, clean |
 | `@wdk-starter/wdk-ui` | 350 ✅ | strict, clean |
-| `@wdk-starter/extension` | 371 ✅ | strict, clean |
-| **Total** | **817 ✅** | |
+| `@wdk-starter/extension` | 381 ✅ | strict, clean |
+| **Total** | **828 ✅** | |
 
 TypeScript runs in **strict** mode with `noUncheckedIndexedAccess` and `exactOptionalPropertyTypes` everywhere. CI (`.github/workflows/ci.yml`) runs typecheck + tests + build on every push. A derivation regression test pins a known mnemonic to a known address so any drift in the signing stack fails loudly.
 

@@ -53,6 +53,7 @@ export type WalletMessage =
   | { type: 'ACCOUNT_SEND_TRANSACTION'; chain: EvmChainId; accountIndex: number; to: string; value: string }
   // RPC
   | { type: 'RPC_GET_BALANCE'; chain: ChainId; address: string }
+  | { type: 'RPC_GET_TOKEN_BALANCE'; chain: ChainId; address: string; tokenAddress: string }
   // dApp pipeline (B4.3)
   | { type: 'DAPP_REQUEST'; id: string; origin: string; method: string; params?: readonly unknown[] }
   // Approval flow (B4.4)
@@ -83,6 +84,7 @@ export type WalletResponseData = {
   ACCOUNT_SIGN_SOLANA_MESSAGE: string;
   ACCOUNT_SEND_TRANSACTION: Hex;
   RPC_GET_BALANCE: string;
+  RPC_GET_TOKEN_BALANCE: string;
   DAPP_REQUEST: Eip1193Response;
   APPROVAL_GET_PENDING: ApprovalRequest | null;
   APPROVAL_RESPOND: { ok: boolean };

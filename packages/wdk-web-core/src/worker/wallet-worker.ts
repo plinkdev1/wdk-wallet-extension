@@ -51,7 +51,7 @@ export interface WalletWorkerOptions {
   readonly rpcAdapter?: RpcAdapter;
 }
 
-export class WalletWorker implements Pick<WalletWorkerApi, 'vault_hasStored' | 'vault_store' | 'vault_load' | 'vault_clear' | 'account_getEvmAddress' | 'account_getSolanaAddress' | 'account_signMessage' | 'account_signTypedData' | 'account_signSolanaMessage' | 'account_sendTransaction' | 'rpc_getBalance' | 'bip39_generateMnemonic' | 'bip39_validateMnemonic'> {
+export class WalletWorker implements Pick<WalletWorkerApi, 'vault_hasStored' | 'vault_store' | 'vault_load' | 'vault_clear' | 'account_getEvmAddress' | 'account_getSolanaAddress' | 'account_signMessage' | 'account_signTypedData' | 'account_signSolanaMessage' | 'account_sendTransaction' | 'rpc_getBalance' | 'rpc_getTokenBalance' | 'bip39_generateMnemonic' | 'bip39_validateMnemonic'> {
   private readonly vault: WebCryptoVault;
   private readonly rpcAdapter: RpcAdapter | null;
   private wdk: WdkManager | null = null;
@@ -295,6 +295,18 @@ export class WalletWorker implements Pick<WalletWorkerApi, 'vault_hasStored' | '
       throw new Error('No RPC adapter configured on WalletWorker. Pass options.rpcAdapter (e.g. createHttpRpcAdapter() or createMockRpcAdapter()) to the constructor.');
     }
     return this.rpcAdapter.getBalance(chain, address);
+  }
+
+  /**
+   * Reads an ERC-20 / SPL token balance for an address. Delegates to the RPC
+   * adapter's getTokenBalance (EVM: standard balanceOf; Solana SPL deferred).
+   * Used by the wallet UI to display USDt / XAUt and other token balances.
+   */
+  async rpc_getTokenBalance(chain: ChainId, address: string, tokenAddress: string): Promise<bigint> {
+    if (!this.rpcAdapter) {
+      throw new Error('No RPC adapter configured on WalletWorker. Pass options.rpcAdapter (e.g. createHttpRpcAdapter() or createMockRpcAdapter()) to the constructor.');
+    }
+    return this.rpcAdapter.getTokenBalance(chain, address, tokenAddress);
   }
 
   /**

@@ -133,6 +133,11 @@ export function createSwHandlers({ engine, worker, approvalFlow, connectionState
       return balance.toString();
     },
 
+    RPC_GET_TOKEN_BALANCE: async (msg) => {
+      const balance = await worker.rpc_getTokenBalance(msg.chain, msg.address, msg.tokenAddress);
+      return balance.toString();
+    },
+
     DAPP_REQUEST: async (msg) => {
       // ctx.id threads the DAPP_REQUEST envelope id through to approvalFlow.open()
       // so the popup's APPROVAL_GET_PENDING(id) call matches.

@@ -30,6 +30,7 @@ import type { ChainId, EvmChainId } from '@wdk-starter/wdk-web-core/types';
 import { send } from '../lib/sw-client.js';
 import { useMainAccount } from '../hooks/use-main-account.js';
 import { useBalance, formatEthFromWei } from '../hooks/use-balance.js';
+import { useTokenBalances } from '../hooks/use-token-balances.js';
 import { ReceiveView } from './receive-view.js';
 import { SendView } from './send-view.js';
 import { ActivityView } from './activity-view.js';
@@ -109,6 +110,14 @@ function truncateAddress(address: string): string {
   return `${address.slice(0, 6)}...${address.slice(-4)}`;
 }
 
+/** Formats a token base-unit bigint to a human string (up to 4 decimals). */
+function formatTokenAmount(base: bigint, decimals: number): string {
+  const divisor = 10n ** BigInt(decimals);
+  const whole = base / divisor;
+  const frac = (base % divisor).toString().padStart(decimals, '0').slice(0, 4).replace(/0+$/, '');
+  return frac ? `${whole}.${frac}` : whole.toString();
+}
+
 export function MainView({ onLockRequested, onOpenSettings }: MainViewProps): JSX.Element {
   // B1b: active chain state (localStorage-persisted via useActiveChain)
   // B1-icons: ChainId-typed picker. Solana entries exist in registry + picker;
@@ -128,6 +137,9 @@ export function MainView({ onLockRequested, onOpenSettings }: MainViewProps): JS
   const { state: accountState } = useMainAccount({ chain: evmChain, accountIndex });
   const { state: balanceState } = useBalance(
     !isSolanaChain && accountState.status === 'ready' ? { address: accountState.address, chain: evmChain } : {},
+  );
+  const { state: tokenBalancesState } = useTokenBalances(
+    !isSolanaChain && accountState.status === 'ready' ? { chain: evmChain, address: accountState.address } : {},
   );
   const [locking, setLocking] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -276,6 +288,24 @@ export function MainView({ onLockRequested, onOpenSettings }: MainViewProps): JS
           )}
         </div>
       </Card>
+
+      {tokenBalancesState.status === 'ready' && tokenBalancesState.balances.length > 0 && (
+        <Card>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10, padding: 14 }}>
+            <Label>Tokens</Label>
+            {tokenBalancesState.balances.map(({ token, balance }) => (
+              <div key={token.address} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 13 }}>
+                  <TokenIcon symbol={token.symbol} size={16} />{token.symbol}
+                </span>
+                <span style={{ fontSize: 13, fontWeight: 600 }}>
+                  {balance === null ? '—' : formatTokenAmount(balance, token.decimals)}
+                </span>
+              </div>
+            ))}
+          </div>
+        </Card>
+      )}
 
       <Card>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10, padding: 14 }}>

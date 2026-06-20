@@ -73,6 +73,7 @@ const ALLOWED_METHODS = {
   account_signTypedData: true,
   account_signSolanaMessage: true,
   rpc_getBalance: true,
+  rpc_getTokenBalance: true,
   account_sendTransaction: true,
   bip39_generateMnemonic: true,
   bip39_validateMnemonic: true,

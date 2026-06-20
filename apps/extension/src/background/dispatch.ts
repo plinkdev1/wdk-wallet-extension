@@ -81,6 +81,7 @@ export function createStubHandlers(): HandlerRegistry {
     ACCOUNT_SIGN_SOLANA_MESSAGE: notImplemented('ACCOUNT_SIGN_SOLANA_MESSAGE'),
     ACCOUNT_SEND_TRANSACTION: notImplemented('ACCOUNT_SEND_TRANSACTION'),
     RPC_GET_BALANCE: notImplemented('RPC_GET_BALANCE'),
+    RPC_GET_TOKEN_BALANCE: notImplemented('RPC_GET_TOKEN_BALANCE'),
     DAPP_REQUEST: notImplemented('DAPP_REQUEST'),
     // B4.4: approval-flow handshake stubs (real impls in createSwHandlers).
     APPROVAL_GET_PENDING: notImplemented('APPROVAL_GET_PENDING'),

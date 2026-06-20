@@ -207,6 +207,14 @@ describe('WalletWorker (Step 6c — signing methods, initialized worker)', () =>
     await w.vault_load('pw');
     expect(await w.rpc_getBalance('ethereum', '0xabc')).toBe(999n);
   });
+
+  it('rpc_getTokenBalance delegates to the injected rpcAdapter', async () => {
+    const rpc = createMockRpcAdapter({ tokenBalances: new Map([['ethereum:0xabc:0xtoken', 250000n]]) });
+    const w = new WalletWorker({ vault: makeIsolatedVault(), rpcAdapter: rpc });
+    await w.vault_store('pw', encoder.encode(TEST_MNEMONIC));
+    await w.vault_load('pw');
+    expect(await w.rpc_getTokenBalance('ethereum', '0xabc', '0xtoken')).toBe(250000n);
+  });
 });
 describe('WalletWorker.lock() (B3.4 - non-destructive zeroize)', () => {
   let worker: WalletWorker;
