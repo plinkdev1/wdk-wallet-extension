@@ -224,6 +224,19 @@ export function createSwHandlers({ engine, worker, approvalFlow, connectionState
     AAVE_BORROW: async (msg) => toAaveDto(await worker.aave_borrow(msg.chain, msg.accountIndex, msg.token, BigInt(msg.amount))),
     AAVE_REPAY: async (msg) => toAaveDto(await worker.aave_repay(msg.chain, msg.accountIndex, msg.token, BigInt(msg.amount))),
 
+    VELORA_QUOTE_SWAP: async (msg) => {
+      const q = await worker.velora_quoteSwap(msg.chain, msg.accountIndex, msg.tokenIn, msg.tokenOut, BigInt(msg.tokenInAmount));
+      return { fee: q.fee.toString(), tokenInAmount: q.tokenInAmount.toString(), tokenOutAmount: q.tokenOutAmount.toString() };
+    },
+    VELORA_SWAP: async (msg) => {
+      const r = await worker.velora_swap(
+        msg.chain, msg.accountIndex, msg.tokenIn, msg.tokenOut,
+        msg.tokenInAmount !== undefined ? BigInt(msg.tokenInAmount) : undefined,
+        msg.tokenOutAmount !== undefined ? BigInt(msg.tokenOutAmount) : undefined,
+      );
+      return { hash: r.hash, fee: r.fee.toString(), tokenInAmount: r.tokenInAmount.toString(), tokenOutAmount: r.tokenOutAmount.toString(), ...(r.approveHash ? { approveHash: r.approveHash } : {}) };
+    },
+
     DAPP_REQUEST: async (msg) => {
       // ctx.id threads the DAPP_REQUEST envelope id through to approvalFlow.open()
       // so the popup's APPROVAL_GET_PENDING(id) call matches.

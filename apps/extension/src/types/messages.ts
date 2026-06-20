@@ -77,6 +77,9 @@ export type WalletMessage =
   | { type: 'AAVE_WITHDRAW'; chain: EvmChainId; accountIndex: number; token: string; amount: string }
   | { type: 'AAVE_BORROW'; chain: EvmChainId; accountIndex: number; token: string; amount: string }
   | { type: 'AAVE_REPAY'; chain: EvmChainId; accountIndex: number; token: string; amount: string }
+  // Velora (ParaSwap) DEX swaps (amounts are base-unit decimal strings; L-WIRE-03)
+  | { type: 'VELORA_QUOTE_SWAP'; chain: EvmChainId; accountIndex: number; tokenIn: string; tokenOut: string; tokenInAmount: string }
+  | { type: 'VELORA_SWAP'; chain: EvmChainId; accountIndex: number; tokenIn: string; tokenOut: string; tokenInAmount?: string; tokenOutAmount?: string }
   // dApp pipeline (B4.3)
   | { type: 'DAPP_REQUEST'; id: string; origin: string; method: string; params?: readonly unknown[] }
   // Approval flow (B4.4)
@@ -126,6 +129,8 @@ export type WalletResponseData = {
   AAVE_WITHDRAW: AaveActionResultDto;
   AAVE_BORROW: AaveActionResultDto;
   AAVE_REPAY: AaveActionResultDto;
+  VELORA_QUOTE_SWAP: VeloraQuoteDto;
+  VELORA_SWAP: VeloraSwapResultDto;
   DAPP_REQUEST: Eip1193Response;
   APPROVAL_GET_PENDING: ApprovalRequest | null;
   APPROVAL_RESPOND: { ok: boolean };
@@ -146,5 +151,21 @@ export interface AaveAccountDataDto {
 export interface AaveActionResultDto {
   readonly hash: string;
   readonly fee: string;
+  readonly approveHash?: string;
+}
+
+/** Velora swap quote over the wire — bigints as decimal strings. */
+export interface VeloraQuoteDto {
+  readonly fee: string;
+  readonly tokenInAmount: string;
+  readonly tokenOutAmount: string;
+}
+
+/** Velora executed-swap result over the wire. */
+export interface VeloraSwapResultDto {
+  readonly hash: string;
+  readonly fee: string;
+  readonly tokenInAmount: string;
+  readonly tokenOutAmount: string;
   readonly approveHash?: string;
 }

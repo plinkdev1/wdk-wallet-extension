@@ -40,6 +40,7 @@ import type { TokenInfo } from '../lib/tokens.js';
 import { ReceiveView } from './receive-view.js';
 import { SendView } from './send-view.js';
 import { LendingView } from './lending-view.js';
+import { SwapView } from './swap-view.js';
 import { ActivityView } from './activity-view.js';
 
 export interface MainViewProps {
@@ -143,7 +144,7 @@ export function MainView({ onLockRequested, onOpenSettings }: MainViewProps): JS
   // SOL on Solana once those chains land in the picker, etc.).
   const activeSymbol = CHAIN_OPTIONS.find((o) => o.id === activeChain)?.symbol ?? 'ETH';
   const activeName = CHAIN_OPTIONS.find((o) => o.id === activeChain)?.name ?? 'this network';
-  const [subView, setSubView] = useState<'main' | 'receive' | 'send' | 'activity' | 'lending'>('main');
+  const [subView, setSubView] = useState<'main' | 'receive' | 'send' | 'activity' | 'lending' | 'swap'>('main');
   /** When set, the Send view sends this ERC-20 token instead of the native asset. */
   const [sendToken, setSendToken] = useState<TokenInfo | null>(null);
   const [accountIndex, setAccountIndex] = useState(0);
@@ -260,6 +261,16 @@ export function MainView({ onLockRequested, onOpenSettings }: MainViewProps): JS
   if (subView === 'lending' && isEvmChain) {
     return (
       <LendingView
+        chain={evmChain}
+        chainName={activeName}
+        accountIndex={accountIndex}
+        onBack={() => setSubView('main')}
+      />
+    );
+  }
+  if (subView === 'swap' && isEvmChain) {
+    return (
+      <SwapView
         chain={evmChain}
         chainName={activeName}
         accountIndex={accountIndex}
@@ -623,9 +634,14 @@ export function MainView({ onLockRequested, onOpenSettings }: MainViewProps): JS
         </Button>
       </div>
 
-      <Button variant="secondary" onClick={() => setSubView('lending')} disabled={accountState.status !== 'ready'} style={{ width: '100%' }}>
-        Earn with Aave V3
-      </Button>
+      <div style={{ display: 'flex', gap: 10 }}>
+        <Button variant="secondary" onClick={() => setSubView('swap')} disabled={accountState.status !== 'ready'} style={{ flex: 1 }}>
+          Swap
+        </Button>
+        <Button variant="secondary" onClick={() => setSubView('lending')} disabled={accountState.status !== 'ready'} style={{ flex: 1 }}>
+          Earn (Aave)
+        </Button>
+      </div>
 
       <Button variant="ghost" size="sm" onClick={() => setSubView('activity')} style={{ alignSelf: 'center' }}>
         Activity ›
