@@ -13,13 +13,13 @@ describe('SendView', () => {
   beforeEach(() => sendMock.mockReset());
 
   it('renders recipient and amount inputs', () => {
-    render(<SendView chain="ethereum" symbol="ETH" onBack={() => {}} />);
+    render(<SendView chain="ethereum" symbol="ETH" accountIndex={0} onBack={() => {}} />);
     expect(screen.getByPlaceholderText('0x…')).toBeInTheDocument();
     expect(screen.getByPlaceholderText('0.0')).toBeInTheDocument();
   });
 
   it('rejects an invalid recipient without calling the worker', () => {
-    render(<SendView chain="ethereum" symbol="ETH" onBack={() => {}} />);
+    render(<SendView chain="ethereum" symbol="ETH" accountIndex={0} onBack={() => {}} />);
     fireEvent.change(screen.getByPlaceholderText('0x…'), { target: { value: 'nope' } });
     fireEvent.change(screen.getByPlaceholderText('0.0'), { target: { value: '1' } });
     fireEvent.click(screen.getByText('Review & send'));
@@ -29,7 +29,7 @@ describe('SendView', () => {
 
   it('sends a valid transfer (18-decimal base units) and shows the tx hash', async () => {
     sendMock.mockResolvedValue('0xabc123');
-    render(<SendView chain="ethereum" symbol="ETH" onBack={() => {}} />);
+    render(<SendView chain="ethereum" symbol="ETH" accountIndex={0} onBack={() => {}} />);
     fireEvent.change(screen.getByPlaceholderText('0x…'), { target: { value: '0x70997970C51812dc3A010C7d01b50e0d17dc79C8' } });
     fireEvent.change(screen.getByPlaceholderText('0.0'), { target: { value: '0.5' } });
     fireEvent.click(screen.getByText('Review & send'));

@@ -123,7 +123,8 @@ export function MainView({ onLockRequested, onOpenSettings }: MainViewProps): JS
   const activeSymbol = CHAIN_OPTIONS.find((o) => o.id === activeChain)?.symbol ?? 'ETH';
   const activeName = CHAIN_OPTIONS.find((o) => o.id === activeChain)?.name ?? 'this network';
   const [subView, setSubView] = useState<'main' | 'receive' | 'send'>('main');
-  const { state: accountState } = useMainAccount({ chain: evmChain });
+  const [accountIndex, setAccountIndex] = useState(0);
+  const { state: accountState } = useMainAccount({ chain: evmChain, accountIndex });
   const { state: balanceState } = useBalance(
     !isSolanaChain && accountState.status === 'ready' ? { address: accountState.address, chain: evmChain } : {},
   );
@@ -173,6 +174,7 @@ export function MainView({ onLockRequested, onOpenSettings }: MainViewProps): JS
       <SendView
         chain={evmChain}
         symbol={activeSymbol}
+        accountIndex={accountIndex}
         onBack={() => setSubView('main')}
       />
     );
@@ -268,7 +270,13 @@ export function MainView({ onLockRequested, onOpenSettings }: MainViewProps): JS
 
       <Card>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10, padding: 14 }}>
-          <Label>Account</Label>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <Label>Account {accountIndex + 1}</Label>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+              <Button variant="ghost" size="sm" onClick={() => setAccountIndex((i) => Math.max(0, i - 1))} disabled={accountIndex === 0} aria-label="Previous account">◀</Button>
+              <Button variant="ghost" size="sm" onClick={() => setAccountIndex((i) => i + 1)} aria-label="Next account">▶</Button>
+            </div>
+          </div>
           {accountState.status === 'loading' && (
             <div style={{ fontSize: 12, opacity: 0.6 }}>Loading address...</div>
           )}

@@ -14,6 +14,8 @@ import { send } from '../lib/sw-client.js';
 export interface SendViewProps {
   readonly chain: EvmChainId;
   readonly symbol: string;
+  /** The active account index to send from (BIP-44 derivation). */
+  readonly accountIndex: number;
   readonly onBack: () => void;
   /** Called after a successful broadcast so the parent can refresh the balance. */
   readonly onSent?: () => void;
@@ -38,7 +40,7 @@ type Phase =
   | { status: 'sending' }
   | { status: 'sent'; hash: string };
 
-export function SendView({ chain, symbol, onBack, onSent }: SendViewProps): JSX.Element {
+export function SendView({ chain, symbol, accountIndex, onBack, onSent }: SendViewProps): JSX.Element {
   const [to, setTo] = useState('');
   const [amount, setAmount] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -67,7 +69,7 @@ export function SendView({ chain, symbol, onBack, onSent }: SendViewProps): JSX.
       const hash = await send({
         type: 'ACCOUNT_SEND_TRANSACTION',
         chain,
-        accountIndex: 0,
+        accountIndex,
         to: to.trim(),
         value: value.toString(),
       });
@@ -77,7 +79,7 @@ export function SendView({ chain, symbol, onBack, onSent }: SendViewProps): JSX.
       setError(e instanceof Error ? e.message : 'Transaction failed.');
       setPhase({ status: 'form' });
     }
-  }, [to, amount, chain, onSent]);
+  }, [to, amount, chain, accountIndex, onSent]);
 
   return (
     <div style={{ padding: 20, display: 'flex', flexDirection: 'column', gap: 16, flex: 1, fontFamily: 'var(--font-body)', color: 'var(--text-primary)' }}>
