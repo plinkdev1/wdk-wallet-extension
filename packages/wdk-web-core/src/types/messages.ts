@@ -113,6 +113,9 @@ export interface WalletWorkerApi {
   rpc_getBalance(chain: ChainId, address: string): Promise<bigint>;
   rpc_getTokenBalance(chain: ChainId, address: string, tokenAddress: string): Promise<bigint>;
   rpc_getTransactionStatus(chain: ChainId, hash: string): Promise<'pending' | 'success' | 'failed'>;
+
+  /** USD price for an asset symbol (e.g. 'ETH', 'BTC') via CoinGecko; null if unknown/unavailable. */
+  pricing_getUsdPrice(symbol: string): Promise<number | null>;
 }
 
 /**

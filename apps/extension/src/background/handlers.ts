@@ -195,6 +195,10 @@ export function createSwHandlers({ engine, worker, approvalFlow, connectionState
       return worker.rpc_getTransactionStatus(msg.chain, msg.hash);
     },
 
+    PRICING_GET_USD_PRICE: async (msg) => {
+      return worker.pricing_getUsdPrice(msg.symbol);
+    },
+
     DAPP_REQUEST: async (msg) => {
       // ctx.id threads the DAPP_REQUEST envelope id through to approvalFlow.open()
       // so the popup's APPROVAL_GET_PENDING(id) call matches.

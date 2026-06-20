@@ -75,6 +75,7 @@ const ALLOWED_METHODS = {
   rpc_getBalance: true,
   rpc_getTokenBalance: true,
   rpc_getTransactionStatus: true,
+  pricing_getUsdPrice: true,
   account_sendTransaction: true,
   account_sendSolanaTransaction: true,
   account_getBtcAddress: true,

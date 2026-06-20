@@ -33,6 +33,7 @@ import { useSolanaAccount } from '../hooks/use-solana-account.js';
 import { useBtcAccount } from '../hooks/use-btc-account.js';
 import { useTonAccount } from '../hooks/use-ton-account.js';
 import { useTronAccount } from '../hooks/use-tron-account.js';
+import { useUsdValue } from '../hooks/use-usd-value.js';
 import { useBalance, formatEthFromWei } from '../hooks/use-balance.js';
 import { useTokenBalances } from '../hooks/use-token-balances.js';
 import type { TokenInfo } from '../lib/tokens.js';
@@ -172,6 +173,18 @@ export function MainView({ onLockRequested, onOpenSettings }: MainViewProps): JS
       ? { chain: activeChain as TronChainId, accountIndex, enabled: true }
       : { enabled: false },
   );
+  // Native-asset USD value for whichever chain is active (fiat display).
+  const activeNativeBase: bigint | null = isEvmChain
+    ? (balanceState.status === 'ready' ? balanceState.balance : null)
+    : isBitcoinChain
+      ? (btcAccountState.status === 'ready' ? btcAccountState.balanceSats : null)
+      : isTonChain
+        ? (tonAccountState.status === 'ready' ? tonAccountState.balanceNano : null)
+        : isTronChain
+          ? (tronAccountState.status === 'ready' ? tronAccountState.balanceSun : null)
+          : null;
+  const activeNativeDecimals = isBitcoinChain ? 8 : isTonChain ? 9 : isTronChain ? 6 : 18;
+  const usdValue = useUsdValue(activeSymbol, activeNativeBase, activeNativeDecimals);
   const [locking, setLocking] = useState(false);
   const [copied, setCopied] = useState(false);
 
@@ -346,6 +359,7 @@ export function MainView({ onLockRequested, onOpenSettings }: MainViewProps): JS
                     </span>
                     <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><TokenIcon symbol={activeSymbol} size={14} /><span style={{ fontSize: 13, opacity: 0.6 }}>{activeSymbol}</span></span>
                   </div>
+                  {usdValue && <span style={{ fontSize: 12, opacity: 0.6 }}>≈ {usdValue}</span>}
                 </>
               )}
               <div style={{ fontSize: 11, opacity: 0.55, lineHeight: 1.4 }}>
@@ -390,6 +404,7 @@ export function MainView({ onLockRequested, onOpenSettings }: MainViewProps): JS
                     </span>
                     <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><TokenIcon symbol={activeSymbol} size={14} /><span style={{ fontSize: 13, opacity: 0.6 }}>{activeSymbol}</span></span>
                   </div>
+                  {usdValue && <span style={{ fontSize: 12, opacity: 0.6 }}>≈ {usdValue}</span>}
                 </>
               )}
               <div style={{ fontSize: 11, opacity: 0.55, lineHeight: 1.4 }}>
@@ -435,6 +450,7 @@ export function MainView({ onLockRequested, onOpenSettings }: MainViewProps): JS
                     </span>
                     <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><TokenIcon symbol={activeSymbol} size={14} /><span style={{ fontSize: 13, opacity: 0.6 }}>{activeSymbol}</span></span>
                   </div>
+                  {usdValue && <span style={{ fontSize: 12, opacity: 0.6 }}>≈ {usdValue}</span>}
                 </>
               )}
               <div style={{ fontSize: 11, opacity: 0.55, lineHeight: 1.4 }}>
@@ -483,12 +499,15 @@ export function MainView({ onLockRequested, onOpenSettings }: MainViewProps): JS
             </div>
           )}
           {balanceState.status === 'ready' && (
-            <div style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
-              <span style={{ fontSize: 24, fontWeight: 600 }}>
-                {formatEthFromWei(balanceState.balance)}
-              </span>
-              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><TokenIcon symbol={activeSymbol} size={14} /><span style={{ fontSize: 13, opacity: 0.6 }}>{activeSymbol}</span></span>
-            </div>
+            <>
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
+                <span style={{ fontSize: 24, fontWeight: 600 }}>
+                  {formatEthFromWei(balanceState.balance)}
+                </span>
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><TokenIcon symbol={activeSymbol} size={14} /><span style={{ fontSize: 13, opacity: 0.6 }}>{activeSymbol}</span></span>
+              </div>
+              {usdValue && <span style={{ fontSize: 12, opacity: 0.6 }}>≈ {usdValue}</span>}
+            </>
           )}
         </div>
       </Card>

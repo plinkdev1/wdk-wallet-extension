@@ -34,6 +34,7 @@ describe('SW message dispatcher (F-SEC-01 — Object.hasOwn whitelisting)', () =
       RPC_GET_BALANCE: vi.fn(async () => '0'),
       RPC_GET_TOKEN_BALANCE: vi.fn(async () => '0'),
       RPC_GET_TRANSACTION_STATUS: vi.fn(async () => 'pending' as const),
+      PRICING_GET_USD_PRICE: vi.fn(async () => null),
       DAPP_REQUEST: vi.fn(async () => ({ result: 'ok' })) as any,
       BIP39_GENERATE_MNEMONIC: vi.fn(async () => 'abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about') as any,
       BIP39_VALIDATE_MNEMONIC: vi.fn(async () => true) as any,

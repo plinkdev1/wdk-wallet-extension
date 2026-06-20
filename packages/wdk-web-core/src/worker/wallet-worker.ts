@@ -35,6 +35,7 @@ import {
   isSupportedChainId,
 } from '../chains/index.js';
 import type { RpcAdapter, TransactionStatus } from '../adapters/index.js';
+import { CoingeckoPricingClient } from '@tetherto/wdk-pricing-coingecko-http';
 import type {
   Base58Address,
   BtcChainId,
@@ -54,7 +55,22 @@ export interface WalletWorkerOptions {
   readonly rpcAdapter?: RpcAdapter;
 }
 
-export class WalletWorker implements Pick<WalletWorkerApi, 'vault_hasStored' | 'vault_store' | 'vault_load' | 'vault_clear' | 'account_getEvmAddress' | 'account_getSolanaAddress' | 'account_signMessage' | 'account_signTypedData' | 'account_signSolanaMessage' | 'account_sendTransaction' | 'account_sendSolanaTransaction' | 'account_getBtcAddress' | 'account_getBtcBalance' | 'account_sendBtcTransaction' | 'account_getTonAddress' | 'account_getTonBalance' | 'account_sendTonTransaction' | 'account_getTronAddress' | 'account_getTronBalance' | 'account_sendTronTransaction' | 'rpc_getBalance' | 'rpc_getTokenBalance' | 'rpc_getTransactionStatus' | 'bip39_generateMnemonic' | 'bip39_validateMnemonic'> {
+/** Symbol → CoinGecko id for USD pricing. Small by design; extend as assets are added. */
+const COIN_IDS: Record<string, string> = {
+  BTC: 'bitcoin', TBTC: 'bitcoin', ETH: 'ethereum', SOL: 'solana',
+  TON: 'the-open-network', TRX: 'tron', MATIC: 'matic-network', POL: 'matic-network',
+  BNB: 'binancecoin', AVAX: 'avalanche-2', XDAI: 'xdai', CELO: 'celo',
+  MNT: 'mantle', GLMR: 'moonbeam', MOVR: 'moonriver', CRO: 'crypto-com-chain',
+  METIS: 'metis-token', BERA: 'berachain-bera', USDT: 'tether', XAUT: 'tether-gold',
+};
+
+let _pricingClient: CoingeckoPricingClient | null = null;
+function getPricingClient(): CoingeckoPricingClient {
+  if (!_pricingClient) _pricingClient = new CoingeckoPricingClient({ coinIds: COIN_IDS });
+  return _pricingClient;
+}
+
+export class WalletWorker implements Pick<WalletWorkerApi, 'vault_hasStored' | 'vault_store' | 'vault_load' | 'vault_clear' | 'account_getEvmAddress' | 'account_getSolanaAddress' | 'account_signMessage' | 'account_signTypedData' | 'account_signSolanaMessage' | 'account_sendTransaction' | 'account_sendSolanaTransaction' | 'account_getBtcAddress' | 'account_getBtcBalance' | 'account_sendBtcTransaction' | 'account_getTonAddress' | 'account_getTonBalance' | 'account_sendTonTransaction' | 'account_getTronAddress' | 'account_getTronBalance' | 'account_sendTronTransaction' | 'rpc_getBalance' | 'rpc_getTokenBalance' | 'rpc_getTransactionStatus' | 'pricing_getUsdPrice' | 'bip39_generateMnemonic' | 'bip39_validateMnemonic'> {
   private readonly vault: WebCryptoVault;
   private readonly rpcAdapter: RpcAdapter | null;
   private wdk: WdkManager | null = null;
@@ -470,6 +486,19 @@ export class WalletWorker implements Pick<WalletWorkerApi, 'vault_hasStored' | '
       throw new Error('No RPC adapter configured on WalletWorker. Pass options.rpcAdapter (e.g. createHttpRpcAdapter() or createMockRpcAdapter()) to the constructor.');
     }
     return this.rpcAdapter.getTransactionStatus(chain, hash);
+  }
+
+  /**
+   * Returns the USD price for an asset symbol (e.g. 'ETH', 'BTC') via the
+   * CoinGecko pricing client, or null if unknown/unavailable. Powers fiat
+   * value display in the UI. Errors (unknown symbol, network) resolve to null.
+   */
+  async pricing_getUsdPrice(symbol: string): Promise<number | null> {
+    try {
+      return await getPricingClient().getCurrentPrice(symbol, 'usd');
+    } catch {
+      return null;
+    }
   }
 
   /**
