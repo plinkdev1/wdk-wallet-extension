@@ -22,6 +22,17 @@
 
 import { createPublicClient, http, type Address, type PublicClient } from 'viem';
 import { withRetry } from './retry.js';
+import { RateLimiter, type RateLimiterOptions } from './rate-limit.js';
+
+/** Options for the HTTP RPC adapter. */
+export interface HttpRpcAdapterOptions {
+  /**
+   * Optional client-side rate limit (token bucket) in front of every RPC call
+   * (B-7). Useful on free-tier endpoints that 429 under the concurrent bursts
+   * getTokenBalances can produce. Off by default.
+   */
+  readonly rateLimit?: RateLimiterOptions;
+}
 import { CHAIN_LOADERS, isSupportedChainId } from '../chains/index.js';
 import type { ChainId } from '../types/index.js';
 
@@ -59,11 +70,17 @@ const ERC20_BALANCE_OF_ABI = [
 ] as const;
 
 /** Production HTTP RPC adapter. Routes per chain family via CHAIN_LOADERS lookup. */
-export function createHttpRpcAdapter(): RpcAdapter {
+export function createHttpRpcAdapter(options: HttpRpcAdapterOptions = {}): RpcAdapter {
   // Per-adapter viem client cache. Avoids constructing a new PublicClient
   // for every getBalance call. Keyed by chain:rpcUrl so reconfigured chains
   // get a fresh client.
   const evmClientCache = new Map<string, PublicClient>();
+
+  // Optional client-side rate limit + retry (B-6/B-7) around every network call.
+  const limiter = options.rateLimit ? new RateLimiter(options.rateLimit) : undefined;
+  function run<T>(fn: () => Promise<T>): Promise<T> {
+    return withRetry(() => (limiter ? limiter.schedule(fn) : fn()));
+  }
 
   function getEvmClient(chain: string, rpcUrl: string): PublicClient {
     const key = chain + ':' + rpcUrl;
@@ -92,7 +109,7 @@ export function createHttpRpcAdapter(): RpcAdapter {
     const { family, rpcUrl } = await resolveChainConfig(chain);
     if (family === 'evm') {
       const client = getEvmClient(chain, rpcUrl);
-      return withRetry(() => client.readContract({
+      return run(() => client.readContract({
         address: tokenAddress as Address,
         abi: ERC20_BALANCE_OF_ABI,
         functionName: 'balanceOf',
@@ -101,7 +118,7 @@ export function createHttpRpcAdapter(): RpcAdapter {
     }
     if (family === 'solana') {
       // SPL balance: sum the owner's token accounts for this mint (B-1).
-      return withRetry(() => getSolanaTokenBalance(rpcUrl, address, tokenAddress));
+      return run(() => getSolanaTokenBalance(rpcUrl, address, tokenAddress));
     }
     throw new Error('Unknown chain family: ' + family);
   }
@@ -111,11 +128,11 @@ export function createHttpRpcAdapter(): RpcAdapter {
       const { family, rpcUrl } = await resolveChainConfig(chain);
       if (family === 'evm') {
         const client = getEvmClient(chain, rpcUrl);
-        // Idempotent read — retry transient RPC failures (B-6).
-        return withRetry(() => client.getBalance({ address: address as Address }));
+        // Idempotent read — retry transient RPC failures (B-6) + optional rate limit (B-7).
+        return run(() => client.getBalance({ address: address as Address }));
       }
       if (family === 'solana') {
-        return withRetry(() => getSolanaNativeBalance(rpcUrl, address));
+        return run(() => getSolanaNativeBalance(rpcUrl, address));
       }
       throw new Error('Unknown chain family: ' + family);
     },

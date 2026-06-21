@@ -177,5 +177,24 @@ describe('rpc adapter', () => {
       expect(balances).toEqual([1000000n, 1000000n]);
       expect(mockFetch).toHaveBeenCalledTimes(2); // one RPC per mint, dispatched together
     });
+
+    it('applies an opt-in rate limit across calls (B-7)', async () => {
+      const mockFetch = vi.fn(async () => new Response(
+        JSON.stringify({ jsonrpc: '2.0', id: 1, result: '0x1' }),
+        { status: 200, headers: { 'Content-Type': 'application/json' } },
+      ));
+      vi.stubGlobal('fetch', mockFetch);
+
+      let t = 0;
+      const waits: number[] = [];
+      const adapter = createHttpRpcAdapter({
+        rateLimit: { rps: 1, burst: 1, now: () => t, sleep: async (ms) => { waits.push(ms); t += ms; } },
+      });
+      const addr = '0x0000000000000000000000000000000000000001';
+      await adapter.getBalance('ethereum', addr); // consumes the 1 token
+      await adapter.getBalance('ethereum', addr); // must wait for a refill
+
+      expect(waits).toEqual([1000]); // 1 token @ 1 rps = 1000ms
+    });
   });
 });
