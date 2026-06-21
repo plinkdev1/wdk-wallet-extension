@@ -86,3 +86,90 @@ export function createMockIndexerAdapter(options: MockIndexerAdapterOptions = {}
     },
   };
 }
+
+/** Config for the Etherscan-v2 EVM indexer (B-2). */
+export interface EtherscanIndexerOptions {
+  /** Etherscan API key (a single free key works across all v2 chains). Dev-supplied. */
+  readonly apiKey: string;
+  /** Maps a wdk ChainId to its numeric EVM chain id (the product knows its chains). */
+  readonly resolveChainId: (chain: ChainId) => number | Promise<number>;
+  /** API base. Default the unified multichain endpoint. */
+  readonly baseUrl?: string;
+  /** Injectable fetch (tests / non-browser). */
+  readonly fetchImpl?: typeof fetch;
+}
+
+interface EtherscanTx {
+  hash: string;
+  blockNumber: string;
+  timeStamp: string;
+  from: string;
+  to: string;
+  value: string;
+  isError?: string;
+  txreceipt_status?: string;
+  gasUsed?: string;
+  gasPrice?: string;
+  nonce?: string;
+  methodId?: string;
+}
+
+function mapEtherscanTx(r: EtherscanTx): TransactionRecord {
+  const failed = r.isError === '1' || r.txreceipt_status === '0';
+  return {
+    hash: r.hash,
+    blockNumber: BigInt(r.blockNumber),
+    timestamp: Number(r.timeStamp),
+    from: r.from,
+    to: r.to,
+    value: BigInt(r.value || '0'),
+    status: failed ? 'failed' : 'success',
+    // Chain-specific fields ride along in `extra` (F-INDEXER-01).
+    extra: { gasUsed: r.gasUsed, gasPrice: r.gasPrice, nonce: r.nonce, methodId: r.methodId },
+  };
+}
+
+/**
+ * A real EVM transaction-history indexer over the **Etherscan v2 multichain API**
+ * (one key, ~40 EVM chains). Implements {@link IndexerAdapter} for the product's
+ * Activity view. The API key + a chain-id resolver are dev-supplied — nothing is
+ * hard-coded (template-standard). Solana history (Helius) is a separate adapter.
+ */
+export function createEtherscanIndexerAdapter(options: EtherscanIndexerOptions): IndexerAdapter {
+  const base = options.baseUrl ?? 'https://api.etherscan.io/v2/api';
+  const doFetch = options.fetchImpl ?? (globalThis.fetch as typeof fetch | undefined);
+
+  return {
+    async getTransactions(chain, address, opts) {
+      if (typeof doFetch !== 'function') throw new Error('Etherscan indexer: no fetch available; pass options.fetchImpl');
+      const chainId = await options.resolveChainId(chain);
+
+      const url = new URL(base);
+      url.searchParams.set('chainid', String(chainId));
+      url.searchParams.set('module', 'account');
+      url.searchParams.set('action', 'txlist');
+      url.searchParams.set('address', address);
+      url.searchParams.set('sort', 'desc');
+      if (opts?.fromBlock !== undefined) url.searchParams.set('startblock', String(opts.fromBlock));
+      if (opts?.toBlock !== undefined) url.searchParams.set('endblock', String(opts.toBlock));
+      if (opts?.limit !== undefined) {
+        url.searchParams.set('page', '1');
+        url.searchParams.set('offset', String(opts.limit));
+      }
+      url.searchParams.set('apikey', options.apiKey);
+
+      const res = await doFetch(url.toString());
+      if (!res.ok) throw new Error('Etherscan indexer HTTP ' + res.status);
+      const json = await res.json() as { status?: string; message?: string; result?: unknown };
+
+      // Etherscan returns status "1" + array on success, or status "0" with
+      // "No transactions found" (empty, not an error) or a real error message.
+      if (json.status !== '1') {
+        if (typeof json.message === 'string' && /no transactions/i.test(json.message)) return [];
+        throw new Error('Etherscan indexer error: ' + (json.message ?? 'unknown') + ' — ' + (typeof json.result === 'string' ? json.result : ''));
+      }
+      if (!Array.isArray(json.result)) return [];
+      return (json.result as EtherscanTx[]).map(mapEtherscanTx);
+    },
+  };
+}
