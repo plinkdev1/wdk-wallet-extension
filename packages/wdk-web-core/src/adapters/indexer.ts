@@ -37,6 +37,13 @@ export interface TransactionRecord {
   readonly value: bigint;
   /** Final status. 'failed' for reverted EVM or failed Solana transactions. */
   readonly status: 'success' | 'failed';
+  /**
+   * Optional chain-specific fields a product attaches without changing the
+   * chain-agnostic base record (F-INDEXER-01): e.g. EVM `gasUsed`/`effectiveGasPrice`/
+   * `logs`/`nonce`, or Solana `computeUnitsConsumed`/`fee`/`slot`. Kept out of the
+   * base type so the common record stays portable across families.
+   */
+  readonly extra?: Record<string, unknown>;
 }
 
 export interface GetTransactionsOptions {
