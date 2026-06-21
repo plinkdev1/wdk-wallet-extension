@@ -251,6 +251,8 @@ export function createSwHandlers({ engine, worker, approvalFlow, connectionState
     MOONPAY_QUOTE_BUY: async (msg) => worker.moonpay_quoteBuy(msg.fiatCurrency, msg.cryptoAsset, msg.fiatAmount),
     MOONPAY_BUY: async (msg) => worker.moonpay_buy(msg.fiatCurrency, msg.cryptoAsset, msg.fiatAmount, msg.recipient),
 
+    X402_CREATE_PAYMENT: async (msg) => worker.x402_createPayment(msg.chain, msg.accountIndex, msg.requirements),
+
     ERC4337_IS_CONFIGURED: async () => worker.erc4337_isConfigured(),
     ERC4337_GET_ADDRESS: async (msg) => worker.erc4337_getAddress(msg.chain, msg.accountIndex),
     ERC4337_GET_BALANCE: async (msg) => (await worker.erc4337_getBalance(msg.chain, msg.accountIndex)).toString(),

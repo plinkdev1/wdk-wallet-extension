@@ -68,6 +68,14 @@ import {
   normalizeErc4337Result,
   type Erc4337SendResult,
 } from '../protocols/erc4337.js';
+import { buildEip3009TransferAuthorization } from '../eip3009/builder.js';
+import {
+  networkToChainId,
+  generateX402Nonce,
+  buildExactPayment,
+  encodePaymentHeader,
+  type X402Requirements,
+} from '../x402.js';
 import type { RpcAdapter, TransactionStatus } from '../adapters/index.js';
 import { CoingeckoPricingClient } from '@tetherto/wdk-pricing-coingecko-http';
 import type {
@@ -743,6 +751,51 @@ export class WalletWorker implements Pick<WalletWorkerApi, 'vault_hasStored' | '
   async erc4337_sendTransaction(chain: EvmChainId, index: number, to: string, value: bigint, paymasterToken?: string): Promise<Erc4337SendResult> {
     const account = await this._smartAccount(chain, index);
     return normalizeErc4337Result(await account.sendTransaction({ to, value }, gasConfig(paymasterToken)));
+  }
+
+  /**
+   * Pays an x402 "402 Payment Required" challenge: signs an EIP-3009
+   * authorization (the x402 "exact" scheme) for the given PaymentRequirements and
+   * returns the base64 `X-PAYMENT` header the caller attaches when retrying the
+   * request. `chain`/`index` select the EVM account that pays — the same key
+   * across chains, so any registered EVM chain derives the correct `from`; the
+   * EIP-712 domain's chainId comes from the requirements' network. A facilitator
+   * verifies + settles the authorization on-chain. Key never leaves the worklet.
+   */
+  async x402_createPayment(chain: EvmChainId, index: number, requirements: X402Requirements): Promise<string> {
+    const wdk = this._requireWdk();
+    await ensureChainRegistered(wdk, chain);
+    const account = await wdk.getAccount(chain, index);
+    const from = (await (account as unknown as { getAddress(): Promise<string> }).getAddress());
+
+    const chainId = networkToChainId(requirements.network);
+    const now = Math.floor(Date.now() / 1000);
+    const validBefore = BigInt(now + Math.max(1, Number(requirements.maxTimeoutSeconds) || 60));
+    const nonce = generateX402Nonce();
+    const value = BigInt(requirements.maxAmountRequired);
+
+    const typed = buildEip3009TransferAuthorization({
+      token: { address: requirements.asset as Hex, name: requirements.extra?.name ?? '', version: requirements.extra?.version ?? '2' },
+      chainId,
+      from: from as Hex,
+      to: requirements.payTo as Hex,
+      value,
+      validBefore,
+      nonce: nonce as Hex,
+    });
+
+    const evmAccount = account as unknown as { signTypedData(td: { domain: unknown; types: unknown; message: unknown }): Promise<string> };
+    const signature = await evmAccount.signTypedData({ domain: typed.domain, types: typed.types, message: typed.message });
+
+    const payment = buildExactPayment(requirements.network, signature, {
+      from,
+      to: requirements.payTo,
+      value: requirements.maxAmountRequired,
+      validAfter: '0',
+      validBefore: validBefore.toString(),
+      nonce,
+    });
+    return encodePaymentHeader(payment);
   }
 
   /**

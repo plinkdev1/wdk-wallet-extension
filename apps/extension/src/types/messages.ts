@@ -87,6 +87,8 @@ export type WalletMessage =
   | { type: 'MOONPAY_IS_CONFIGURED' }
   | { type: 'MOONPAY_QUOTE_BUY'; fiatCurrency: string; cryptoAsset: string; fiatAmount: number }
   | { type: 'MOONPAY_BUY'; fiatCurrency: string; cryptoAsset: string; fiatAmount: number; recipient: string }
+  // x402 — sign an EIP-3009 authorization for a 402 challenge, return the X-PAYMENT header
+  | { type: 'X402_CREATE_PAYMENT'; chain: EvmChainId; accountIndex: number; requirements: { scheme: string; network: string; maxAmountRequired: string; payTo: string; asset: string; maxTimeoutSeconds?: number; resource?: string; extra?: { name?: string; version?: string } } }
   // ERC-4337 smart account / gasless (value is a wei decimal string; L-WIRE-03)
   | { type: 'ERC4337_IS_CONFIGURED' }
   | { type: 'ERC4337_GET_ADDRESS'; chain: EvmChainId; accountIndex: number }
@@ -149,6 +151,7 @@ export type WalletResponseData = {
   MOONPAY_IS_CONFIGURED: boolean;
   MOONPAY_QUOTE_BUY: MoonPayBuyQuoteDto | null;
   MOONPAY_BUY: string;
+  X402_CREATE_PAYMENT: string;
   ERC4337_IS_CONFIGURED: boolean;
   ERC4337_GET_ADDRESS: string;
   ERC4337_GET_BALANCE: string;

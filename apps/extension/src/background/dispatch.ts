@@ -107,6 +107,7 @@ export function createStubHandlers(): HandlerRegistry {
     MOONPAY_IS_CONFIGURED: notImplemented('MOONPAY_IS_CONFIGURED'),
     MOONPAY_QUOTE_BUY: notImplemented('MOONPAY_QUOTE_BUY'),
     MOONPAY_BUY: notImplemented('MOONPAY_BUY'),
+    X402_CREATE_PAYMENT: notImplemented('X402_CREATE_PAYMENT'),
     ERC4337_IS_CONFIGURED: notImplemented('ERC4337_IS_CONFIGURED'),
     ERC4337_GET_ADDRESS: notImplemented('ERC4337_GET_ADDRESS'),
     ERC4337_GET_BALANCE: notImplemented('ERC4337_GET_BALANCE'),

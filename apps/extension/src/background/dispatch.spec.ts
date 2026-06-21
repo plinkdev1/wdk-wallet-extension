@@ -48,6 +48,7 @@ describe('SW message dispatcher (F-SEC-01 — Object.hasOwn whitelisting)', () =
       MOONPAY_IS_CONFIGURED: vi.fn(async () => false) as any,
       MOONPAY_QUOTE_BUY: vi.fn(async () => null) as any,
       MOONPAY_BUY: vi.fn(async () => 'https://buy.moonpay.com') as any,
+      X402_CREATE_PAYMENT: vi.fn(async () => 'eyAieDQwMiIgfQ==') as any,
       ERC4337_IS_CONFIGURED: vi.fn(async () => false) as any,
       ERC4337_GET_ADDRESS: vi.fn(async () => '0x') as any,
       ERC4337_GET_BALANCE: vi.fn(async () => '0') as any,
