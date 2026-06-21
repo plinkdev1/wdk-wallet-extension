@@ -41,6 +41,17 @@ describe('rpc adapter', () => {
       expect(await adapter.getTransactionStatus('ethereum', '0xhash')).toBe('failed');
       expect(handler).toHaveBeenCalledWith('ethereum', '0xhash');
     });
+
+    it('getTokenBalances batches in order (B-5)', async () => {
+      const adapter = createMockRpcAdapter({
+        tokenBalances: new Map([
+          ['ethereum:0xabc:0xUSDt', 1000000n],
+          ['ethereum:0xabc:0xXAUt', 5n],
+        ]),
+      });
+      expect(await adapter.getTokenBalances!('ethereum', '0xabc', ['0xUSDt', '0xXAUt', '0xunknown']))
+        .toEqual([1000000n, 5n, 0n]);
+    });
   });
 
   describe('createHttpRpcAdapter', () => {
@@ -150,6 +161,21 @@ describe('rpc adapter', () => {
       vi.stubGlobal('fetch', mockFetch);
       const adapter = createHttpRpcAdapter();
       expect(await adapter.getTokenBalance('solana-mainnet', 'OwnerPubkey', 'MintPubkey')).toBe(0n);
+    });
+
+    it('getTokenBalances issues concurrent reads (B-5)', async () => {
+      const mockFetch = vi.fn(async () => new Response(JSON.stringify({
+        jsonrpc: '2.0',
+        id: 1,
+        result: { value: [{ account: { data: { parsed: { info: { tokenAmount: { amount: '1000000' } } } } } }] },
+      }), { status: 200, headers: { 'Content-Type': 'application/json' } }));
+      vi.stubGlobal('fetch', mockFetch);
+
+      const adapter = createHttpRpcAdapter();
+      const balances = await adapter.getTokenBalances!('solana-mainnet', 'OwnerPubkey', ['MintA', 'MintB']);
+
+      expect(balances).toEqual([1000000n, 1000000n]);
+      expect(mockFetch).toHaveBeenCalledTimes(2); // one RPC per mint, dispatched together
     });
   });
 });

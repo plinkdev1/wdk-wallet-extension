@@ -31,8 +31,15 @@ export type TransactionStatus = 'pending' | 'success' | 'failed';
 export interface RpcAdapter {
   /** Native-token balance: wei for EVM, lamports for Solana. */
   getBalance(chain: ChainId, address: string): Promise<bigint>;
-  /** Token balance in base units. EVM uses ERC-20 balanceOf; Solana is v1.1. */
+  /** Token balance in base units. EVM via ERC-20 balanceOf; Solana via SPL accounts. */
   getTokenBalance(chain: ChainId, address: string, tokenAddress: string): Promise<bigint>;
+  /**
+   * Batched token balances on one chain — issued concurrently so N balances cost
+   * ~one round-trip of latency instead of N sequential (B-5). Returns base-unit
+   * balances in the same order as `tokenAddresses`. Optional: implemented by the
+   * HTTP + mock adapters. (A single Multicall3 call is a further optimization.)
+   */
+  getTokenBalances?(chain: ChainId, address: string, tokenAddresses: readonly string[]): Promise<bigint[]>;
   /**
    * On-chain status of a broadcast transaction. EVM reads the receipt
    * (success/reverted); Solana reads signature statuses. 'pending' means not
@@ -81,6 +88,24 @@ export function createHttpRpcAdapter(): RpcAdapter {
     return { family, rpcUrl };
   }
 
+  async function tokenBalance(chain: ChainId, address: string, tokenAddress: string): Promise<bigint> {
+    const { family, rpcUrl } = await resolveChainConfig(chain);
+    if (family === 'evm') {
+      const client = getEvmClient(chain, rpcUrl);
+      return withRetry(() => client.readContract({
+        address: tokenAddress as Address,
+        abi: ERC20_BALANCE_OF_ABI,
+        functionName: 'balanceOf',
+        args: [address as Address],
+      }));
+    }
+    if (family === 'solana') {
+      // SPL balance: sum the owner's token accounts for this mint (B-1).
+      return withRetry(() => getSolanaTokenBalance(rpcUrl, address, tokenAddress));
+    }
+    throw new Error('Unknown chain family: ' + family);
+  }
+
   return {
     async getBalance(chain, address) {
       const { family, rpcUrl } = await resolveChainConfig(chain);
@@ -95,23 +120,11 @@ export function createHttpRpcAdapter(): RpcAdapter {
       throw new Error('Unknown chain family: ' + family);
     },
 
-    async getTokenBalance(chain, address, tokenAddress) {
-      const { family, rpcUrl } = await resolveChainConfig(chain);
-      if (family === 'evm') {
-        const client = getEvmClient(chain, rpcUrl);
-        const balance = await withRetry(() => client.readContract({
-          address: tokenAddress as Address,
-          abi: ERC20_BALANCE_OF_ABI,
-          functionName: 'balanceOf',
-          args: [address as Address],
-        }));
-        return balance;
-      }
-      if (family === 'solana') {
-        // SPL balance: sum the owner's token accounts for this mint (B-1).
-        return withRetry(() => getSolanaTokenBalance(rpcUrl, address, tokenAddress));
-      }
-      throw new Error('Unknown chain family: ' + family);
+    getTokenBalance: tokenBalance,
+
+    async getTokenBalances(chain, address, tokenAddresses) {
+      // Concurrent reads (B-5) — N balances cost ~one round-trip of latency.
+      return Promise.all(tokenAddresses.map((t) => tokenBalance(chain, address, t)));
     },
 
     async getTransactionStatus(chain, hash) {
@@ -246,14 +259,18 @@ export interface MockRpcAdapterOptions {
 
 /** In-memory mock RPC adapter. Used in tests + dev fixtures. No network. */
 export function createMockRpcAdapter(options: MockRpcAdapterOptions = {}): RpcAdapter {
+  async function tokenBalance(chain: ChainId, address: string, tokenAddress: string): Promise<bigint> {
+    if (options.onGetTokenBalance) return options.onGetTokenBalance(chain, address, tokenAddress);
+    return options.tokenBalances?.get(chain + ':' + address + ':' + tokenAddress) ?? 0n;
+  }
   return {
     async getBalance(chain, address) {
       if (options.onGetBalance) return options.onGetBalance(chain, address);
       return options.balances?.get(chain + ':' + address) ?? 0n;
     },
-    async getTokenBalance(chain, address, tokenAddress) {
-      if (options.onGetTokenBalance) return options.onGetTokenBalance(chain, address, tokenAddress);
-      return options.tokenBalances?.get(chain + ':' + address + ':' + tokenAddress) ?? 0n;
+    getTokenBalance: tokenBalance,
+    async getTokenBalances(chain, address, tokenAddresses) {
+      return Promise.all(tokenAddresses.map((t) => tokenBalance(chain, address, t)));
     },
     async getTransactionStatus(chain, hash) {
       if (options.onGetTransactionStatus) return options.onGetTransactionStatus(chain, hash);
