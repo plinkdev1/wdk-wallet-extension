@@ -14,10 +14,8 @@
  *     Supports a balances Map for static fixtures or a per-call handler
  *     for dynamic responses.
  *
- * Phase 1 v1.0 carryover: getTokenBalance for Solana SPL tokens is
- * deferred to v1.1 (requires associated-token-account resolution which
- * is non-trivial and not exercised by Phase 1 product surfaces). EVM
- * getTokenBalance is implemented via standard ERC-20 balanceOf.
+ * getTokenBalance: EVM via standard ERC-20 balanceOf; Solana sums the owner's
+ * SPL token accounts for the mint via getTokenAccountsByOwner (B-1).
  *
  * See: kickoff Part V Step 10, ADR-010 (consumer abstraction shape).
  */
@@ -110,7 +108,8 @@ export function createHttpRpcAdapter(): RpcAdapter {
         return balance;
       }
       if (family === 'solana') {
-        throw new Error('Solana SPL token balance deferred to v1.1 (requires ATA resolution); use a product-level @solana/spl-token adapter for now.');
+        // SPL balance: sum the owner's token accounts for this mint (B-1).
+        return withRetry(() => getSolanaTokenBalance(rpcUrl, address, tokenAddress));
       }
       throw new Error('Unknown chain family: ' + family);
     },
@@ -189,6 +188,44 @@ async function getSolanaNativeBalance(rpcUrl: string, address: string): Promise<
   // Precise extraction from the raw text (handles number- or string-encoded value).
   const lamports = /"value"\s*:\s*"?(\d+)"?/.exec(text)?.[1];
   return lamports !== undefined ? BigInt(lamports) : BigInt(data.result.value);
+}
+
+/**
+ * SPL token balance for an owner + mint (B-1). Queries `getTokenAccountsByOwner`
+ * (jsonParsed) and sums every matching token account — an owner can hold a mint
+ * across more than one account, and the total is the spendable balance. Amounts
+ * come back as decimal strings, so there's no JS-Number precision loss. Returns
+ * 0n when the owner holds no account for the mint.
+ */
+async function getSolanaTokenBalance(rpcUrl: string, owner: string, mint: string): Promise<bigint> {
+  const response = await fetch(rpcUrl, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      jsonrpc: '2.0',
+      id: 1,
+      method: 'getTokenAccountsByOwner',
+      params: [owner, { mint }, { encoding: 'jsonParsed' }],
+    }),
+  });
+  if (!response.ok) {
+    throw new Error('Solana RPC HTTP error: ' + response.status + ' ' + response.statusText);
+  }
+  const data = await response.json() as {
+    result?: { value?: ReadonlyArray<{ account?: { data?: { parsed?: { info?: { tokenAmount?: { amount?: string } } } } } }> };
+    error?: { message?: string };
+  };
+  if (data.error) {
+    throw new Error('Solana RPC error: ' + (data.error.message ?? JSON.stringify(data.error)));
+  }
+  let total = 0n;
+  for (const entry of data.result?.value ?? []) {
+    const amount = entry.account?.data?.parsed?.info?.tokenAmount?.amount;
+    if (typeof amount === 'string' && /^\d+$/.test(amount)) {
+      total += BigInt(amount);
+    }
+  }
+  return total;
 }
 
 /** Configuration for the mock RPC adapter (tests + dev fixtures). */

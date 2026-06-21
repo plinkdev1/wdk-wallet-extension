@@ -118,11 +118,38 @@ describe('rpc adapter', () => {
       ).rejects.toThrowError(/Unsupported chain/);
     });
 
-    it('getTokenBalance throws for Solana (SPL ATA resolution deferred to v1.1)', async () => {
+    it('getTokenBalance sums Solana SPL token accounts for the mint (B-1)', async () => {
+      const mockFetch = vi.fn(async () => new Response(JSON.stringify({
+        jsonrpc: '2.0',
+        id: 1,
+        result: {
+          value: [
+            { account: { data: { parsed: { info: { tokenAmount: { amount: '1500000' } } } } } },
+            { account: { data: { parsed: { info: { tokenAmount: { amount: '2500000' } } } } } },
+          ],
+        },
+      }), { status: 200, headers: { 'Content-Type': 'application/json' } }));
+      vi.stubGlobal('fetch', mockFetch);
+
       const adapter = createHttpRpcAdapter();
-      await expect(
-        adapter.getTokenBalance('solana-mainnet', 'pubkey', 'mint'),
-      ).rejects.toThrowError(/v1\.1/);
+      const balance = await adapter.getTokenBalance('solana-mainnet', 'OwnerPubkey', 'MintPubkey');
+
+      expect(balance).toBe(4000000n); // 1.5 + 2.5
+      const call = mockFetch.mock.calls[0]! as unknown as [string, RequestInit];
+      const body = JSON.parse(call[1].body as string);
+      expect(body.method).toBe('getTokenAccountsByOwner');
+      expect(body.params[0]).toBe('OwnerPubkey');
+      expect(body.params[1]).toEqual({ mint: 'MintPubkey' });
+    });
+
+    it('getTokenBalance returns 0 when the owner holds no account for the mint', async () => {
+      const mockFetch = vi.fn(async () => new Response(
+        JSON.stringify({ jsonrpc: '2.0', id: 1, result: { value: [] } }),
+        { status: 200, headers: { 'Content-Type': 'application/json' } },
+      ));
+      vi.stubGlobal('fetch', mockFetch);
+      const adapter = createHttpRpcAdapter();
+      expect(await adapter.getTokenBalance('solana-mainnet', 'OwnerPubkey', 'MintPubkey')).toBe(0n);
     });
   });
 });
