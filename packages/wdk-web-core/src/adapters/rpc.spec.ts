@@ -94,6 +94,23 @@ describe('rpc adapter', () => {
       expect(body.params).toEqual(['SomeBase58PublicKey']);
     });
 
+    it('preserves Solana lamports above 2^53 (F-RPC-01)', async () => {
+      // Raw body: the huge u64 must never be coerced to a JS Number before we parse it.
+      const huge = '18446744073709551615'; // 2^64 - 1
+      const mockFetch = vi.fn(async () => new Response(
+        `{"jsonrpc":"2.0","id":1,"result":{"context":{"slot":100},"value":${huge}}}`,
+        { status: 200, headers: { 'Content-Type': 'application/json' } },
+      ));
+      vi.stubGlobal('fetch', mockFetch);
+
+      const adapter = createHttpRpcAdapter();
+      const balance = await adapter.getBalance('solana-mainnet', 'SomeBase58PublicKey');
+
+      expect(balance).toBe(BigInt(huge));
+      // sanity: this value is NOT representable precisely as a JS number
+      expect(BigInt(Number(huge))).not.toBe(BigInt(huge));
+    });
+
     it('throws for unsupported chain (no loader registered)', async () => {
       const adapter = createHttpRpcAdapter();
       await expect(

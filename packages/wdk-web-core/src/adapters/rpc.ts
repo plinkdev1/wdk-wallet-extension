@@ -174,14 +174,21 @@ async function getSolanaNativeBalance(rpcUrl: string, address: string): Promise<
   if (!response.ok) {
     throw new Error('Solana RPC HTTP error: ' + response.status + ' ' + response.statusText);
   }
-  const data = await response.json() as { result?: { value?: number | string }; error?: { message?: string } };
+  // Read the raw text first so we can extract the u64 lamports as a precise
+  // integer string. response.json() would parse it to a JS Number and silently
+  // lose precision above 2^53 (~9M SOL) — F-RPC-01. We still JSON.parse for the
+  // error/shape checks.
+  const text = await response.text();
+  const data = JSON.parse(text) as { result?: { value?: number | string }; error?: { message?: string } };
   if (data.error) {
     throw new Error('Solana RPC error: ' + (data.error.message ?? JSON.stringify(data.error)));
   }
   if (data.result?.value === undefined || data.result.value === null) {
     throw new Error('Solana RPC response missing result.value: ' + JSON.stringify(data));
   }
-  return BigInt(data.result.value);
+  // Precise extraction from the raw text (handles number- or string-encoded value).
+  const lamports = /"value"\s*:\s*"?(\d+)"?/.exec(text)?.[1];
+  return lamports !== undefined ? BigInt(lamports) : BigInt(data.result.value);
 }
 
 /** Configuration for the mock RPC adapter (tests + dev fixtures). */
