@@ -166,3 +166,9 @@ See the companion roadmaps in the
 [Template Wallet](https://github.com/plinkdev1/wdk-wallet-template/blob/main/ROADMAP.md),
 [EIP-3009 module](https://github.com/plinkdev1/wdk-protocol-eip3009/blob/main/ROADMAP.md),
 and [WooCommerce checkout](https://github.com/plinkdev1/wdk-checkout-and-woocommerce-plugin/blob/main/ROADMAP.md).
+
+
+## Presentation follow-ups (deferred — need tooling/funds)
+
+- **Capture screenshots** of the new flows (DeFi: Swap/Earn/Bridge, Smart Account, Buy, the ⚡ gasless toggle) and add them to `media/screenshots/` + the README gallery. Needs the headless-Chromium capture tooling and a wallet wired to an RPC (and a bundler/MoonPay key for the gated screens).
+- **Testnet integration runs** for the protocols end-to-end (needs funded accounts). The automated suites already cover the wire contracts + x402 round-trip.
