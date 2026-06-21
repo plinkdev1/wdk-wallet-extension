@@ -78,5 +78,23 @@ describe('indexer adapter', () => {
       const err = vi.fn(async () => new Response(JSON.stringify({ status: '0', message: 'NOTOK', result: 'Invalid API Key' }), { status: 200 })) as unknown as typeof fetch;
       await expect(adapterWith(err).getTransactions('ethereum', '0xa')).rejects.toThrow(/Invalid API Key/);
     });
+
+    it('paginates: a full page yields a nextCursor; the cursor advances the page (B-9)', async () => {
+      const spy = vi.fn(async (url: string) => {
+        const page = new URL(url).searchParams.get('page');
+        // page 1 → a full page (2 of limit 2, "more"); page 2 → a partial page (end)
+        return new Response(okBody(page === '2' ? [etxlist[0]] : etxlist), { status: 200 });
+      });
+      const adapter = createEtherscanIndexerAdapter({ apiKey: 'KEY', resolveChainId: () => 1, fetchImpl: spy as unknown as typeof fetch });
+
+      const p1 = await adapter.getTransactionsPage!('ethereum', '0xa', { limit: 2 });
+      expect(p1.records).toHaveLength(2);
+      expect(p1.nextCursor).toBe('2');
+
+      const p2 = await adapter.getTransactionsPage!('ethereum', '0xa', { limit: 2, cursor: p1.nextCursor! });
+      expect(p2.records).toHaveLength(1);
+      expect(p2.nextCursor).toBeUndefined(); // partial page → end
+      expect(new URL(spy.mock.calls.at(-1)![0]).searchParams.get('page')).toBe('2');
+    });
   });
 });

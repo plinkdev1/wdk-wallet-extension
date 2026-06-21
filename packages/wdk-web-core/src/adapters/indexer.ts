@@ -53,6 +53,15 @@ export interface GetTransactionsOptions {
   readonly fromBlock?: bigint;
   /** Latest block / slot to include (inclusive). */
   readonly toBlock?: bigint;
+  /** Opaque cursor from a previous page's `nextCursor` to resume from (B-9). */
+  readonly cursor?: string;
+}
+
+/** One page of transactions plus the cursor to continue (B-9). */
+export interface TransactionPage {
+  readonly records: readonly TransactionRecord[];
+  /** Pass as `options.cursor` to the next call to continue; absent at the end. */
+  readonly nextCursor?: string;
 }
 
 export interface IndexerAdapter {
@@ -62,6 +71,16 @@ export interface IndexerAdapter {
     address: string,
     options?: GetTransactionsOptions,
   ): Promise<readonly TransactionRecord[]>;
+  /**
+   * Paged variant (B-9): returns a page of records plus a `nextCursor` to fetch
+   * the following page (absent when there are no more). Optional — implemented by
+   * adapters that support cursors (e.g. the Etherscan indexer).
+   */
+  getTransactionsPage?(
+    chain: ChainId,
+    address: string,
+    options?: GetTransactionsOptions,
+  ): Promise<TransactionPage>;
 }
 
 export interface MockIndexerAdapterOptions {
@@ -138,38 +157,48 @@ function mapEtherscanTx(r: EtherscanTx): TransactionRecord {
 export function createEtherscanIndexerAdapter(options: EtherscanIndexerOptions): IndexerAdapter {
   const base = options.baseUrl ?? 'https://api.etherscan.io/v2/api';
   const doFetch = options.fetchImpl ?? (globalThis.fetch as typeof fetch | undefined);
+  const pageFromCursor = (cursor?: string): number => {
+    const n = cursor ? parseInt(cursor, 10) : 1;
+    return Number.isFinite(n) && n >= 1 ? n : 1;
+  };
+
+  async function fetchTxlist(chain: ChainId, address: string, opts?: GetTransactionsOptions): Promise<TransactionRecord[]> {
+    if (typeof doFetch !== 'function') throw new Error('Etherscan indexer: no fetch available; pass options.fetchImpl');
+    const chainId = await options.resolveChainId(chain);
+
+    const url = new URL(base);
+    url.searchParams.set('chainid', String(chainId));
+    url.searchParams.set('module', 'account');
+    url.searchParams.set('action', 'txlist');
+    url.searchParams.set('address', address);
+    url.searchParams.set('sort', 'desc');
+    url.searchParams.set('page', String(pageFromCursor(opts?.cursor)));
+    if (opts?.fromBlock !== undefined) url.searchParams.set('startblock', String(opts.fromBlock));
+    if (opts?.toBlock !== undefined) url.searchParams.set('endblock', String(opts.toBlock));
+    if (opts?.limit !== undefined) url.searchParams.set('offset', String(opts.limit));
+    url.searchParams.set('apikey', options.apiKey);
+
+    const res = await doFetch(url.toString());
+    if (!res.ok) throw new Error('Etherscan indexer HTTP ' + res.status);
+    const json = await res.json() as { status?: string; message?: string; result?: unknown };
+
+    // Etherscan returns status "1" + array on success, or status "0" with
+    // "No transactions found" (empty, not an error) or a real error message.
+    if (json.status !== '1') {
+      if (typeof json.message === 'string' && /no transactions/i.test(json.message)) return [];
+      throw new Error('Etherscan indexer error: ' + (json.message ?? 'unknown') + ' — ' + (typeof json.result === 'string' ? json.result : ''));
+    }
+    if (!Array.isArray(json.result)) return [];
+    return (json.result as EtherscanTx[]).map(mapEtherscanTx);
+  }
 
   return {
-    async getTransactions(chain, address, opts) {
-      if (typeof doFetch !== 'function') throw new Error('Etherscan indexer: no fetch available; pass options.fetchImpl');
-      const chainId = await options.resolveChainId(chain);
-
-      const url = new URL(base);
-      url.searchParams.set('chainid', String(chainId));
-      url.searchParams.set('module', 'account');
-      url.searchParams.set('action', 'txlist');
-      url.searchParams.set('address', address);
-      url.searchParams.set('sort', 'desc');
-      if (opts?.fromBlock !== undefined) url.searchParams.set('startblock', String(opts.fromBlock));
-      if (opts?.toBlock !== undefined) url.searchParams.set('endblock', String(opts.toBlock));
-      if (opts?.limit !== undefined) {
-        url.searchParams.set('page', '1');
-        url.searchParams.set('offset', String(opts.limit));
-      }
-      url.searchParams.set('apikey', options.apiKey);
-
-      const res = await doFetch(url.toString());
-      if (!res.ok) throw new Error('Etherscan indexer HTTP ' + res.status);
-      const json = await res.json() as { status?: string; message?: string; result?: unknown };
-
-      // Etherscan returns status "1" + array on success, or status "0" with
-      // "No transactions found" (empty, not an error) or a real error message.
-      if (json.status !== '1') {
-        if (typeof json.message === 'string' && /no transactions/i.test(json.message)) return [];
-        throw new Error('Etherscan indexer error: ' + (json.message ?? 'unknown') + ' — ' + (typeof json.result === 'string' ? json.result : ''));
-      }
-      if (!Array.isArray(json.result)) return [];
-      return (json.result as EtherscanTx[]).map(mapEtherscanTx);
+    getTransactions: (chain, address, opts) => fetchTxlist(chain, address, opts),
+    async getTransactionsPage(chain, address, opts) {
+      const records = await fetchTxlist(chain, address, opts);
+      // A full page implies there may be more — advance the page cursor (B-9).
+      const more = opts?.limit !== undefined && records.length === opts.limit;
+      return more ? { records, nextCursor: String(pageFromCursor(opts?.cursor) + 1) } : { records };
     },
   };
 }
