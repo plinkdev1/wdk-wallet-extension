@@ -118,5 +118,7 @@ export function createStubHandlers(): HandlerRegistry {
     APPROVAL_GET_PENDING: notImplemented('APPROVAL_GET_PENDING'),
     APPROVAL_RESPOND: notImplemented('APPROVAL_RESPOND'),
     APPROVAL_LIST_PENDING: notImplemented('APPROVAL_LIST_PENDING'),
+    CONNECTIONS_LIST: notImplemented('CONNECTIONS_LIST'),
+    CONNECTIONS_REVOKE: notImplemented('CONNECTIONS_REVOKE'),
   };
 }

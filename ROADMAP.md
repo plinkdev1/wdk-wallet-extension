@@ -92,7 +92,11 @@ The current build is a production-grade MV3 wallet, not a prototype:
   balances and `transfer()` sends; tap-to-send token rows.
 - **Activity** — persistent history, per-chain filtering, **real-time status**
   (EVM receipts + Solana signature statuses), explorer links.
-- **dApp connectivity** — EIP-1193 + EIP-6963, per-origin approvals.
+- **dApp connectivity** — EIP-1193 + EIP-6963, per-origin approvals, and a
+  **Connections** management view (Settings → Connections: list connected sites,
+  revoke any). The remaining PRD-listed surface is **sidepanel mode** (a scoped
+  fast-follow: manifest `side_panel` + `chrome.sidePanel` toggle + responsive
+  two-column layout).
 - **Quality** — 870 automated tests, strict TypeScript, CI, loadable `dist/`.
 
 ---

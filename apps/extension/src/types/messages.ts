@@ -100,7 +100,10 @@ export type WalletMessage =
   // Approval flow (B4.4)
   | { type: 'APPROVAL_GET_PENDING'; id: string }
   | { type: 'APPROVAL_RESPOND'; id: string; approved: boolean; data?: unknown }
-  | { type: 'APPROVAL_LIST_PENDING' };
+  | { type: 'APPROVAL_LIST_PENDING' }
+  // Connections management (Settings → Connections)
+  | { type: 'CONNECTIONS_LIST' }
+  | { type: 'CONNECTIONS_REVOKE'; origin: string };
 
 export type WalletMessageType = WalletMessage['type'];
 
@@ -161,7 +164,18 @@ export type WalletResponseData = {
   APPROVAL_GET_PENDING: ApprovalRequest | null;
   APPROVAL_RESPOND: { ok: boolean };
   APPROVAL_LIST_PENDING: string[];
+  CONNECTIONS_LIST: readonly ConnectionDto[];
+  CONNECTIONS_REVOKE: { ok: boolean };
 };
+
+/** A connected dApp over the wire (Settings → Connections UI). */
+export interface ConnectionDto {
+  readonly origin: string;
+  /** Approved chain keys (e.g. "ethereum", "polygon-mainnet"). */
+  readonly chains: readonly string[];
+  readonly accountIndices: readonly number[];
+  readonly approvedAt: number;
+}
 
 /** Aave V3 account snapshot over the wire — bigints as decimal strings (L-WIRE-03). */
 export interface AaveAccountDataDto {

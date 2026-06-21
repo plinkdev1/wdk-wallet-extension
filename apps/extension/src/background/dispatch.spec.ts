@@ -60,6 +60,8 @@ describe('SW message dispatcher (F-SEC-01 — Object.hasOwn whitelisting)', () =
       APPROVAL_GET_PENDING: vi.fn(async () => null) as any,
       APPROVAL_RESPOND: vi.fn(async () => ({ ok: true })) as any,
       APPROVAL_LIST_PENDING: vi.fn(async () => []) as any,
+      CONNECTIONS_LIST: vi.fn(async () => []) as any,
+      CONNECTIONS_REVOKE: vi.fn(async () => ({ ok: true as const })) as any,
     };
   }
 

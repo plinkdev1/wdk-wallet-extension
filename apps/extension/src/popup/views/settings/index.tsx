@@ -23,6 +23,7 @@
 import { Button } from '@wdk-starter/wdk-ui';
 import { AppearanceSection } from './sections/appearance-section.js';
 import { BrandSection } from './sections/brand-section.js';
+import { ConnectionsSection } from './sections/connections-section.js';
 import type { ThemeState, BrandState } from './types.js';
 
 export interface SettingsViewProps {
@@ -67,6 +68,11 @@ export function SettingsView({ themeState, brandState, onBack }: SettingsViewPro
         <section data-testid="section-brand">
           <h2 style={sectionHeadingStyle}>Brand identity</h2>
           <BrandSection brandState={brandState} />
+        </section>
+
+        <section data-testid="section-connections">
+          <h2 style={sectionHeadingStyle}>Connections</h2>
+          <ConnectionsSection />
         </section>
       </div>
     </div>

@@ -96,6 +96,19 @@ export function createSwHandlers({ engine, worker, approvalFlow, connectionState
       return { ok: true as const };
     },
 
+    // Connections management (Settings → Connections): list connected dApps and
+    // revoke them. Backed by the same per-origin allow-list the dApp pipeline reads.
+    CONNECTIONS_LIST: async () => {
+      await connectionState.load();
+      return connectionState.list();
+    },
+
+    CONNECTIONS_REVOKE: async (msg) => {
+      await connectionState.load();
+      const ok = await connectionState.revoke(msg.origin);
+      return { ok };
+    },
+
     ACCOUNT_GET_EVM_ADDRESS: async (msg) => {
       return worker.account_getEvmAddress(msg.chain, msg.accountIndex);
     },

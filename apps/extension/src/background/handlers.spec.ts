@@ -188,6 +188,31 @@ describe('createSwHandlers (B3.4b - wired to WalletWorker)', () => {
     });
   });
 
+  describe('Connections management', () => {
+    it('lists connected dApps and revokes them', async () => {
+      const connectionState = createConnectionState();
+      await connectionState.load();
+      await connectionState.approve('https://app.example.org', ['ethereum'] as never, [0]);
+      const handlers = createSwHandlers({
+        engine,
+        worker: worker as unknown as WalletWorker,
+        approvalFlow: createApprovalFlow(),
+        connectionState,
+      });
+
+      const list = await handlers.CONNECTIONS_LIST!({ type: 'CONNECTIONS_LIST' });
+      expect(list).toHaveLength(1);
+      expect(list[0]!.origin).toBe('https://app.example.org');
+
+      const revoked = await handlers.CONNECTIONS_REVOKE!({ type: 'CONNECTIONS_REVOKE', origin: 'https://app.example.org' });
+      expect(revoked).toEqual({ ok: true });
+      expect(await handlers.CONNECTIONS_LIST!({ type: 'CONNECTIONS_LIST' })).toHaveLength(0);
+
+      const missing = await handlers.CONNECTIONS_REVOKE!({ type: 'CONNECTIONS_REVOKE', origin: 'https://nope.example' });
+      expect(missing).toEqual({ ok: false });
+    });
+  });
+
   // ----- Account ops (pure delegation) -----
 
   describe('ACCOUNT_GET_EVM_ADDRESS', () => {
