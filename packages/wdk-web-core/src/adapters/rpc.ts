@@ -20,7 +20,7 @@
  * See: kickoff Part V Step 10, ADR-010 (consumer abstraction shape).
  */
 
-import { createPublicClient, http, type Address, type PublicClient } from 'viem';
+import { createPublicClient, http, defineChain, type Address, type PublicClient } from 'viem';
 import { withRetry } from './retry.js';
 import { RateLimiter, type RateLimiterOptions } from './rate-limit.js';
 
@@ -69,6 +69,17 @@ const ERC20_BALANCE_OF_ABI = [
   },
 ] as const;
 
+/** Canonical Multicall3 — deployed at the same address on virtually every EVM chain. */
+const MULTICALL3_ADDRESS = '0xcA11bde05977b3631167028862bE2a173976CA11' as const;
+
+/** Minimal EVM chain metadata pulled from a chain config, used to spec the viem client (B-3). */
+interface EvmChainMeta {
+  readonly chainId: number;
+  readonly name: string;
+  readonly nativeSymbol: string;
+  readonly nativeDecimals: number;
+}
+
 /** Production HTTP RPC adapter. Routes per chain family via CHAIN_LOADERS lookup. */
 export function createHttpRpcAdapter(options: HttpRpcAdapterOptions = {}): RpcAdapter {
   // Per-adapter viem client cache. Avoids constructing a new PublicClient
@@ -82,17 +93,29 @@ export function createHttpRpcAdapter(options: HttpRpcAdapterOptions = {}): RpcAd
     return withRetry(() => (limiter ? limiter.schedule(fn) : fn()));
   }
 
-  function getEvmClient(chain: string, rpcUrl: string): PublicClient {
+  function getEvmClient(chain: string, rpcUrl: string, evm?: EvmChainMeta): PublicClient {
     const key = chain + ':' + rpcUrl;
     let client = evmClientCache.get(key);
     if (!client) {
-      client = createPublicClient({ transport: http(rpcUrl) });
+      // B-3 / F-RPC-02: give viem the chain spec (id + native currency + Multicall3),
+      // derived from the chain config rather than a hardcoded per-chain table, so
+      // multicall, gas estimation, and EIP-1559 have correct context.
+      const chainSpec = evm
+        ? defineChain({
+            id: evm.chainId,
+            name: evm.name,
+            nativeCurrency: { name: evm.nativeSymbol, symbol: evm.nativeSymbol, decimals: evm.nativeDecimals },
+            rpcUrls: { default: { http: [rpcUrl] } },
+            contracts: { multicall3: { address: MULTICALL3_ADDRESS } },
+          })
+        : undefined;
+      client = createPublicClient(chainSpec ? { chain: chainSpec, transport: http(rpcUrl) } : { transport: http(rpcUrl) });
       evmClientCache.set(key, client);
     }
     return client;
   }
 
-  async function resolveChainConfig(chain: ChainId): Promise<{ family: string; rpcUrl: string }> {
+  async function resolveChainConfig(chain: ChainId): Promise<{ family: string; rpcUrl: string; evm?: EvmChainMeta }> {
     if (!isSupportedChainId(chain)) {
       throw new Error('Unsupported chain (no loader registered): ' + chain);
     }
@@ -102,13 +125,26 @@ export function createHttpRpcAdapter(options: HttpRpcAdapterOptions = {}): RpcAd
     if (typeof rpcUrl !== 'string') {
       throw new Error('Chain config missing rpcUrl string: ' + chain);
     }
-    return { family, rpcUrl };
+    let evm: EvmChainMeta | undefined;
+    if (family === 'evm') {
+      const chainId = (mod.config as { chainId?: unknown }).chainId;
+      const meta = mod.meta as { name?: unknown; nativeCurrency?: { symbol?: unknown; decimals?: unknown } };
+      if (typeof chainId === 'number') {
+        evm = {
+          chainId,
+          name: typeof meta.name === 'string' ? meta.name : String(chain),
+          nativeSymbol: typeof meta.nativeCurrency?.symbol === 'string' ? meta.nativeCurrency.symbol : 'ETH',
+          nativeDecimals: typeof meta.nativeCurrency?.decimals === 'number' ? meta.nativeCurrency.decimals : 18,
+        };
+      }
+    }
+    return { family, rpcUrl, ...(evm ? { evm } : {}) };
   }
 
   async function tokenBalance(chain: ChainId, address: string, tokenAddress: string): Promise<bigint> {
-    const { family, rpcUrl } = await resolveChainConfig(chain);
+    const { family, rpcUrl, evm } = await resolveChainConfig(chain);
     if (family === 'evm') {
-      const client = getEvmClient(chain, rpcUrl);
+      const client = getEvmClient(chain, rpcUrl, evm);
       return run(() => client.readContract({
         address: tokenAddress as Address,
         abi: ERC20_BALANCE_OF_ABI,
@@ -125,9 +161,9 @@ export function createHttpRpcAdapter(options: HttpRpcAdapterOptions = {}): RpcAd
 
   return {
     async getBalance(chain, address) {
-      const { family, rpcUrl } = await resolveChainConfig(chain);
+      const { family, rpcUrl, evm } = await resolveChainConfig(chain);
       if (family === 'evm') {
-        const client = getEvmClient(chain, rpcUrl);
+        const client = getEvmClient(chain, rpcUrl, evm);
         // Idempotent read — retry transient RPC failures (B-6) + optional rate limit (B-7).
         return run(() => client.getBalance({ address: address as Address }));
       }
@@ -140,14 +176,31 @@ export function createHttpRpcAdapter(options: HttpRpcAdapterOptions = {}): RpcAd
     getTokenBalance: tokenBalance,
 
     async getTokenBalances(chain, address, tokenAddresses) {
-      // Concurrent reads (B-5) — N balances cost ~one round-trip of latency.
+      if (tokenAddresses.length === 0) return [];
+      const { family, rpcUrl, evm } = await resolveChainConfig(chain);
+      if (family === 'evm') {
+        // One Multicall3 round-trip for all balances (B-5 + B-3), not N calls.
+        const client = getEvmClient(chain, rpcUrl, evm);
+        const results = await run(() => client.multicall({
+          contracts: tokenAddresses.map((t) => ({
+            address: t as Address,
+            abi: ERC20_BALANCE_OF_ABI,
+            functionName: 'balanceOf',
+            args: [address as Address],
+          } as const)),
+          multicallAddress: MULTICALL3_ADDRESS,
+          allowFailure: true,
+        }));
+        return results.map((r) => (r.status === 'success' ? (r.result as bigint) : 0n));
+      }
+      // Non-EVM: concurrent reads.
       return Promise.all(tokenAddresses.map((t) => tokenBalance(chain, address, t)));
     },
 
     async getTransactionStatus(chain, hash) {
-      const { family, rpcUrl } = await resolveChainConfig(chain);
+      const { family, rpcUrl, evm } = await resolveChainConfig(chain);
       if (family === 'evm') {
-        const client = getEvmClient(chain, rpcUrl);
+        const client = getEvmClient(chain, rpcUrl, evm);
         try {
           const receipt = await client.getTransactionReceipt({ hash: hash as `0x${string}` });
           return receipt.status === 'success' ? 'success' : 'failed';

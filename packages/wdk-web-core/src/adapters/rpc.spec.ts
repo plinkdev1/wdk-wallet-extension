@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { encodeAbiParameters } from 'viem';
 import { createHttpRpcAdapter, createMockRpcAdapter } from './rpc.js';
 
 describe('rpc adapter', () => {
@@ -176,6 +177,39 @@ describe('rpc adapter', () => {
 
       expect(balances).toEqual([1000000n, 1000000n]);
       expect(mockFetch).toHaveBeenCalledTimes(2); // one RPC per mint, dispatched together
+    });
+
+    it('getTokenBalances batches EVM reads through ONE Multicall3 call (B-3)', async () => {
+      // viem multicalls Multicall3.aggregate3 in a single eth_call and decodes the
+      // (bool success, bytes returnData)[] result. Build that ABI-encoded return so
+      // viem's decoder yields our two balances — proves the chain spec wires up the
+      // Multicall3 contract (defineChain) rather than falling back to N eth_calls.
+      const balanceReturn = (v: bigint) => encodeAbiParameters([{ type: 'uint256' }], [v]);
+      const aggregate3Return = encodeAbiParameters(
+        [{ type: 'tuple[]', components: [{ name: 'success', type: 'bool' }, { name: 'returnData', type: 'bytes' }] }],
+        [[
+          { success: true, returnData: balanceReturn(1000000n) },
+          { success: true, returnData: balanceReturn(2500000n) },
+        ]],
+      );
+      const mockFetch = vi.fn(async (_url: unknown, init: unknown) => {
+        const body = JSON.parse((init as { body: string }).body);
+        return new Response(JSON.stringify({ jsonrpc: '2.0', id: body.id, result: aggregate3Return }),
+          { status: 200, headers: { 'Content-Type': 'application/json' } });
+      });
+      vi.stubGlobal('fetch', mockFetch);
+
+      const adapter = createHttpRpcAdapter();
+      const balances = await adapter.getTokenBalances!('ethereum', '0x0000000000000000000000000000000000000001', [
+        '0x0000000000000000000000000000000000000002',
+        '0x0000000000000000000000000000000000000003',
+      ]);
+
+      expect(balances).toEqual([1000000n, 2500000n]);
+      expect(mockFetch).toHaveBeenCalledTimes(1); // ONE round-trip for all tokens, not N
+      const body = JSON.parse((mockFetch.mock.calls[0]![1] as { body: string }).body);
+      expect(body.method).toBe('eth_call');
+      expect((body.params[0].to as string).toLowerCase()).toBe('0xca11bde05977b3631167028862be2a173976ca11');
     });
 
     it('applies an opt-in rate limit across calls (B-7)', async () => {
