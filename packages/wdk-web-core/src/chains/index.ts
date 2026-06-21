@@ -1,26 +1,31 @@
 /**
  * @wdk-starter/wdk-web-core/chains
  *
- * Chain loader registry. Each entry in CHAIN_LOADERS is a thunk that
- * dynamically imports the chain module on first call. Vite/Rollup/webpack
- * each emit a separate bundle chunk per dynamic import call, so users on
- * Plasma-only never download Solana code (~80 KB gzipped saved per Phase 0
- * F-BUNDLE-01 measurement).
+ * Chain registry. `chains/index.ts` is the batteries-included default: it
+ * eagerly, statically imports every supported chain module and composes them
+ * into the full registry via `createChainRegistry` (ADR-012). Consumers that
+ * don't care about bundle size import `CHAIN_LOADERS` / `ensureChainRegistered`
+ * / `isSupportedChainId` / `SupportedChainId` from here exactly as before.
  *
- * Step 4 ships six chains (5 EVM + Solana mainnet). Adding new chains in
- * Phase 1 v1.1+ is a single-file addition under src/chains/ plus an entry
- * in CHAIN_LOADERS below.
+ * Bundle-conscious consumers (B-12) build their own slim registry from
+ * `chains/registry.ts` + only the chain modules they ship, so the bundler
+ * tree-shakes the rest. See ADR-012.
  *
- * See: PRD 02 Addendum 1.3 (chain-loader pattern), 2.3 (F-WDK-04 cast),
- * M1 v2 Appendix A Test 02 (Solana register validated in Worker context).
+ * F-MV3-04: dynamic import() is forbidden on ServiceWorkerGlobalScope (W3C
+ * ServiceWorker issue #1356), so chain modules are eagerly static-imported and
+ * the loaders return Promise.resolve(<already-imported-module>) to preserve the
+ * async ChainLoader contract. Trade-off: the full default registry carries all
+ * chains in the initial SW bundle (~360 KB). B-12 / ADR-012 is the opt-in path
+ * to slim that per consumer without editing this engine file.
+ *
+ * Step 4 shipped six chains; B1-2 grew it to 50+. Adding a chain is a single
+ * file under src/chains/ plus an entry in FULL_CHAIN_MODULES below.
+ *
+ * See: ADR-012 (per-consumer registry), PRD 02 Addendum 1.3 (chain-loader
+ * pattern), M1 v2 Appendix A Test 02 (Solana register validated in Worker).
  */
 
-import type WDK from '@tetherto/wdk';
-import type { ChainId } from '../types/chains.js';
-import type { ChainModuleMeta } from './types.js';
-
-// Eager static imports - see CHAIN_LOADERS block below for the why.
-// F-MV3-04: dynamic import() is forbidden in MV3 SW (W3C SW issue #1356).
+// Eager static imports - F-MV3-04: dynamic import() is forbidden in MV3 SW.
 import * as _plasmaMainnetMod from './plasma-mainnet.js';
 import * as _sepoliaMod from './sepolia.js';
 import * as _plasmaTestnetMod from './plasma-testnet.js';
@@ -40,151 +45,101 @@ import * as _tonMainnetMod from './ton.js';
 import * as _tronMainnetMod from './tron.js';
 import { EVM_BULK_CHAINS } from './_evm-bulk-chains.js';
 
+import { createChainRegistry, type ChainModule } from './registry.js';
+
 export type { ChainModuleMeta } from './types.js';
+export type { ChainModule, ChainLoader, ChainRegistry } from './registry.js';
+export { createChainRegistry } from './registry.js';
 
 /**
- * A chain loader is a thunk that lazy-imports the chain module. The chain
- * module exports `default` (the wallet manager class), `config` (the runtime
- * config WDK consumes), and `meta` (display metadata).
+ * The full, batteries-included chain module set. `satisfies` keeps the precise
+ * key union (so `SupportedChainId` stays exact) while checking every value is a
+ * `ChainModule`. The bulk EVM chains come pre-built from EVM_BULK_CHAINS.
  */
-export type ChainLoader = () => Promise<{
-  readonly default: unknown;
-  readonly config: Record<string, unknown>;
-  readonly meta: ChainModuleMeta;
-}>;
-
-/**
- * Registry of lazy-loadable chain modules. Each entry is a thunk that returns
- * the chain module on first call.
- */
-// MV3 SW restriction (F-MV3-04): dynamic import() is disallowed on
-// ServiceWorkerGlobalScope per W3C/ServiceWorker issue #1356. The chain
-// modules above are now eagerly statically imported, and the "loaders"
-// return Promise.resolve(<already-imported-module>) to preserve the
-// async ChainLoader API contract.
-//
-// Trade-off: this defeats F-BUNDLE-01 lazy chunking - all chains are
-// in the initial SW bundle (~360 KB extra). Acceptable in v1.0 because
-// the SW chunk loads once per browser session. Phase 1 v1.1 can
-// reintroduce per-consumer registry overrides if bundle size becomes
-// an issue (e.g., Next.js template wants to keep F-BUNDLE-01 lazy).
-export const CHAIN_LOADERS = {
-  'plasma-mainnet': () => Promise.resolve(_plasmaMainnetMod),
-  'sepolia-testnet': () => Promise.resolve(_sepoliaMod),
-  'plasma-testnet': () => Promise.resolve(_plasmaTestnetMod),
-  ethereum: () => Promise.resolve(_ethereumMod),
-  'polygon-mainnet': () => Promise.resolve(_polygonMod),
-  'arbitrum-mainnet': () => Promise.resolve(_arbitrumMod),
-  'solana-mainnet': () => Promise.resolve(_solanaMod),
+const FULL_CHAIN_MODULES = {
+  'plasma-mainnet': _plasmaMainnetMod,
+  'sepolia-testnet': _sepoliaMod,
+  'plasma-testnet': _plasmaTestnetMod,
+  ethereum: _ethereumMod,
+  'polygon-mainnet': _polygonMod,
+  'arbitrum-mainnet': _arbitrumMod,
+  'solana-mainnet': _solanaMod,
   // B1-2: Solana extras (per-file; different wallet engine)
-  'solana-devnet': () => Promise.resolve(_solanaDevnetMod),
-  'solana-testnet': () => Promise.resolve(_solanaTestnetMod),
+  'solana-devnet': _solanaDevnetMod,
+  'solana-testnet': _solanaTestnetMod,
   // Bitcoin (different wallet engine; BIP-84 native segwit)
-  'bitcoin-mainnet': () => Promise.resolve(_bitcoinMainnetMod),
-  'bitcoin-testnet': () => Promise.resolve(_bitcoinTestnetMod),
+  'bitcoin-mainnet': _bitcoinMainnetMod,
+  'bitcoin-testnet': _bitcoinTestnetMod,
   // TON (v5r1)
-  'ton-mainnet': () => Promise.resolve(_tonMainnetMod),
+  'ton-mainnet': _tonMainnetMod,
   // Tron
-  'tron-mainnet': () => Promise.resolve(_tronMainnetMod),
-  // B1-2: bulk EVM chains - each loader returns the pre-built module from
-  // the EVM_BULK_CHAINS registry. F-MV3-04 compatible (no dynamic import()).
-  'optimism-mainnet': () => Promise.resolve(EVM_BULK_CHAINS['optimism-mainnet']!),
-  'base-mainnet': () => Promise.resolve(EVM_BULK_CHAINS['base-mainnet']!),
-  'bsc-mainnet': () => Promise.resolve(EVM_BULK_CHAINS['bsc-mainnet']!),
-  'avalanche-mainnet': () => Promise.resolve(EVM_BULK_CHAINS['avalanche-mainnet']!),
-  'gnosis-mainnet': () => Promise.resolve(EVM_BULK_CHAINS['gnosis-mainnet']!),
-  'celo-mainnet': () => Promise.resolve(EVM_BULK_CHAINS['celo-mainnet']!),
-  'moonbeam-mainnet': () => Promise.resolve(EVM_BULK_CHAINS['moonbeam-mainnet']!),
-  'moonriver-mainnet': () => Promise.resolve(EVM_BULK_CHAINS['moonriver-mainnet']!),
-  'cronos-mainnet': () => Promise.resolve(EVM_BULK_CHAINS['cronos-mainnet']!),
-  'linea-mainnet': () => Promise.resolve(EVM_BULK_CHAINS['linea-mainnet']!),
-  'scroll-mainnet': () => Promise.resolve(EVM_BULK_CHAINS['scroll-mainnet']!),
-  'zksync-mainnet': () => Promise.resolve(EVM_BULK_CHAINS['zksync-mainnet']!),
-  'polygon-zkevm-mainnet': () => Promise.resolve(EVM_BULK_CHAINS['polygon-zkevm-mainnet']!),
-  'mantle-mainnet': () => Promise.resolve(EVM_BULK_CHAINS['mantle-mainnet']!),
-  'blast-mainnet': () => Promise.resolve(EVM_BULK_CHAINS['blast-mainnet']!),
-  'mode-mainnet': () => Promise.resolve(EVM_BULK_CHAINS['mode-mainnet']!),
-  'metis-mainnet': () => Promise.resolve(EVM_BULK_CHAINS['metis-mainnet']!),
-  'worldchain-mainnet': () => Promise.resolve(EVM_BULK_CHAINS['worldchain-mainnet']!),
-  'sonic-mainnet': () => Promise.resolve(EVM_BULK_CHAINS['sonic-mainnet']!),
-  'boba-mainnet': () => Promise.resolve(EVM_BULK_CHAINS['boba-mainnet']!),
-  'zora-mainnet': () => Promise.resolve(EVM_BULK_CHAINS['zora-mainnet']!),
-  'manta-pacific-mainnet': () => Promise.resolve(EVM_BULK_CHAINS['manta-pacific-mainnet']!),
-  'taiko-mainnet': () => Promise.resolve(EVM_BULK_CHAINS['taiko-mainnet']!),
-  'berachain-mainnet': () => Promise.resolve(EVM_BULK_CHAINS['berachain-mainnet']!),
-  'abstract-mainnet': () => Promise.resolve(EVM_BULK_CHAINS['abstract-mainnet']!),
-  'ink-mainnet': () => Promise.resolve(EVM_BULK_CHAINS['ink-mainnet']!),
-  'unichain-mainnet': () => Promise.resolve(EVM_BULK_CHAINS['unichain-mainnet']!),
-  'soneium-mainnet': () => Promise.resolve(EVM_BULK_CHAINS['soneium-mainnet']!),
-  'holesky-testnet': () => Promise.resolve(EVM_BULK_CHAINS['holesky-testnet']!),
-  'hoodi-testnet': () => Promise.resolve(EVM_BULK_CHAINS['hoodi-testnet']!),
-  'optimism-sepolia-testnet': () => Promise.resolve(EVM_BULK_CHAINS['optimism-sepolia-testnet']!),
-  'base-sepolia-testnet': () => Promise.resolve(EVM_BULK_CHAINS['base-sepolia-testnet']!),
-  'arbitrum-sepolia-testnet': () => Promise.resolve(EVM_BULK_CHAINS['arbitrum-sepolia-testnet']!),
-  'polygon-amoy-testnet': () => Promise.resolve(EVM_BULK_CHAINS['polygon-amoy-testnet']!),
-  'avalanche-fuji-testnet': () => Promise.resolve(EVM_BULK_CHAINS['avalanche-fuji-testnet']!),
-  'bsc-testnet': () => Promise.resolve(EVM_BULK_CHAINS['bsc-testnet']!),
-  'linea-sepolia-testnet': () => Promise.resolve(EVM_BULK_CHAINS['linea-sepolia-testnet']!),
-  'scroll-sepolia-testnet': () => Promise.resolve(EVM_BULK_CHAINS['scroll-sepolia-testnet']!),
-  'zksync-sepolia-testnet': () => Promise.resolve(EVM_BULK_CHAINS['zksync-sepolia-testnet']!),
-  'mantle-sepolia-testnet': () => Promise.resolve(EVM_BULK_CHAINS['mantle-sepolia-testnet']!),
-  'blast-sepolia-testnet': () => Promise.resolve(EVM_BULK_CHAINS['blast-sepolia-testnet']!),
-  'moonbase-alpha-testnet': () => Promise.resolve(EVM_BULK_CHAINS['moonbase-alpha-testnet']!),
-} as const satisfies Partial<Record<ChainId, ChainLoader>>;
+  'tron-mainnet': _tronMainnetMod,
+  // B1-2: bulk EVM chains - pre-built modules from the EVM_BULK_CHAINS registry.
+  'optimism-mainnet': EVM_BULK_CHAINS['optimism-mainnet']!,
+  'base-mainnet': EVM_BULK_CHAINS['base-mainnet']!,
+  'bsc-mainnet': EVM_BULK_CHAINS['bsc-mainnet']!,
+  'avalanche-mainnet': EVM_BULK_CHAINS['avalanche-mainnet']!,
+  'gnosis-mainnet': EVM_BULK_CHAINS['gnosis-mainnet']!,
+  'celo-mainnet': EVM_BULK_CHAINS['celo-mainnet']!,
+  'moonbeam-mainnet': EVM_BULK_CHAINS['moonbeam-mainnet']!,
+  'moonriver-mainnet': EVM_BULK_CHAINS['moonriver-mainnet']!,
+  'cronos-mainnet': EVM_BULK_CHAINS['cronos-mainnet']!,
+  'linea-mainnet': EVM_BULK_CHAINS['linea-mainnet']!,
+  'scroll-mainnet': EVM_BULK_CHAINS['scroll-mainnet']!,
+  'zksync-mainnet': EVM_BULK_CHAINS['zksync-mainnet']!,
+  'polygon-zkevm-mainnet': EVM_BULK_CHAINS['polygon-zkevm-mainnet']!,
+  'mantle-mainnet': EVM_BULK_CHAINS['mantle-mainnet']!,
+  'blast-mainnet': EVM_BULK_CHAINS['blast-mainnet']!,
+  'mode-mainnet': EVM_BULK_CHAINS['mode-mainnet']!,
+  'metis-mainnet': EVM_BULK_CHAINS['metis-mainnet']!,
+  'worldchain-mainnet': EVM_BULK_CHAINS['worldchain-mainnet']!,
+  'sonic-mainnet': EVM_BULK_CHAINS['sonic-mainnet']!,
+  'boba-mainnet': EVM_BULK_CHAINS['boba-mainnet']!,
+  'zora-mainnet': EVM_BULK_CHAINS['zora-mainnet']!,
+  'manta-pacific-mainnet': EVM_BULK_CHAINS['manta-pacific-mainnet']!,
+  'taiko-mainnet': EVM_BULK_CHAINS['taiko-mainnet']!,
+  'berachain-mainnet': EVM_BULK_CHAINS['berachain-mainnet']!,
+  'abstract-mainnet': EVM_BULK_CHAINS['abstract-mainnet']!,
+  'ink-mainnet': EVM_BULK_CHAINS['ink-mainnet']!,
+  'unichain-mainnet': EVM_BULK_CHAINS['unichain-mainnet']!,
+  'soneium-mainnet': EVM_BULK_CHAINS['soneium-mainnet']!,
+  'holesky-testnet': EVM_BULK_CHAINS['holesky-testnet']!,
+  'hoodi-testnet': EVM_BULK_CHAINS['hoodi-testnet']!,
+  'optimism-sepolia-testnet': EVM_BULK_CHAINS['optimism-sepolia-testnet']!,
+  'base-sepolia-testnet': EVM_BULK_CHAINS['base-sepolia-testnet']!,
+  'arbitrum-sepolia-testnet': EVM_BULK_CHAINS['arbitrum-sepolia-testnet']!,
+  'polygon-amoy-testnet': EVM_BULK_CHAINS['polygon-amoy-testnet']!,
+  'avalanche-fuji-testnet': EVM_BULK_CHAINS['avalanche-fuji-testnet']!,
+  'bsc-testnet': EVM_BULK_CHAINS['bsc-testnet']!,
+  'linea-sepolia-testnet': EVM_BULK_CHAINS['linea-sepolia-testnet']!,
+  'scroll-sepolia-testnet': EVM_BULK_CHAINS['scroll-sepolia-testnet']!,
+  'zksync-sepolia-testnet': EVM_BULK_CHAINS['zksync-sepolia-testnet']!,
+  'mantle-sepolia-testnet': EVM_BULK_CHAINS['mantle-sepolia-testnet']!,
+  'blast-sepolia-testnet': EVM_BULK_CHAINS['blast-sepolia-testnet']!,
+  'moonbase-alpha-testnet': EVM_BULK_CHAINS['moonbase-alpha-testnet']!,
+} satisfies Record<string, ChainModule>;
+
+/** The default, full registry — every supported chain (ADR-012). */
+const fullRegistry = createChainRegistry(FULL_CHAIN_MODULES);
 
 /**
- * The subset of ChainId values that have a registered loader in Phase 1 v1.0.
- * Use this as the parameter type for functions that need to load a chain;
- * solana-devnet is in the SolanaChainId union but is not (yet) in this set.
+ * Registry of chain loaders for every supported chain. Each value is a thunk
+ * that resolves the chain module.
  */
-export type SupportedChainId = keyof typeof CHAIN_LOADERS;
+export const CHAIN_LOADERS = fullRegistry.CHAIN_LOADERS;
+
+/**
+ * The subset of ChainId values that have a registered loader. Use this as the
+ * parameter type for functions that need to load a chain.
+ */
+export type SupportedChainId = keyof typeof FULL_CHAIN_MODULES;
 
 /** Type guard: returns true if `chainId` has a registered loader. */
-export function isSupportedChainId(chainId: string): chainId is SupportedChainId {
-  return chainId in CHAIN_LOADERS;
-}
+export const isSupportedChainId = fullRegistry.isSupportedChainId;
 
 /**
- * Per-WDK registration tracker. WDK does not expose a public hasWallet
- * method we can rely on, so we track registrations externally with a
- * WeakMap so the wdk instance can be GC'd when the consumer drops it.
+ * Ensures the given chain is registered with the WDK orchestrator. Idempotent
+ * per (wdk, chainId); resolves the chain module on first call and calls
+ * wdk.registerWallet with its default export + config. See ADR-008, F-WDK-04.
  */
-const registeredChains = new WeakMap<WDK, Set<SupportedChainId>>();
-
-/**
- * Ensures the given chain is registered with the WDK orchestrator.
- *
- * Idempotent. Returns immediately if `ensureChainRegistered(wdk, chainId)`
- * has already been called for this (wdk, chainId) pair. On first call,
- * lazy-loads the chain module (separate bundle chunk per chain per
- * F-BUNDLE-01) and calls wdk.registerWallet with the module default
- * export (the wallet manager class) and config.
- *
- * F-WDK-04 cast (`as never` on mod.default) is the documented mitigation for
- * pnpm not deduping @tetherto/wdk-wallet across the three wallet manager
- * packages, which makes TypeScript treat the private _seed fields of
- * WalletManagerEvm and WalletManagerSolana as nominally distinct types and
- * reject what is at runtime a valid registration. The cast is safe. The
- * WalletManager subclasses share their runtime shape because they share
- * the same @tetherto/wdk-wallet source code. Upstream fix proposed in
- * M1 v2 Appendix B item B.2: Tether moves @tetherto/wdk-wallet to
- * peerDependencies in the three wallet manager packages.
- *
- * See: ADR-008, PRD 02 Addendum 2.3, F-WDK-04.
- */
-export async function ensureChainRegistered(
-  wdk: WDK,
-  chainId: SupportedChainId,
-): Promise<void> {
-  let chains = registeredChains.get(wdk);
-  if (!chains) {
-    chains = new Set<SupportedChainId>();
-    registeredChains.set(wdk, chains);
-  }
-  if (chains.has(chainId)) return;
-
-  const mod = await CHAIN_LOADERS[chainId]();
-  // F-WDK-04 cast - see function-level JSDoc above.
-  wdk.registerWallet(chainId, mod.default as never, mod.config as never);
-  chains.add(chainId);
-}
+export const ensureChainRegistered = fullRegistry.ensureChainRegistered;
