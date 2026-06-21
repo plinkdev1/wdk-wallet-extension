@@ -17,6 +17,7 @@
     "build": "pnpm -F @wdk-starter/wdk-web-core build && pnpm -F @wdk-starter/wdk-ui build && pnpm -F @wdk-starter/extension build",
     "build:packages": "pnpm -F @wdk-starter/wdk-web-core build && pnpm -F @wdk-starter/wdk-ui build",
     "build:extension": "pnpm -F @wdk-starter/extension build",
+    "pack:store": "pnpm build && node scripts/pack-store.mjs",
     "dev": "pnpm -F @wdk-starter/extension dev",
     "typecheck": "pnpm -r --filter=\"./packages/**\" --filter=\"./apps/**\" typecheck",
     "test": "pnpm -r --filter=\"./packages/**\" --filter=\"./apps/**\" test",

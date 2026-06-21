@@ -19,3 +19,7 @@ out/
 *.log
 .DS_Store
 coverage/
+
+# Chrome Web Store package artifacts
+dist-store/
+*.zip
