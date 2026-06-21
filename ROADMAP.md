@@ -93,7 +93,7 @@ The current build is a production-grade MV3 wallet, not a prototype:
 - **Activity** — persistent history, per-chain filtering, **real-time status**
   (EVM receipts + Solana signature statuses), explorer links.
 - **dApp connectivity** — EIP-1193 + EIP-6963, per-origin approvals.
-- **Quality** — 841 automated tests, strict TypeScript, CI, loadable `dist/`.
+- **Quality** — 870 automated tests, strict TypeScript, CI, loadable `dist/`.
 
 ---
 
