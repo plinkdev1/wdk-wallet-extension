@@ -23,6 +23,7 @@
  */
 
 import { createPublicClient, http, type Address, type PublicClient } from 'viem';
+import { withRetry } from './retry.js';
 import { CHAIN_LOADERS, isSupportedChainId } from '../chains/index.js';
 import type { ChainId } from '../types/index.js';
 
@@ -87,10 +88,11 @@ export function createHttpRpcAdapter(): RpcAdapter {
       const { family, rpcUrl } = await resolveChainConfig(chain);
       if (family === 'evm') {
         const client = getEvmClient(chain, rpcUrl);
-        return client.getBalance({ address: address as Address });
+        // Idempotent read — retry transient RPC failures (B-6).
+        return withRetry(() => client.getBalance({ address: address as Address }));
       }
       if (family === 'solana') {
-        return getSolanaNativeBalance(rpcUrl, address);
+        return withRetry(() => getSolanaNativeBalance(rpcUrl, address));
       }
       throw new Error('Unknown chain family: ' + family);
     },
@@ -99,12 +101,12 @@ export function createHttpRpcAdapter(): RpcAdapter {
       const { family, rpcUrl } = await resolveChainConfig(chain);
       if (family === 'evm') {
         const client = getEvmClient(chain, rpcUrl);
-        const balance = await client.readContract({
+        const balance = await withRetry(() => client.readContract({
           address: tokenAddress as Address,
           abi: ERC20_BALANCE_OF_ABI,
           functionName: 'balanceOf',
           args: [address as Address],
-        });
+        }));
         return balance;
       }
       if (family === 'solana') {
