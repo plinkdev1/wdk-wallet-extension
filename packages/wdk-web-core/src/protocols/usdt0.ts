@@ -29,13 +29,13 @@ export interface Usdt0BridgeResult {
 }
 
 interface Usdt0Like {
-  bridge(o: Usdt0BridgeOptions): Promise<Record<string, unknown>>;
+  bridge(o: Usdt0BridgeOptions, config?: Record<string, unknown>): Promise<Record<string, unknown>>;
   quoteBridge(o: Usdt0BridgeOptions): Promise<Record<string, unknown>>;
 }
 
 /** Account shape we rely on for the pre-bridge approve. */
 export interface ApprovableEvmAccount {
-  approve(o: { token: string; spender: string; amount: bigint }): Promise<{ hash?: string } | string | void>;
+  approve(o: { token: string; spender: string; amount: bigint }, config?: Record<string, unknown>): Promise<{ hash?: string } | string | void>;
 }
 
 /** Constructs the USDT0 bridge bound to a WDK EVM account (key stays in the worklet). */

@@ -16,6 +16,7 @@ import type { EvmChainId } from '@wdk-starter/wdk-web-core/types';
 import type { WalletMessage } from '../../types/messages.js';
 import { send } from '../lib/sw-client.js';
 import { addTransaction } from '../hooks/use-transactions.js';
+import { useGasless } from '../hooks/use-gasless.js';
 
 export interface LendingViewProps {
   readonly chain: EvmChainId;
@@ -106,6 +107,7 @@ export function LendingView({ chain, chainName, accountIndex, onBack }: LendingV
   const [phase, setPhase] = useState<Phase>({ status: 'form' });
   const [snapshot, setSnapshot] = useState<AccountSnapshot | null>(null);
   const [snapErr, setSnapErr] = useState<string | null>(null);
+  const { available: gaslessAvailable, gasless, setGasless } = useGasless();
   const activeSymbol = tokens?.[tokenIdx]?.symbol ?? '';
 
   const refreshSnapshot = useCallback(async () => {
@@ -136,16 +138,16 @@ export function LendingView({ chain, chainName, accountIndex, onBack }: LendingV
 
     setPhase({ status: 'sending' });
     try {
-      const result = await send({ type: ACTION_MSG[action], chain, accountIndex, token: token.address, amount: amountBase.toString() } as Extract<WalletMessage, { type: 'AAVE_SUPPLY' }>);
+      const result = await send({ type: ACTION_MSG[action], chain, accountIndex, token: token.address, amount: amountBase.toString(), gasless } as Extract<WalletMessage, { type: 'AAVE_SUPPLY' }>);
       const hash = result.hash;
-      addTransaction({ hash, chain, to: token.address, value: amountBase.toString(), symbol: `${action} ${token.symbol}`, decimals: token.decimals, ts: Date.now() });
+      addTransaction({ hash, chain, to: token.address, value: amountBase.toString(), symbol: `${action} ${token.symbol}${gasless ? ' ⚡' : ''}`, decimals: token.decimals, ts: Date.now() });
       setPhase({ status: 'sent', hash });
       void refreshSnapshot();
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Transaction failed.');
       setPhase({ status: 'form' });
     }
-  }, [tokens, tokenIdx, amount, action, chain, accountIndex, refreshSnapshot]);
+  }, [tokens, tokenIdx, amount, action, chain, accountIndex, gasless, refreshSnapshot]);
 
   return (
     <div style={{ padding: 20, display: 'flex', flexDirection: 'column', gap: 16, flex: 1, fontFamily: 'var(--font-body)', color: 'var(--text-primary)' }}>
@@ -210,6 +212,13 @@ export function LendingView({ chain, chainName, accountIndex, onBack }: LendingV
                   <Label>Amount ({activeSymbol})</Label>
                   <Input value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="0.0" inputMode="decimal" />
                 </label>
+
+                {gaslessAvailable && (
+                  <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12 }}>
+                    <input type="checkbox" checked={gasless} onChange={(e) => setGasless(e.target.checked)} />
+                    ⚡ Gasless (via smart account — pay no ETH)
+                  </label>
+                )}
 
                 {error && <div role="alert" style={{ fontSize: 12, color: 'var(--color-error, #EF4444)' }}>{error}</div>}
 

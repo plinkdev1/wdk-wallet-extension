@@ -16,6 +16,7 @@ import { Button, Card, Input, Label } from '@wdk-starter/wdk-ui';
 import type { EvmChainId } from '@wdk-starter/wdk-web-core/types';
 import { send } from '../lib/sw-client.js';
 import { addTransaction } from '../hooks/use-transactions.js';
+import { useGasless } from '../hooks/use-gasless.js';
 
 export interface BridgeViewProps {
   readonly chain: EvmChainId;
@@ -87,6 +88,7 @@ export function BridgeView({ chain, chainName, accountIndex, ownAddress, onBack 
   const [recipient, setRecipient] = useState(ownAddress);
   const [error, setError] = useState<string | null>(null);
   const [phase, setPhase] = useState<Phase>({ status: 'form' });
+  const { available: gaslessAvailable, gasless, setGasless } = useGasless();
 
   const validate = useCallback((): { amountBase: bigint; to: string } | null => {
     setError(null);
@@ -121,14 +123,14 @@ export function BridgeView({ chain, chainName, accountIndex, ownAddress, onBack 
     if (!v || !route) return;
     setPhase({ status: 'bridging' });
     try {
-      const r = await send({ type: 'USDT0_BRIDGE', chain, accountIndex, targetChain: route.targetChain, recipient: v.to, token: route.usdt, amount: v.amountBase.toString(), oftContractAddress: route.oft });
-      addTransaction({ hash: r.hash, chain, to: v.to, value: v.amountBase.toString(), symbol: `bridge USDT→${route.targetName}`, decimals: USDT_DECIMALS, ts: Date.now() });
+      const r = await send({ type: 'USDT0_BRIDGE', chain, accountIndex, targetChain: route.targetChain, recipient: v.to, token: route.usdt, amount: v.amountBase.toString(), oftContractAddress: route.oft, gasless });
+      addTransaction({ hash: r.hash, chain, to: v.to, value: v.amountBase.toString(), symbol: `bridge USDT→${route.targetName}${gasless ? ' ⚡' : ''}`, decimals: USDT_DECIMALS, ts: Date.now() });
       setPhase({ status: 'done', hash: r.hash });
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Bridge failed.');
       setPhase({ status: 'form' });
     }
-  }, [validate, route, chain, accountIndex]);
+  }, [validate, route, chain, accountIndex, gasless]);
 
   return (
     <div style={{ padding: 20, display: 'flex', flexDirection: 'column', gap: 16, flex: 1, fontFamily: 'var(--font-body)', color: 'var(--text-primary)' }}>
@@ -163,6 +165,13 @@ export function BridgeView({ chain, chainName, accountIndex, ownAddress, onBack 
               <Label>Recipient (on {route.targetName})</Label>
               <Input value={recipient} onChange={(e) => { setRecipient(e.target.value); setPhase({ status: 'form' }); }} placeholder="0x…" />
             </label>
+
+            {gaslessAvailable && (
+              <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12 }}>
+                <input type="checkbox" checked={gasless} onChange={(e) => { setGasless(e.target.checked); setPhase({ status: 'form' }); }} />
+                ⚡ Gasless (via smart account — pay no ETH)
+              </label>
+            )}
 
             {error && <div role="alert" style={{ fontSize: 12, color: 'var(--color-error, #EF4444)' }}>{error}</div>}
 

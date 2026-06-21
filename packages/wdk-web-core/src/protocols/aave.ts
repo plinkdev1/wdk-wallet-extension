@@ -33,11 +33,12 @@ export interface AaveActionResult {
 
 export type AaveAction = 'supply' | 'withdraw' | 'borrow' | 'repay';
 
+type Cfg = Record<string, unknown> | undefined;
 interface AaveLike {
-  supply(o: { token: string; amount: bigint }): Promise<unknown>;
-  withdraw(o: { token: string; amount: bigint }): Promise<unknown>;
-  borrow(o: { token: string; amount: bigint }): Promise<unknown>;
-  repay(o: { token: string; amount: bigint }): Promise<unknown>;
+  supply(o: { token: string; amount: bigint }, config?: Cfg): Promise<unknown>;
+  withdraw(o: { token: string; amount: bigint }, config?: Cfg): Promise<unknown>;
+  borrow(o: { token: string; amount: bigint }, config?: Cfg): Promise<unknown>;
+  repay(o: { token: string; amount: bigint }, config?: Cfg): Promise<unknown>;
   quoteSupply(o: { token: string; amount: bigint }): Promise<{ fee: bigint }>;
   quoteWithdraw(o: { token: string; amount: bigint }): Promise<{ fee: bigint }>;
   quoteBorrow(o: { token: string; amount: bigint }): Promise<{ fee: bigint }>;

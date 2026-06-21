@@ -12,6 +12,7 @@ import { Button, Card, Input, Label } from '@wdk-starter/wdk-ui';
 import type { EvmChainId } from '@wdk-starter/wdk-web-core/types';
 import { send } from '../lib/sw-client.js';
 import { addTransaction } from '../hooks/use-transactions.js';
+import { useGasless } from '../hooks/use-gasless.js';
 
 export interface SwapViewProps {
   readonly chain: EvmChainId;
@@ -81,6 +82,7 @@ export function SwapView({ chain, chainName, accountIndex, onBack }: SwapViewPro
   const [amount, setAmount] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [phase, setPhase] = useState<Phase>({ status: 'form' });
+  const { available: gaslessAvailable, gasless, setGasless } = useGasless();
 
   const tokenIn = tokens?.[inIdx];
   const tokenOut = tokens?.[outIdx];
@@ -120,14 +122,14 @@ export function SwapView({ chain, chainName, accountIndex, onBack }: SwapViewPro
     }
     setPhase({ status: 'swapping' });
     try {
-      const r = await send({ type: 'VELORA_SWAP', chain, accountIndex, tokenIn: tokenIn.address, tokenOut: tokenOut.address, tokenInAmount: amountBase.toString() });
-      addTransaction({ hash: r.hash, chain, to: tokenOut.address, value: amountBase.toString(), symbol: `swap ${tokenIn.symbol}→${tokenOut.symbol}`, decimals: tokenIn.decimals, ts: Date.now() });
+      const r = await send({ type: 'VELORA_SWAP', chain, accountIndex, tokenIn: tokenIn.address, tokenOut: tokenOut.address, tokenInAmount: amountBase.toString(), gasless });
+      addTransaction({ hash: r.hash, chain, to: tokenOut.address, value: amountBase.toString(), symbol: `swap ${tokenIn.symbol}→${tokenOut.symbol}${gasless ? ' ⚡' : ''}`, decimals: tokenIn.decimals, ts: Date.now() });
       setPhase({ status: 'done', hash: r.hash });
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Swap failed.');
       setPhase({ status: 'form' });
     }
-  }, [tokenIn, tokenOut, amount, chain, accountIndex]);
+  }, [tokenIn, tokenOut, amount, chain, accountIndex, gasless]);
 
   return (
     <div style={{ padding: 20, display: 'flex', flexDirection: 'column', gap: 16, flex: 1, fontFamily: 'var(--font-body)', color: 'var(--text-primary)' }}>
@@ -167,6 +169,13 @@ export function SwapView({ chain, chainName, accountIndex, onBack }: SwapViewPro
               <Label>Amount ({tokenIn?.symbol ?? ''})</Label>
               <Input value={amount} onChange={(e) => { setAmount(e.target.value); resetQuote(); }} placeholder="0.0" inputMode="decimal" />
             </label>
+
+            {gaslessAvailable && (
+              <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12 }}>
+                <input type="checkbox" checked={gasless} onChange={(e) => { setGasless(e.target.checked); resetQuote(); }} />
+                ⚡ Gasless (via smart account — pay no ETH)
+              </label>
+            )}
 
             {error && <div role="alert" style={{ fontSize: 12, color: 'var(--color-error, #EF4444)' }}>{error}</div>}
 

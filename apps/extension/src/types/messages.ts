@@ -73,16 +73,16 @@ export type WalletMessage =
   // Aave V3 lending (amounts are base-unit decimal strings; L-WIRE-03)
   | { type: 'AAVE_GET_ACCOUNT_DATA'; chain: EvmChainId; accountIndex: number }
   | { type: 'AAVE_QUOTE'; chain: EvmChainId; accountIndex: number; action: 'supply' | 'withdraw' | 'borrow' | 'repay'; token: string; amount: string }
-  | { type: 'AAVE_SUPPLY'; chain: EvmChainId; accountIndex: number; token: string; amount: string }
-  | { type: 'AAVE_WITHDRAW'; chain: EvmChainId; accountIndex: number; token: string; amount: string }
-  | { type: 'AAVE_BORROW'; chain: EvmChainId; accountIndex: number; token: string; amount: string }
-  | { type: 'AAVE_REPAY'; chain: EvmChainId; accountIndex: number; token: string; amount: string }
+  | { type: 'AAVE_SUPPLY'; chain: EvmChainId; accountIndex: number; token: string; amount: string; gasless?: boolean }
+  | { type: 'AAVE_WITHDRAW'; chain: EvmChainId; accountIndex: number; token: string; amount: string; gasless?: boolean }
+  | { type: 'AAVE_BORROW'; chain: EvmChainId; accountIndex: number; token: string; amount: string; gasless?: boolean }
+  | { type: 'AAVE_REPAY'; chain: EvmChainId; accountIndex: number; token: string; amount: string; gasless?: boolean }
   // Velora (ParaSwap) DEX swaps (amounts are base-unit decimal strings; L-WIRE-03)
   | { type: 'VELORA_QUOTE_SWAP'; chain: EvmChainId; accountIndex: number; tokenIn: string; tokenOut: string; tokenInAmount: string }
-  | { type: 'VELORA_SWAP'; chain: EvmChainId; accountIndex: number; tokenIn: string; tokenOut: string; tokenInAmount?: string; tokenOutAmount?: string }
+  | { type: 'VELORA_SWAP'; chain: EvmChainId; accountIndex: number; tokenIn: string; tokenOut: string; tokenInAmount?: string; tokenOutAmount?: string; gasless?: boolean }
   // USDT0 cross-chain bridge (amount is a base-unit decimal string; L-WIRE-03)
   | { type: 'USDT0_QUOTE_BRIDGE'; chain: EvmChainId; accountIndex: number; targetChain: string; recipient: string; token: string; amount: string; oftContractAddress: string }
-  | { type: 'USDT0_BRIDGE'; chain: EvmChainId; accountIndex: number; targetChain: string; recipient: string; token: string; amount: string; oftContractAddress: string }
+  | { type: 'USDT0_BRIDGE'; chain: EvmChainId; accountIndex: number; targetChain: string; recipient: string; token: string; amount: string; oftContractAddress: string; gasless?: boolean }
   // MoonPay fiat on-ramp (fiatAmount is a JS number — whole/decimal fiat units)
   | { type: 'MOONPAY_IS_CONFIGURED' }
   | { type: 'MOONPAY_QUOTE_BUY'; fiatCurrency: string; cryptoAsset: string; fiatAmount: number }

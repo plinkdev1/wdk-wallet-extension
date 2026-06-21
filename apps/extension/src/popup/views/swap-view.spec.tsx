@@ -35,6 +35,7 @@ describe('SwapView', () => {
     fireEvent.change(screen.getByPlaceholderText('0.0'), { target: { value: '5' } });
     fireEvent.click(screen.getByRole('button', { name: /get quote/i }));
     expect(screen.getByRole('alert')).toHaveTextContent(/different tokens/i);
-    expect(sendMock).not.toHaveBeenCalled();
+    // (useGasless probes ERC4337_IS_CONFIGURED on mount; the quote itself must not fire.)
+    expect(sendMock).not.toHaveBeenCalledWith(expect.objectContaining({ type: 'VELORA_QUOTE_SWAP' }));
   });
 });

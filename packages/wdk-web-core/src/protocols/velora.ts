@@ -35,7 +35,7 @@ export interface VeloraSwapOptions {
 }
 
 interface ParaSwapLike {
-  swap(o: VeloraSwapOptions): Promise<Record<string, unknown>>;
+  swap(o: VeloraSwapOptions, config?: Record<string, unknown>): Promise<Record<string, unknown>>;
   quoteSwap(o: VeloraSwapOptions): Promise<Record<string, unknown>>;
 }
 

@@ -219,10 +219,10 @@ export function createSwHandlers({ engine, worker, approvalFlow, connectionState
       const fee = await worker.aave_quote(msg.chain, msg.accountIndex, msg.action, msg.token, BigInt(msg.amount));
       return fee.toString();
     },
-    AAVE_SUPPLY: async (msg) => toAaveDto(await worker.aave_supply(msg.chain, msg.accountIndex, msg.token, BigInt(msg.amount))),
-    AAVE_WITHDRAW: async (msg) => toAaveDto(await worker.aave_withdraw(msg.chain, msg.accountIndex, msg.token, BigInt(msg.amount))),
-    AAVE_BORROW: async (msg) => toAaveDto(await worker.aave_borrow(msg.chain, msg.accountIndex, msg.token, BigInt(msg.amount))),
-    AAVE_REPAY: async (msg) => toAaveDto(await worker.aave_repay(msg.chain, msg.accountIndex, msg.token, BigInt(msg.amount))),
+    AAVE_SUPPLY: async (msg) => toAaveDto(await worker.aave_supply(msg.chain, msg.accountIndex, msg.token, BigInt(msg.amount), msg.gasless ?? false)),
+    AAVE_WITHDRAW: async (msg) => toAaveDto(await worker.aave_withdraw(msg.chain, msg.accountIndex, msg.token, BigInt(msg.amount), msg.gasless ?? false)),
+    AAVE_BORROW: async (msg) => toAaveDto(await worker.aave_borrow(msg.chain, msg.accountIndex, msg.token, BigInt(msg.amount), msg.gasless ?? false)),
+    AAVE_REPAY: async (msg) => toAaveDto(await worker.aave_repay(msg.chain, msg.accountIndex, msg.token, BigInt(msg.amount), msg.gasless ?? false)),
 
     VELORA_QUOTE_SWAP: async (msg) => {
       const q = await worker.velora_quoteSwap(msg.chain, msg.accountIndex, msg.tokenIn, msg.tokenOut, BigInt(msg.tokenInAmount));
@@ -233,6 +233,7 @@ export function createSwHandlers({ engine, worker, approvalFlow, connectionState
         msg.chain, msg.accountIndex, msg.tokenIn, msg.tokenOut,
         msg.tokenInAmount !== undefined ? BigInt(msg.tokenInAmount) : undefined,
         msg.tokenOutAmount !== undefined ? BigInt(msg.tokenOutAmount) : undefined,
+        msg.gasless ?? false,
       );
       return { hash: r.hash, fee: r.fee.toString(), tokenInAmount: r.tokenInAmount.toString(), tokenOutAmount: r.tokenOutAmount.toString(), ...(r.approveHash ? { approveHash: r.approveHash } : {}) };
     },
@@ -242,7 +243,7 @@ export function createSwHandlers({ engine, worker, approvalFlow, connectionState
       return { fee: q.fee.toString() };
     },
     USDT0_BRIDGE: async (msg) => {
-      const r = await worker.usdt0_bridge(msg.chain, msg.accountIndex, msg.targetChain, msg.recipient, msg.token, BigInt(msg.amount), msg.oftContractAddress);
+      const r = await worker.usdt0_bridge(msg.chain, msg.accountIndex, msg.targetChain, msg.recipient, msg.token, BigInt(msg.amount), msg.oftContractAddress, msg.gasless ?? false);
       return { hash: r.hash, fee: r.fee.toString(), ...(r.approveHash ? { approveHash: r.approveHash } : {}) };
     },
 

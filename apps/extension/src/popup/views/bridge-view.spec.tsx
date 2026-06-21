@@ -37,6 +37,7 @@ describe('BridgeView', () => {
     fireEvent.change(screen.getByPlaceholderText('0.0'), { target: { value: '10' } });
     fireEvent.click(screen.getByRole('button', { name: /get quote/i }));
     expect(screen.getByRole('alert')).toHaveTextContent(/valid recipient/i);
-    expect(sendMock).not.toHaveBeenCalled();
+    // (useGasless probes ERC4337_IS_CONFIGURED on mount; the quote itself must not fire.)
+    expect(sendMock).not.toHaveBeenCalledWith(expect.objectContaining({ type: 'USDT0_QUOTE_BRIDGE' }));
   });
 });

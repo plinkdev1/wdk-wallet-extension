@@ -573,14 +573,33 @@ export class WalletWorker implements Pick<WalletWorkerApi, 'vault_hasStored' | '
    * The account holds the key and never leaves the worklet. Uses a plain
    * WalletAccountEvm over the configured RPC — no bundler/paymaster required.
    */
-  private async _aave(chain: EvmChainId, index: number) {
+  /**
+   * Resolves the EVM account a protocol runs on. With `gasless`, returns the
+   * ERC-4337 smart account (UserOperations via the bundler); otherwise the plain
+   * WDK account. Both hold the key inside the worklet.
+   */
+  private async _evmAccount(chain: EvmChainId, index: number, gasless: boolean): Promise<unknown> {
     if (!isSupportedChainId(chain)) {
       throw new Error('Unsupported chain (no loader registered): ' + chain);
     }
+    if (gasless) return this._smartAccount(chain, index);
     const wdk = this._requireWdk();
     await ensureChainRegistered(wdk, chain);
-    const account = await wdk.getAccount(chain, index);
-    return createAaveProtocol(account);
+    return wdk.getAccount(chain, index);
+  }
+
+  /**
+   * Gas-payment config for a gasless protocol action: pay in USDt via the
+   * paymaster when one is configured, otherwise the smart account pays its own
+   * native gas. Returns undefined for the non-gasless (plain account) path.
+   */
+  private _gasCfg(gasless: boolean): Record<string, unknown> | undefined {
+    if (!gasless) return undefined;
+    return gasConfig(this.erc4337Config?.paymasterUrl ? 'USDT' : undefined);
+  }
+
+  private async _aave(chain: EvmChainId, index: number, gasless = false) {
+    return createAaveProtocol(await this._evmAccount(chain, index, gasless));
   }
 
   /** Aave V3 user snapshot (collateral, debt, borrow capacity, health factor). */
@@ -597,39 +616,33 @@ export class WalletWorker implements Pick<WalletWorkerApi, 'vault_hasStored' | '
     return typeof fee === 'bigint' ? fee : BigInt(fee ?? 0);
   }
 
-  /** Supplies `amount` of `token` to the Aave V3 pool. */
-  async aave_supply(chain: EvmChainId, index: number, token: string, amount: bigint): Promise<AaveActionResult> {
-    const aave = await this._aave(chain, index);
-    return normalizeActionResult(await aave.supply({ token, amount }));
+  /** Supplies `amount` of `token` to the Aave V3 pool (optionally gasless). */
+  async aave_supply(chain: EvmChainId, index: number, token: string, amount: bigint, gasless = false): Promise<AaveActionResult> {
+    const aave = await this._aave(chain, index, gasless);
+    return normalizeActionResult(await aave.supply({ token, amount }, this._gasCfg(gasless)));
   }
 
-  /** Withdraws `amount` of `token` from the Aave V3 pool. */
-  async aave_withdraw(chain: EvmChainId, index: number, token: string, amount: bigint): Promise<AaveActionResult> {
-    const aave = await this._aave(chain, index);
-    return normalizeActionResult(await aave.withdraw({ token, amount }));
+  /** Withdraws `amount` of `token` from the Aave V3 pool (optionally gasless). */
+  async aave_withdraw(chain: EvmChainId, index: number, token: string, amount: bigint, gasless = false): Promise<AaveActionResult> {
+    const aave = await this._aave(chain, index, gasless);
+    return normalizeActionResult(await aave.withdraw({ token, amount }, this._gasCfg(gasless)));
   }
 
-  /** Borrows `amount` of `token` against supplied collateral. */
-  async aave_borrow(chain: EvmChainId, index: number, token: string, amount: bigint): Promise<AaveActionResult> {
-    const aave = await this._aave(chain, index);
-    return normalizeActionResult(await aave.borrow({ token, amount }));
+  /** Borrows `amount` of `token` against supplied collateral (optionally gasless). */
+  async aave_borrow(chain: EvmChainId, index: number, token: string, amount: bigint, gasless = false): Promise<AaveActionResult> {
+    const aave = await this._aave(chain, index, gasless);
+    return normalizeActionResult(await aave.borrow({ token, amount }, this._gasCfg(gasless)));
   }
 
-  /** Repays `amount` of borrowed `token`. */
-  async aave_repay(chain: EvmChainId, index: number, token: string, amount: bigint): Promise<AaveActionResult> {
-    const aave = await this._aave(chain, index);
-    return normalizeActionResult(await aave.repay({ token, amount }));
+  /** Repays `amount` of borrowed `token` (optionally gasless). */
+  async aave_repay(chain: EvmChainId, index: number, token: string, amount: bigint, gasless = false): Promise<AaveActionResult> {
+    const aave = await this._aave(chain, index, gasless);
+    return normalizeActionResult(await aave.repay({ token, amount }, this._gasCfg(gasless)));
   }
 
-  /** Builds the Velora swap protocol bound to the keyed EVM account in the worklet. */
-  private async _velora(chain: EvmChainId, index: number) {
-    if (!isSupportedChainId(chain)) {
-      throw new Error('Unsupported chain (no loader registered): ' + chain);
-    }
-    const wdk = this._requireWdk();
-    await ensureChainRegistered(wdk, chain);
-    const account = await wdk.getAccount(chain, index);
-    return createVeloraProtocol(account);
+  /** Builds the Velora swap protocol bound to the plain or smart account in the worklet. */
+  private async _velora(chain: EvmChainId, index: number, gasless = false) {
+    return createVeloraProtocol(await this._evmAccount(chain, index, gasless));
   }
 
   /** Quotes a tokenIn→tokenOut swap (exact-in) without broadcasting. */
@@ -638,37 +651,32 @@ export class WalletWorker implements Pick<WalletWorkerApi, 'vault_hasStored' | '
     return normalizeVeloraQuote(await v.quoteSwap({ tokenIn, tokenOut, tokenInAmount }));
   }
 
-  /** Executes a swap. Provide exactly one of tokenInAmount (sell) or tokenOutAmount (buy). */
-  async velora_swap(chain: EvmChainId, index: number, tokenIn: string, tokenOut: string, tokenInAmount?: bigint, tokenOutAmount?: bigint): Promise<VeloraSwapResult> {
-    const v = await this._velora(chain, index);
+  /** Executes a swap (optionally gasless). Provide exactly one of tokenInAmount (sell) or tokenOutAmount (buy). */
+  async velora_swap(chain: EvmChainId, index: number, tokenIn: string, tokenOut: string, tokenInAmount?: bigint, tokenOutAmount?: bigint, gasless = false): Promise<VeloraSwapResult> {
+    const v = await this._velora(chain, index, gasless);
     return normalizeVeloraSwap(await v.swap({
       tokenIn,
       tokenOut,
       ...(tokenInAmount !== undefined ? { tokenInAmount } : {}),
       ...(tokenOutAmount !== undefined ? { tokenOutAmount } : {}),
-    }));
+    }, this._gasCfg(gasless)));
   }
 
   /** Quotes the native fee to bridge `amount` of `token` from `chain` to `targetChain` via USDT0. */
   async usdt0_quoteBridge(chain: EvmChainId, index: number, targetChain: string, recipient: string, token: string, amount: bigint, oftContractAddress: string): Promise<Usdt0Quote> {
-    if (!isSupportedChainId(chain)) throw new Error('Unsupported chain (no loader registered): ' + chain);
-    const wdk = this._requireWdk();
-    await ensureChainRegistered(wdk, chain);
-    const account = await wdk.getAccount(chain, index);
+    const account = await this._evmAccount(chain, index, false);
     const bridge = createUsdt0Protocol(account);
     return normalizeUsdt0Quote(await bridge.quoteBridge({ targetChain, recipient, token, amount, oftContractAddress }));
   }
 
-  /** Approves the OFT spender then bridges `amount` of `token` to `targetChain` via USDT0. */
-  async usdt0_bridge(chain: EvmChainId, index: number, targetChain: string, recipient: string, token: string, amount: bigint, oftContractAddress: string): Promise<Usdt0BridgeResult> {
-    if (!isSupportedChainId(chain)) throw new Error('Unsupported chain (no loader registered): ' + chain);
-    const wdk = this._requireWdk();
-    await ensureChainRegistered(wdk, chain);
-    const account = await wdk.getAccount(chain, index);
-    const approval = await (account as unknown as ApprovableEvmAccount).approve({ token, spender: oftContractAddress, amount });
+  /** Approves the OFT spender then bridges `amount` of `token` to `targetChain` via USDT0 (optionally gasless). */
+  async usdt0_bridge(chain: EvmChainId, index: number, targetChain: string, recipient: string, token: string, amount: bigint, oftContractAddress: string, gasless = false): Promise<Usdt0BridgeResult> {
+    const account = await this._evmAccount(chain, index, gasless);
+    const cfg = this._gasCfg(gasless);
+    const approval = await (account as unknown as ApprovableEvmAccount).approve({ token, spender: oftContractAddress, amount }, cfg);
     const approveHash = typeof approval === 'string' ? approval : (approval && typeof approval === 'object' && 'hash' in approval ? String(approval.hash) : undefined);
     const bridge = createUsdt0Protocol(account);
-    const result = await bridge.bridge({ targetChain, recipient, token, amount, oftContractAddress });
+    const result = await bridge.bridge({ targetChain, recipient, token, amount, oftContractAddress }, cfg);
     return normalizeUsdt0Result(result, approveHash);
   }
 
