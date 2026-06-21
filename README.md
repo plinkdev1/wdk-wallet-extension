@@ -90,6 +90,7 @@ Each protocol is bound to the keyed account **inside the service worker** (keys 
 - **Activity** — persistent transaction history with per-chain filtering, **real-time status monitoring** (Pending → Confirmed/Failed via on-chain polling), and explorer links.
 - **Token balances + transfers** — USDt & XAUt (and other configured ERC-20s) shown per chain, and sendable via `transfer()` calldata (tap a token to send).
 - **Fiat values** — native balances shown in **USD** via `@tetherto/wdk-pricing-coingecko-http`.
+- **Side panel** — the full wallet also runs as a persistent Chrome **side panel** that stays open while you browse (the popup closes on blur). Same app, two surfaces — see [below](#side-panel).
 
 ---
 
@@ -108,6 +109,42 @@ Captured from the **real extension popup** running in Chromium (loaded unpacked)
 **▶ Demo video:** [`media/demo/wdk-wallet-extension-demo.webm`](./media/demo/wdk-wallet-extension-demo.webm) — onboarding → import → dashboard → send (use **Download**/**Raw** on GitHub). The shot-by-shot script is in [`docs/DEMO.md`](./docs/DEMO.md).
 
 > The Dashboard's balance shows an RPC error only because the headless capture environment blocks outbound network to public RPCs — address derivation, signing, and every flow work; the balance simply can't be fetched without RPC access. Set your own `VITE_ETH_RPC_URL` (see [`docs/SETUP.md`](./docs/SETUP.md)) and balances load.
+
+## Side panel
+
+Beyond the toolbar popup, the **entire wallet also runs as a Chrome side panel** —
+a persistent surface that stays open while you browse. The popup closes the moment
+it loses focus; the side panel doesn't, so you can watch balances, activity, and
+approvals **beside a dApp** and sign without the wallet vanishing on every click.
+
+<p align="center">
+  <img src="./media/side-panel-hero.png" alt="WDK Wallet docked as a Chrome side panel beside a dApp — chain selector, balance, account, Send/Receive, a USDt row, and a connected-site indicator" width="920">
+</p>
+
+> Illustration. The panel renders the **same UI** as the real popup captures above —
+> it reuses the popup `App` verbatim, so every screen, the worker bridge, and the
+> lock state machine are identical across both surfaces.
+
+**How to open it**
+
+| Action | Surface |
+|---|---|
+| **Left-click** the toolbar icon | Popup (default, unchanged) |
+| **Right-click** the toolbar icon → **Open WDK Wallet in side panel** | Side panel |
+
+**Why it's useful** — a popup is great for a quick check, but it disappears the
+instant you click back into the page. For dApp flows (connect → approve → sign →
+swap) the side panel keeps the wallet docked next to the site the whole time.
+
+**How it's built** — `manifest.side_panel` + the `chrome.sidePanel` API (Chrome
+114+), with a small [`background/side-panel.ts`](./apps/extension/src/background/side-panel.ts)
+that registers the context-menu opener; the entry at
+[`src/sidepanel/`](./apps/extension/src/sidepanel/) mounts the same popup `App`. It
+uses **only static imports** (the MV3 service worker forbids dynamic `import()` —
+ADR-012 / F-MV3-04) and registers every listener synchronously (F-MV3-01). On
+Chrome < 114 it is a safe no-op and the popup stays the only surface.
+
+---
 
 ## Architecture
 
@@ -310,7 +347,7 @@ and the settlement primitive in
 ## Roadmap
 
 📍 **The full, phased product roadmap is in [`ROADMAP.md`](./ROADMAP.md)** — it
-shows what's shipped (EVM + Solana + Bitcoin + tokens + activity + dApp), and
+shows what's shipped (EVM + Solana + Bitcoin + tokens + activity + dApp + side panel), and
 sequences the broader WDK vision (Lightning/Spark, account abstraction, TON/Tron,
 in-wallet swaps/lending/bridging, fiat on-ramp, fiat pricing) against real,
 published `@tetherto/*` packages. It is written so reviewers can see the depth and
