@@ -57,9 +57,18 @@ export default defineManifest({
     type: 'module',
   },
 
+  // Phase C: the full wallet is also available as a persistent side panel
+  // (reuses the popup app). The toolbar click still opens the popup; the panel
+  // opens via the action's right-click menu. See src/background/side-panel.ts.
+  side_panel: {
+    default_path: 'src/sidepanel/index.html',
+  },
+
   permissions: [
     'storage',
     'alarms',
+    'sidePanel',
+    'contextMenus',
   ],
 
   host_permissions: [

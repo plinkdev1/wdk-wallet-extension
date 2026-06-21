@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>WDK Wallet</title>
+    <style>
+      /* Side panel baseline. Unlike the popup (fixed 360px), the panel fills
+         its host-allocated width and the full viewport height, and stays open
+         while the user browses. wdk-ui's WdkThemeProvider injects CSS vars on
+         its mount element; this is the neutral pre-mount fallback. */
+      html, body {
+        margin: 0;
+        padding: 0;
+        height: 100%;
+        font-family: system-ui, -apple-system, sans-serif;
+      }
+      #root {
+        width: 100%;
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+        overflow-x: hidden;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="./index.tsx"></script>
+  </body>
+</html>

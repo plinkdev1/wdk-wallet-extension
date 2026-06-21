@@ -44,6 +44,7 @@ import {
   registerAutoLockAlarm,
   createOnConnectHandler,
 } from './lifecycle.js';
+import { registerSidePanel } from './side-panel.js';
 
 console.log('[bg] WDK Wallet SW booting - B4.9b: + wallet_switchEthereumChain + chainChanged event push');
 
@@ -104,6 +105,10 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
 });
 
 registerAutoLockAlarm(autoLock);
+
+// Phase C: expose the wallet as a persistent side panel (popup stays default;
+// panel opens from the action's right-click menu). Synchronous registration.
+registerSidePanel();
 
 // B1c: chrome.storage.onChanged listener - react when popup changes prefs:autoLockMinutes.
 // The popup writes directly to chrome.storage.local (see use-auto-lock-minutes hook).

@@ -94,9 +94,12 @@ The current build is a production-grade MV3 wallet, not a prototype:
   (EVM receipts + Solana signature statuses), explorer links.
 - **dApp connectivity** — EIP-1193 + EIP-6963, per-origin approvals, and a
   **Connections** management view (Settings → Connections: list connected sites,
-  revoke any). The remaining PRD-listed surface is **sidepanel mode** (a scoped
-  fast-follow: manifest `side_panel` + `chrome.sidePanel` toggle + responsive
-  two-column layout).
+  revoke any).
+- **Side panel (Phase C)** — the full wallet also runs as a Chrome **side panel**
+  (`manifest.side_panel` + `chrome.sidePanel`), a persistent surface that stays
+  open while you browse (the popup closes on blur). The toolbar click still opens
+  the popup; the panel opens from the action's right-click menu. It reuses the
+  popup `App` verbatim — one UI, two surfaces — in a responsive full-height layout.
 - **Quality** — 870 automated tests, strict TypeScript, CI, loadable `dist/`.
 
 ---
