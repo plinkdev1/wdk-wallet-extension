@@ -37,6 +37,8 @@ This repository is that reference. It is not a toy: it ships a real WebCrypto-en
 - [Security model](#security-model)
 - [Supported chains & assets](#supported-chains--assets)
 - [Quality & testing](#quality--testing)
+- [Customization — theming & branding](#customization--theming--branding)
+- [x402 — agentic / per-request payments](#x402--agentic--per-request-payments)
 - [Documentation](#documentation)
 - [Roadmap](#roadmap)
 - [License](#license)
@@ -258,9 +260,47 @@ pnpm typecheck     # strict typecheck, all packages
 
 ---
 
+## Customization — theming & branding
+
+This wallet is **fully re-skinnable and re-brandable without editing component
+code** — a first-class capability, not an afterthought:
+
+- 🎨 **Theme system** (`wdk-ui`) — three built-in presets (warm/orange,
+  cool/purple, institutional/light) plus full control of colors, type, radius,
+  motion, and light/dark mode via CSS variables. Every screen (including DeFi,
+  Smart Account, Buy) styles itself only through theme tokens.
+- 🖼️ **Brand system** — swap the **name, wordmark, and mark** via `BrandProvider`
+  or upload your own in the UI.
+- ⚙️ **Runtime pickers** — the popup's **Settings → Appearance / Brand** lets end
+  users pick from 7 primaries × 4 edge styles × 2 modes, set an arbitrary hex
+  primary, override individual color tokens, and upload a custom logo — all
+  persisted to `localStorage`. Ship without the pickers via
+  `VITE_WDK_CUSTOMIZATION_UI=false`.
+
+Full guide: **[`docs/CUSTOMIZATION.md`](./docs/CUSTOMIZATION.md)**. The same
+`wdk-ui` system powers the [Template](https://github.com/plinkdev1/wdk-wallet-template).
+
+---
+
+## x402 — agentic / per-request payments
+
+The wallet can **pay HTTP `402 Payment Required` challenges** (the x402
+protocol), so a WDK-powered agent can pay per request for an API or to clear a
+crawler paywall. x402's EVM "exact" scheme is a signed **EIP-3009**
+authorization, so the wallet signs one inside the worklet and returns the
+base64 `X-PAYMENT` header to attach on retry (`X402_CREATE_PAYMENT` →
+`worker.x402_createPayment`). The matching **facilitator + Cloudflare/Express
+middleware** (the server side that charges bots) ships in
+[wdk-checkout](https://github.com/plinkdev1/wdk-checkout-and-woocommerce-plugin),
+and the settlement primitive in
+[wdk-protocol-eip3009](https://github.com/plinkdev1/wdk-protocol-eip3009).
+
+---
+
 ## Documentation
 
 - [`docs/SETUP.md`](./docs/SETUP.md) — install, build, load, configure RPC.
+- [`docs/CUSTOMIZATION.md`](./docs/CUSTOMIZATION.md) — theming & branding (swap colors/logo).
 - [`docs/architecture/ARCHITECTURE.md`](./docs/architecture/ARCHITECTURE.md) — system design, message bus, ADRs.
 - [`docs/security/SECURITY.md`](./docs/security/SECURITY.md) — threat model and mitigations.
 - [`docs/DEMO.md`](./docs/DEMO.md) — the demo-video walkthrough script.
