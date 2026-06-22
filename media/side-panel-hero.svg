@@ -26,7 +26,7 @@
     <rect x="48" y="40" width="40" height="40" rx="11" fill="url(#gOrange)"/>
     <polyline points="56,50 60,72 68,57 76,72 80,50" fill="none" stroke="#fff" stroke-width="3.6" stroke-linejoin="round" stroke-linecap="round"/>
     <text x="100" y="60" font-size="25" font-weight="700" fill="#F6F1EC" letter-spacing="0.4">WDK Wallet</text>
-    <text x="100" y="79" font-size="13" fill="#9C8C80" letter-spacing="0.6">Self-custodial multi-chain wallet · built on Tether WDK</text>
+    <text x="100" y="79" font-size="13" fill="#B3A69B" letter-spacing="0.6">Self-custodial multi-chain wallet · built on Tether WDK</text>
 
     <rect x="1028" y="44" width="204" height="34" rx="17" fill="#ffffff14" stroke="#ffffff1f"/>
     <rect x="1046" y="55" width="16" height="12" rx="2" fill="none" stroke="#F8763F" stroke-width="2"/>
@@ -100,9 +100,9 @@
     <rect x="880" y="138" width="212" height="38" rx="19" fill="#ffffff0d" stroke="#ffffff14"/>
     <path d="M903 150 l8 8 -8 8 -8 -8 z" fill="#627EEA"/>
     <text x="922" y="162" font-size="13" font-weight="600" fill="#EDE7E2">Ethereum Mainnet</text>
-    <path d="M1066 156 l6 7 6 -7" fill="none" stroke="#B6A79C" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
-    <circle cx="1118" cy="157" r="8" fill="none" stroke="#B6A79C" stroke-width="1.8"/>
-    <circle cx="1118" cy="157" r="2.6" fill="#B6A79C"/>
+    <path d="M1066 156 l6 7 6 -7" fill="none" stroke="#CFC2B7" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+    <circle cx="1118" cy="157" r="8" fill="none" stroke="#CFC2B7" stroke-width="1.8"/>
+    <circle cx="1118" cy="157" r="2.6" fill="#CFC2B7"/>
     <rect x="1156" y="150" width="13" height="11" rx="2" fill="none" stroke="#EDE7E2" stroke-width="1.7"/>
     <path d="M1158.5 150 v-2.5 a4 4 0 0 1 8 0 v2.5" fill="none" stroke="#EDE7E2" stroke-width="1.7"/>
     <text x="1176" y="162" font-size="13" font-weight="600" fill="#EDE7E2">Lock</text>
@@ -110,16 +110,16 @@
     <!-- balance card -->
     <rect x="876" y="196" width="336" height="156" rx="16" fill="#221a15" stroke="#ffffff0f"/>
     <rect x="876" y="208" width="4" height="132" rx="2" fill="url(#gOrange)" opacity="0.8"/>
-    <text x="904" y="234" font-size="14" fill="#B6A79C">Balance</text>
+    <text x="904" y="234" font-size="14" fill="#CFC2B7">Balance</text>
     <text x="904" y="286" font-size="34" font-weight="700" fill="#F6F1EC">$4,812.50</text>
-    <text x="904" y="318" font-size="15" fill="#B6A79C">1.9274 ETH</text>
+    <text x="904" y="318" font-size="15" fill="#CFC2B7">1.9274 ETH</text>
     <rect x="1096" y="262" width="92" height="28" rx="14" fill="#13351f"/>
     <path d="M1114 282 l5 -9 5 9 z" fill="#5BD98A"/>
     <text x="1132" y="281" font-size="12.5" font-weight="600" fill="#5BD98A">2.34%</text>
 
     <!-- account card -->
     <rect x="876" y="372" width="336" height="104" rx="16" fill="#1e1712" stroke="#ffffff0f"/>
-    <text x="904" y="404" font-size="14" fill="#B6A79C">Account</text>
+    <text x="904" y="404" font-size="14" fill="#CFC2B7">Account</text>
     <rect x="904" y="418" width="200" height="40" rx="10" fill="#ffffff08" stroke="#ffffff12"/>
     <text x="920" y="443" font-size="15" fill="#EDE7E2" font-family="ui-monospace, 'SF Mono', Menlo, monospace">0xf39F…2266</text>
     <rect x="1116" y="418" width="80" height="40" rx="10" fill="#ffffff10" stroke="#ffffff1f"/>
@@ -136,14 +136,14 @@
     <circle cx="906" cy="595" r="16" fill="#26A17B"/>
     <text x="906" y="601" font-size="15" font-weight="700" fill="#fff" text-anchor="middle">T</text>
     <text x="936" y="590" font-size="14" font-weight="600" fill="#EDE7E2">USDt</text>
-    <text x="936" y="609" font-size="11" fill="#8A7C72">Tether USD</text>
+    <text x="936" y="609" font-size="11" fill="#B3A69B">Tether USD</text>
     <text x="1188" y="591" font-size="14.5" font-weight="600" fill="#EDE7E2" text-anchor="end">1,250.00</text>
-    <text x="1188" y="609" font-size="11" fill="#8A7C72" text-anchor="end">$1,250.00</text>
+    <text x="1188" y="609" font-size="11" fill="#B3A69B" text-anchor="end">$1,250.00</text>
 
     <!-- connected dapp row -->
     <rect x="876" y="642" width="336" height="42" rx="12" fill="#ffffff05" stroke="#ffffff0d"/>
     <circle cx="900" cy="663" r="4" fill="#3FB950"/>
-    <text x="916" y="668" font-size="12.5" fill="#9C8C80">Connected · app.exampledex.eth</text>
+    <text x="916" y="668" font-size="12.5" fill="#B3A69B">Connected · app.exampledex.eth</text>
   </g>
 
   <!-- ============ caption chips ============ -->
