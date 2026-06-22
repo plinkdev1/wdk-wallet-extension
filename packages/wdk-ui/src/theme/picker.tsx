@@ -19,7 +19,7 @@
  * Source: docs/phase-1/doc32-addendum-theme-expansion-phantom-patterns.md (Doc 33)
  */
 
-import { type CSSProperties } from 'react';
+import { type CSSProperties, type JSX } from 'react';
 import { type WdkTheme, type WdkThemeRadius, type WdkMode } from './types.js';
 import { Button } from '../primitives/button.js';
 
@@ -140,10 +140,19 @@ export function composeTheme(
   mode: WdkMode
 ): WdkTheme {
   const palette = mode === 'light' ? LIGHT_PALETTE : DARK_PALETTE;
+  // Drop any carried-over border colors. The base theme's borders are tuned for
+  // ITS mode (e.g. a dark base ships cream borders); reusing them in the other
+  // mode makes them invisible (cream-on-white → edgeless buttons). Omitting them
+  // lets css-variables.ts re-derive mode-appropriate borders from the new
+  // textPrimary. Fixes the edgeless light-mode buttons.
+  const baseColors = { ...base.colors };
+  delete baseColors.borderSubtle;
+  delete baseColors.borderDefault;
+  delete baseColors.borderEmphasis;
   return {
     ...base,
     colors: {
-      ...base.colors,
+      ...baseColors,
       ...palette,
       primary: primaryColor,
     },

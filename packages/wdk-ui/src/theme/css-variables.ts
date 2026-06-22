@@ -119,10 +119,14 @@ export function cssVariables(theme: WdkTheme): Record<string, string> {
     '--text-secondary': c.textSecondary ?? toRgba(c.textPrimary, 0.72),
     '--text-tertiary':  c.textTertiary  ?? toRgba(c.textPrimary, 0.48),
 
-    // Borders - derived from textPrimary at 6/10/18% alpha per tailwind-tokens.ts pattern
-    '--border-subtle':   c.borderSubtle   ?? toRgba(c.textPrimary, 0.06),
-    '--border-default':  c.borderDefault  ?? toRgba(c.textPrimary, 0.10),
-    '--border-emphasis': c.borderEmphasis ?? toRgba(c.textPrimary, 0.18),
+    // Borders - derived from textPrimary via rgba alpha. Light mode needs a
+    // HIGHER alpha than dark: a dark border at 10% is nearly invisible on a
+    // light surface, which left outline/secondary buttons completely edgeless
+    // in light mode. Bumping the alpha when mode === 'light' restores visible
+    // edges on light backgrounds while keeping dark mode unchanged.
+    '--border-subtle':   c.borderSubtle   ?? toRgba(c.textPrimary, theme.mode === 'light' ? 0.12 : 0.06),
+    '--border-default':  c.borderDefault  ?? toRgba(c.textPrimary, theme.mode === 'light' ? 0.22 : 0.10),
+    '--border-emphasis': c.borderEmphasis ?? toRgba(c.textPrimary, theme.mode === 'light' ? 0.34 : 0.18),
 
     // Semantic
     '--color-success': c.success,

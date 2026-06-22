@@ -151,9 +151,9 @@ export const institutionalLightTheme: WdkTheme = {
     textSecondary: 'rgba(26, 20, 16, 0.72)',
     textTertiary:  'rgba(26, 20, 16, 0.48)',
 
-    borderSubtle:   'rgba(26, 20, 16, 0.06)',
-    borderDefault:  'rgba(26, 20, 16, 0.10)',
-    borderEmphasis: 'rgba(26, 20, 16, 0.18)',
+    borderSubtle:   'rgba(26, 20, 16, 0.12)',
+    borderDefault:  'rgba(26, 20, 16, 0.22)',
+    borderEmphasis: 'rgba(26, 20, 16, 0.34)',
 
     success: '#10B981',
     warning: '#F59E0B',
