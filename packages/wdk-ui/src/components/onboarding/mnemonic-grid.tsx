@@ -124,10 +124,10 @@ export function MnemonicGrid({
             key={i}
             style={{
               position: 'relative',
-              background: 'rgba(255, 255, 255, 0.04)',
+              background: 'var(--bg-elevated-1, rgba(255, 255, 255, 0.04))',
               border: error
                 ? '1px solid rgba(239, 68, 68, 0.5)'
-                : '1px solid rgba(255, 255, 255, 0.08)',
+                : '1px solid var(--border-subtle, rgba(255, 255, 255, 0.08))',
               borderRadius: 6,
               padding: '4px 6px',
             }}

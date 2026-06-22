@@ -69,7 +69,7 @@ export function OnboardingChoice({ onCreateNew, onImport }: OnboardingChoiceProp
           style={{
             width: '100%',
             background: 'transparent',
-            border: '1px solid rgba(255, 255, 255, 0.18)',
+            border: '1px solid var(--border-subtle, rgba(255, 255, 255, 0.18))',
             color: 'var(--text-primary, #FAF6F0)',
             padding: '12px 16px',
             borderRadius: 8,
