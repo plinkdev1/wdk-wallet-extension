@@ -5,7 +5,7 @@
  * from public faucets, target for most dApp testnet deployments and L2
  * staging environments.
  *
- * Default RPC: https://rpc.sepolia.org (public, no API key). Product
+ * Default RPC: PublicNode's CORS-enabled, no-key Sepolia gateway. Product
  * consumers should override with an authenticated endpoint for production-
  * grade reliability.
  *
@@ -18,7 +18,7 @@ import type { ChainModuleMeta } from './types.js';
 export default WalletManagerEvm;
 
 export const config = {
-  rpcUrl: 'https://rpc.sepolia.org',
+  rpcUrl: 'https://ethereum-sepolia-rpc.publicnode.com',
   chainId: 11155111,
 } as const;
 

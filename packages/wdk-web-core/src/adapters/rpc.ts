@@ -32,6 +32,20 @@ export interface HttpRpcAdapterOptions {
    * getTokenBalances can produce. Off by default.
    */
   readonly rateLimit?: RateLimiterOptions;
+  /**
+   * Per-chain RPC URL overrides, keyed by ChainId. A dev-supplied keyed endpoint
+   * (e.g. an Alchemy/Infura URL from an env var) takes precedence over the chain
+   * config's baked-in public default — so a consumer can point any chain at its
+   * own RPC without rebuilding chain modules. The public default is only a
+   * fallback for unconfigured chains.
+   */
+  readonly rpcUrls?: Readonly<Record<string, string>>;
+  /**
+   * Resolver form of {@link rpcUrls} for full control (e.g. multi-endpoint
+   * selection). Takes precedence when it returns a string; falls back to
+   * `rpcUrls`, then the chain config default.
+   */
+  readonly resolveRpcUrl?: (chain: ChainId) => string | undefined;
 }
 import { CHAIN_LOADERS, isSupportedChainId } from '../chains/index.js';
 import type { ChainId } from '../types/index.js';
@@ -121,7 +135,10 @@ export function createHttpRpcAdapter(options: HttpRpcAdapterOptions = {}): RpcAd
     }
     const mod = await CHAIN_LOADERS[chain]();
     const family = mod.meta.family;
-    const rpcUrl = (mod.config as { rpcUrl?: unknown }).rpcUrl;
+    // A dev-supplied override (keyed endpoint via env) wins over the chain
+    // config's public default; the default is only the fallback.
+    const override = options.resolveRpcUrl?.(chain) ?? options.rpcUrls?.[chain];
+    const rpcUrl = override ?? (mod.config as { rpcUrl?: unknown }).rpcUrl;
     if (typeof rpcUrl !== 'string') {
       throw new Error('Chain config missing rpcUrl string: ' + chain);
     }

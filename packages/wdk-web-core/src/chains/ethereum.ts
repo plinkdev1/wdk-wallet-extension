@@ -10,7 +10,9 @@ import type { ChainModuleMeta } from './types.js';
 export default WalletManagerEvm;
 
 export const config = {
-  rpcUrl: 'https://eth.llamarpc.com',
+  // CORS-enabled, no-key public default (works in a browser out of the box).
+  // Override with an authenticated endpoint via the adapter's `rpcUrls`/env.
+  rpcUrl: 'https://ethereum-rpc.publicnode.com',
   chainId: 1,
 } as const;
 
