@@ -26,12 +26,12 @@
     <rect x="48" y="40" width="40" height="40" rx="11" fill="url(#gOrange)"/>
     <polyline points="56,50 60,72 68,57 76,72 80,50" fill="none" stroke="#fff" stroke-width="3.6" stroke-linejoin="round" stroke-linecap="round"/>
     <text x="100" y="60" font-size="25" font-weight="700" fill="#F6F1EC" letter-spacing="0.4">WDK Wallet</text>
-    <text x="100" y="79" font-size="13" fill="#B3A69B" letter-spacing="0.6">Self-custodial multi-chain wallet · built on Tether WDK</text>
+    <text x="100" y="79" font-size="13" fill="#DBCFC5" letter-spacing="0.6">Self-custodial multi-chain wallet · built on Tether WDK</text>
 
     <rect x="1028" y="44" width="204" height="34" rx="17" fill="#ffffff14" stroke="#ffffff1f"/>
     <rect x="1046" y="55" width="16" height="12" rx="2" fill="none" stroke="#F8763F" stroke-width="2"/>
     <line x1="1058" y1="55" x2="1058" y2="67" stroke="#F8763F" stroke-width="2"/>
-    <text x="1074" y="65" font-size="13" font-weight="600" fill="#EDE7E2">Side panel · MV3</text>
+    <text x="1074" y="65" font-size="13" font-weight="600" fill="#F6F1EC">Side panel · MV3</text>
   </g>
 
   <!-- ============ browser window (the dApp / page) ============ -->
@@ -42,9 +42,9 @@
     <circle cx="94" cy="154" r="6" fill="#febc2e"/>
     <circle cx="114" cy="154" r="6" fill="#28c840"/>
     <rect x="150" y="142" width="392" height="24" rx="12" fill="#ffffff0d" stroke="#ffffff14"/>
-    <rect x="166" y="149" width="9" height="7" rx="1.5" fill="none" stroke="#8E88A8" stroke-width="1.4"/>
-    <path d="M168 149 a3 3 0 0 1 5 0" fill="none" stroke="#8E88A8" stroke-width="1.4"/>
-    <text x="184" y="159" font-size="12" fill="#A9A4C0">app.exampledex.eth</text>
+    <rect x="166" y="149" width="9" height="7" rx="1.5" fill="none" stroke="#B8B2D4" stroke-width="1.4"/>
+    <path d="M168 149 a3 3 0 0 1 5 0" fill="none" stroke="#B8B2D4" stroke-width="1.4"/>
+    <text x="184" y="159" font-size="12" fill="#CFCAE6">app.exampledex.eth</text>
     <!-- connected-wallet chip -->
     <rect x="688" y="142" width="132" height="24" rx="12" fill="#14301f" stroke="#1f5f3f"/>
     <circle cx="701" cy="154" r="4" fill="#3FB950"/>
@@ -54,17 +54,17 @@
     <!-- dApp brand -->
     <path d="M70 206 l9 9 -9 9 -9 -9 z" fill="#7C6BE6"/>
     <text x="92" y="221" font-size="16" font-weight="700" fill="#C9C4E6">ExampleDEX</text>
-    <text x="92" y="240" font-size="11.5" fill="#8E88A8">A WDK-connected decentralized exchange</text>
+    <text x="92" y="240" font-size="11.5" fill="#B8B2D4">A WDK-connected decentralized exchange</text>
 
     <!-- swap card -->
     <rect x="286" y="270" width="312" height="360" rx="20" fill="#1b1726" stroke="#ffffff14"/>
     <text x="312" y="308" font-size="17" font-weight="700" fill="#E8E6F0">Swap</text>
-    <circle cx="566" cy="302" r="11" fill="none" stroke="#8E88A8" stroke-width="1.6"/>
-    <circle cx="566" cy="302" r="2.4" fill="#8E88A8"/>
+    <circle cx="566" cy="302" r="11" fill="none" stroke="#B8B2D4" stroke-width="1.6"/>
+    <circle cx="566" cy="302" r="2.4" fill="#B8B2D4"/>
 
     <!-- you pay -->
     <rect x="312" y="326" width="260" height="84" rx="14" fill="#ffffff08"/>
-    <text x="330" y="352" font-size="11.5" fill="#A9A4C0">You pay</text>
+    <text x="330" y="352" font-size="11.5" fill="#CFCAE6">You pay</text>
     <text x="330" y="388" font-size="25" font-weight="700" fill="#F4F2FA">1,000</text>
     <rect x="486" y="350" width="72" height="36" rx="18" fill="#ffffff12"/>
     <circle cx="505" cy="368" r="10" fill="#2775CA"/>
@@ -77,7 +77,7 @@
 
     <!-- you receive -->
     <rect x="312" y="438" width="260" height="84" rx="14" fill="#ffffff08"/>
-    <text x="330" y="464" font-size="11.5" fill="#A9A4C0">You receive</text>
+    <text x="330" y="464" font-size="11.5" fill="#CFCAE6">You receive</text>
     <text x="330" y="500" font-size="25" font-weight="700" fill="#F4F2FA">0.3192</text>
     <rect x="486" y="462" width="72" height="36" rx="18" fill="#ffffff12"/>
     <circle cx="505" cy="480" r="10" fill="#627EEA"/>
@@ -87,7 +87,7 @@
     <!-- swap button + rate -->
     <rect x="312" y="546" width="260" height="48" rx="14" fill="url(#gOrange)"/>
     <text x="442" y="576" font-size="16" font-weight="700" fill="#1a0f08" text-anchor="middle">Swap</text>
-    <text x="442" y="616" font-size="11" fill="#8E88A8" text-anchor="middle">1 ETH = 3,133 USDC · slippage 0.5%</text>
+    <text x="442" y="616" font-size="11" fill="#B8B2D4" text-anchor="middle">1 ETH = 3,133 USDC · slippage 0.5%</text>
   </g>
 
   <!-- ============ docked side panel (the wallet) ============ -->
@@ -99,51 +99,51 @@
     <!-- header: chain pill / gear / lock -->
     <rect x="880" y="138" width="212" height="38" rx="19" fill="#ffffff0d" stroke="#ffffff14"/>
     <path d="M903 150 l8 8 -8 8 -8 -8 z" fill="#627EEA"/>
-    <text x="922" y="162" font-size="13" font-weight="600" fill="#EDE7E2">Ethereum Mainnet</text>
-    <path d="M1066 156 l6 7 6 -7" fill="none" stroke="#CFC2B7" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
-    <circle cx="1118" cy="157" r="8" fill="none" stroke="#CFC2B7" stroke-width="1.8"/>
-    <circle cx="1118" cy="157" r="2.6" fill="#CFC2B7"/>
-    <rect x="1156" y="150" width="13" height="11" rx="2" fill="none" stroke="#EDE7E2" stroke-width="1.7"/>
-    <path d="M1158.5 150 v-2.5 a4 4 0 0 1 8 0 v2.5" fill="none" stroke="#EDE7E2" stroke-width="1.7"/>
-    <text x="1176" y="162" font-size="13" font-weight="600" fill="#EDE7E2">Lock</text>
+    <text x="922" y="162" font-size="13" font-weight="600" fill="#F6F1EC">Ethereum Mainnet</text>
+    <path d="M1066 156 l6 7 6 -7" fill="none" stroke="#EFE6DE" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+    <circle cx="1118" cy="157" r="8" fill="none" stroke="#EFE6DE" stroke-width="1.8"/>
+    <circle cx="1118" cy="157" r="2.6" fill="#EFE6DE"/>
+    <rect x="1156" y="150" width="13" height="11" rx="2" fill="none" stroke="#F6F1EC" stroke-width="1.7"/>
+    <path d="M1158.5 150 v-2.5 a4 4 0 0 1 8 0 v2.5" fill="none" stroke="#F6F1EC" stroke-width="1.7"/>
+    <text x="1176" y="162" font-size="13" font-weight="600" fill="#F6F1EC">Lock</text>
 
     <!-- balance card -->
     <rect x="876" y="196" width="336" height="156" rx="16" fill="#221a15" stroke="#ffffff0f"/>
     <rect x="876" y="208" width="4" height="132" rx="2" fill="url(#gOrange)" opacity="0.8"/>
-    <text x="904" y="234" font-size="14" fill="#CFC2B7">Balance</text>
+    <text x="904" y="234" font-size="14" fill="#EFE6DE">Balance</text>
     <text x="904" y="286" font-size="34" font-weight="700" fill="#F6F1EC">$4,812.50</text>
-    <text x="904" y="318" font-size="15" fill="#CFC2B7">1.9274 ETH</text>
+    <text x="904" y="318" font-size="15" fill="#EFE6DE">1.9274 ETH</text>
     <rect x="1096" y="262" width="92" height="28" rx="14" fill="#13351f"/>
     <path d="M1114 282 l5 -9 5 9 z" fill="#5BD98A"/>
     <text x="1132" y="281" font-size="12.5" font-weight="600" fill="#5BD98A">2.34%</text>
 
     <!-- account card -->
     <rect x="876" y="372" width="336" height="104" rx="16" fill="#1e1712" stroke="#ffffff0f"/>
-    <text x="904" y="404" font-size="14" fill="#CFC2B7">Account</text>
+    <text x="904" y="404" font-size="14" fill="#EFE6DE">Account</text>
     <rect x="904" y="418" width="200" height="40" rx="10" fill="#ffffff08" stroke="#ffffff12"/>
-    <text x="920" y="443" font-size="15" fill="#EDE7E2" font-family="ui-monospace, 'SF Mono', Menlo, monospace">0xf39F…2266</text>
+    <text x="920" y="443" font-size="15" fill="#F6F1EC" font-family="ui-monospace, 'SF Mono', Menlo, monospace">0xf39F…2266</text>
     <rect x="1116" y="418" width="80" height="40" rx="10" fill="#ffffff10" stroke="#ffffff1f"/>
-    <text x="1156" y="443" font-size="13" font-weight="600" fill="#EDE7E2" text-anchor="middle">Copy</text>
+    <text x="1156" y="443" font-size="13" font-weight="600" fill="#F6F1EC" text-anchor="middle">Copy</text>
 
     <!-- send / receive -->
     <rect x="876" y="496" width="160" height="52" rx="12" fill="url(#gOrange)"/>
     <text x="956" y="529" font-size="17" font-weight="700" fill="#1a0f08" text-anchor="middle">Send</text>
     <rect x="1052" y="496" width="160" height="52" rx="12" fill="#ffffff0a" stroke="#ffffff1f"/>
-    <text x="1132" y="529" font-size="17" font-weight="600" fill="#EDE7E2" text-anchor="middle">Receive</text>
+    <text x="1132" y="529" font-size="17" font-weight="600" fill="#F6F1EC" text-anchor="middle">Receive</text>
 
     <!-- token row -->
     <rect x="876" y="566" width="336" height="58" rx="12" fill="#ffffff06" stroke="#ffffff0d"/>
     <circle cx="906" cy="595" r="16" fill="#26A17B"/>
     <text x="906" y="601" font-size="15" font-weight="700" fill="#fff" text-anchor="middle">T</text>
-    <text x="936" y="590" font-size="14" font-weight="600" fill="#EDE7E2">USDt</text>
-    <text x="936" y="609" font-size="11" fill="#B3A69B">Tether USD</text>
-    <text x="1188" y="591" font-size="14.5" font-weight="600" fill="#EDE7E2" text-anchor="end">1,250.00</text>
-    <text x="1188" y="609" font-size="11" fill="#B3A69B" text-anchor="end">$1,250.00</text>
+    <text x="936" y="590" font-size="14" font-weight="600" fill="#F6F1EC">USDt</text>
+    <text x="936" y="609" font-size="11" fill="#DBCFC5">Tether USD</text>
+    <text x="1188" y="591" font-size="14.5" font-weight="600" fill="#F6F1EC" text-anchor="end">1,250.00</text>
+    <text x="1188" y="609" font-size="11" fill="#DBCFC5" text-anchor="end">$1,250.00</text>
 
     <!-- connected dapp row -->
     <rect x="876" y="642" width="336" height="42" rx="12" fill="#ffffff05" stroke="#ffffff0d"/>
     <circle cx="900" cy="663" r="4" fill="#3FB950"/>
-    <text x="916" y="668" font-size="12.5" fill="#B3A69B">Connected · app.exampledex.eth</text>
+    <text x="916" y="668" font-size="12.5" fill="#DBCFC5">Connected · app.exampledex.eth</text>
   </g>
 
   <!-- ============ caption chips ============ -->
