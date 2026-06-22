@@ -70,12 +70,44 @@ if (typeof (globalThis as { document?: unknown }).document === 'undefined') {
 }
 
 // `window` is also referenced as a bare identifier by WDK's environment
-// detection. Reuse the same recursive proxy - functionally indistinguishable
-// from document for stubbing purposes (both surfaces are no-op proxies).
-// If WDK later needs window-specific properties (e.g. window.location.origin
-// for a CSRF check), upgrade to a smarter stub then.
+// detection, so it must be defined. BUT it cannot be the bare recursive proxy:
+// axios (bundled via the eagerly-imported TON chain → @ton/ton) reads
+// `window.location.href` at MODULE-INIT to compute its origin, then calls
+// `new URL(origin)`. With the recursive proxy, `window.location.href` is the
+// proxy itself, which coerces to '' → `new URL('')` throws "Invalid URL",
+// aborting service-worker registration so the whole extension fails to boot
+// (F-MV3-05). Give the window stub a real `location`/`origin` (a parseable
+// placeholder URL — the SW never navigates) and fall back to the recursive
+// proxy for every other property so WDK's DOM-probing env detection still
+// no-ops safely.
+const fakeLocation = {
+  href: 'https://wdk.invalid/',
+  origin: 'https://wdk.invalid',
+  protocol: 'https:',
+  host: 'wdk.invalid',
+  hostname: 'wdk.invalid',
+  port: '',
+  pathname: '/',
+  search: '',
+  hash: '',
+  toString() { return 'https://wdk.invalid/'; },
+};
+const windowStub: unknown = new Proxy(function () { /* proxy target */ }, {
+  get(_t, prop): unknown {
+    if (prop === 'location') return fakeLocation;
+    if (prop === 'origin') return fakeLocation.origin;
+    if (prop === 'length') return 0;
+    if (prop === Symbol.iterator) return function* () { /* empty */ };
+    if (prop === Symbol.toPrimitive || prop === 'toString') return () => '';
+    if (prop === 'valueOf') return () => undefined;
+    return docStub;
+  },
+  set(): boolean { return true; },
+  apply(): unknown { return docStub; },
+  construct(): object { return docStub as object; },
+});
 if (typeof (globalThis as { window?: unknown }).window === 'undefined') {
-  (globalThis as { window?: unknown }).window = docStub;
+  (globalThis as { window?: unknown }).window = windowStub;
 }
 
 export {};
