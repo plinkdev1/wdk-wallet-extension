@@ -10,7 +10,7 @@ A tight walkthrough for the bounty demo video. Aim for ~4 minutes.
 ## Beats
 
 **0:00 — Intro (20s)**
-> "This is the WDK Wallet — a self-custodial, multi-chain browser extension built on Tether's Wallet Development Kit. Everything you'll see is open source and backed by 870 automated tests."
+> "This is the WDK Wallet — a self-custodial, multi-chain browser extension built on Tether's Wallet Development Kit. Everything you'll see is open source and backed by 916 automated tests."
 
 Show the repo README, then the extension icon in the toolbar.
 
@@ -50,7 +50,7 @@ Show the repo README, then the extension icon in the toolbar.
 
 ## Verifying the new features live (bring your own config/funds)
 
-What the automated suites already cover (run `pnpm -r test` — **870 tests**):
+What the automated suites already cover (run `pnpm -r test` — **916 tests**):
 chain derivation, vault, dApp bus, the DeFi/AA/on-ramp wrappers' wire contracts,
 and the x402 sign→encode→decode→verify round-trip.
 

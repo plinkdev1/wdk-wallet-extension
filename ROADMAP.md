@@ -100,7 +100,7 @@ The current build is a production-grade MV3 wallet, not a prototype:
   open while you browse (the popup closes on blur). The toolbar click still opens
   the popup; the panel opens from the action's right-click menu. It reuses the
   popup `App` verbatim — one UI, two surfaces — in a responsive full-height layout.
-- **Quality** — 870 automated tests, strict TypeScript, CI, loadable `dist/`.
+- **Quality** — 916 automated tests, strict TypeScript, CI, loadable `dist/`.
 
 ---
 

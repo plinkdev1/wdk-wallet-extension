@@ -53,7 +53,7 @@ The production bundle lands in `apps/extension/dist/`, including a generated `ma
 ## 4. Run the tests
 
 ```bash
-pnpm test          # all 811 tests
+pnpm test          # all 916 tests
 pnpm typecheck     # strict typecheck across all packages
 ```
 
