@@ -106,7 +106,11 @@ Captured from the **real extension popup** running in Chromium (loaded unpacked)
 |:--:|:--:|:--:|
 | ![Import](./media/screenshots/03-import.png) | ![Send](./media/screenshots/06-send.png) | ![Receive](./media/screenshots/07-receive.png) |
 
-**▶ Demo video:** [`media/demo/wdk-wallet-extension-demo.webm`](./media/demo/wdk-wallet-extension-demo.webm) — onboarding → import → dashboard → send (use **Download**/**Raw** on GitHub). The shot-by-shot script is in [`docs/DEMO.md`](./docs/DEMO.md).
+**▶ Demo video** — a real screen recording of the extension loaded in Chrome: Welcome → create wallet → back up the 12-word phrase → verify → set password → dashboard (live balance + USDt/XAUt tokens) → receive QR.
+
+<video src="https://github.com/plinkdev1/wdk-wallet-extension/raw/main/media/demo/wdk-wallet-extension-demo.webm" controls muted></video>
+
+> Player not loading (e.g. before the repo is public)? **Download the raw `.webm`:** [`media/demo/wdk-wallet-extension-demo.webm`](./media/demo/wdk-wallet-extension-demo.webm) (or click **Raw** on the file page). Walkthrough script: [`docs/DEMO.md`](./docs/DEMO.md).
 
 > The Dashboard's balance shows an RPC error only because the headless capture environment blocks outbound network to public RPCs — address derivation, signing, and every flow work; the balance simply can't be fetched without RPC access. Set your own `VITE_ETH_RPC_URL` (see [`docs/SETUP.md`](./docs/SETUP.md)) and balances load.
 
