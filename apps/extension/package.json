@@ -8,7 +8,7 @@
   "scripts": {
     "dev": "vite",
     "build:inpage": "esbuild src/inpage/index.ts --bundle --format=iife --outfile=public/inpage.js --target=es2020",
-    "build": "pnpm typecheck && pnpm build:inpage && vite build",
+    "build": "pnpm typecheck && pnpm build:inpage && node --max-old-space-size=8192 node_modules/vite/bin/vite.js build",
     "typecheck": "tsc --noEmit",
     "test": "pnpm typecheck && vitest run --passWithNoTests",
     "clean": "node -e \"require('fs').rmSync('dist',{recursive:true,force:true})\""

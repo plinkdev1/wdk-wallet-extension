@@ -38,7 +38,14 @@ export default defineConfig({
   ],
   build: {
     target: 'es2022',
-    sourcemap: true,
+    // Production sourcemaps are off on purpose. @web3icons/react/dynamic
+    // lazy-loads the full ~4000-icon catalog as one chunk per icon, and emitting
+    // a sourcemap for each (2000+ .map files, all held in memory while Rollup
+    // renders) is what pushed the production build past the default heap limit
+    // ("JavaScript heap out of memory"). A shipped extension doesn't need them.
+    // The build script also raises the heap ceiling as a safety margin. If you
+    // need to debug the bundle, flip this to true and give the build more memory.
+    sourcemap: false,
   },
   test: {
     // Default environment is 'node'. Popup tests opt into jsdom via per-file
