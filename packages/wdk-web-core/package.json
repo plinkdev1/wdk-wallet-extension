@@ -1,6 +1,6 @@
 {
   "name": "@wdk-starter/wdk-web-core",
-  "version": "0.1.0-dev",
+  "version": "0.2.0-dev",
   "private": false,
   "type": "module",
   "description": "Framework-agnostic engine powering WDK browser wallet products (Next.js Template + Browser Extension). Provides vault, chain loaders, EIP-3009 builder, Comlink/MV3 message-bus surfaces, and typed account registry. Phase 1 carryover of the Phase 0 prototype.",
