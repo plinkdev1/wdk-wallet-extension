@@ -202,3 +202,109 @@ export function createEtherscanIndexerAdapter(options: EtherscanIndexerOptions):
     },
   };
 }
+
+/** Config for the standard-RPC Solana indexer (works against any Solana JSON-RPC, e.g. Alchemy). */
+export interface SolanaRpcIndexerOptions {
+  /** Solana JSON-RPC endpoint URL. Dev-supplied (e.g. an Alchemy Solana URL via env) — never hard-coded. */
+  readonly rpcUrl: string;
+  /** Injectable fetch (tests / non-browser). */
+  readonly fetchImpl?: typeof fetch;
+  /**
+   * Max `getTransaction` enrichment calls per page (default 25). Enrichment derives
+   * from/to/value from each tx's pre/post balances; capping bounds the N+1 cost.
+   * Signatures beyond the cap still appear (hash/slot/time/status), just without amounts.
+   */
+  readonly maxEnrich?: number;
+}
+
+interface SolSignature { signature: string; slot: number; blockTime?: number | null; err: unknown }
+interface SolTx {
+  transaction?: { message?: { accountKeys?: Array<string | { pubkey?: string }> } };
+  meta?: { preBalances?: number[]; postBalances?: number[] } | null;
+}
+
+/**
+ * A real **Solana** transaction-history indexer over standard JSON-RPC
+ * (`getSignaturesForAddress` + `getTransaction`), so it works against ANY Solana
+ * RPC provider (Alchemy, etc.) — no Helius-specific API needed. Each signature is
+ * enriched with the address's native-SOL delta (from pre/post balances) to fill
+ * from/to/value (best-effort counterparty); status comes from the tx error. The
+ * RPC URL is dev-supplied (template-standard — nothing hard-coded).
+ */
+export function createSolanaRpcIndexerAdapter(options: SolanaRpcIndexerOptions): IndexerAdapter {
+  const doFetch = options.fetchImpl ?? (globalThis.fetch as typeof fetch | undefined);
+  const maxEnrich = options.maxEnrich ?? 25;
+
+  async function rpc<T>(method: string, params: unknown[]): Promise<T> {
+    if (typeof doFetch !== 'function') throw new Error('Solana indexer: no fetch available; pass options.fetchImpl');
+    const res = await doFetch(options.rpcUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ jsonrpc: '2.0', id: 1, method, params }),
+    });
+    if (!res.ok) throw new Error('Solana indexer HTTP ' + res.status);
+    const json = await res.json() as { result?: T; error?: { message?: string } };
+    if (json.error) throw new Error('Solana RPC error: ' + (json.error.message ?? 'unknown'));
+    return json.result as T;
+  }
+
+  /** Address native delta + best-effort counterparty from a tx's pre/post balances. */
+  function deriveTransfer(tx: SolTx, address: string): { from: string; to: string; value: bigint } {
+    const keysRaw = tx.transaction?.message?.accountKeys ?? [];
+    const keys = keysRaw.map((k) => (typeof k === 'string' ? k : k.pubkey ?? '')).filter((k): k is string => k.length > 0);
+    const pre = tx.meta?.preBalances ?? [];
+    const post = tx.meta?.postBalances ?? [];
+    const idx = keys.indexOf(address);
+    if (idx < 0 || pre.length === 0) return { from: '', to: '', value: 0n };
+    const delta = BigInt(post[idx] ?? 0) - BigInt(pre[idx] ?? 0);
+    const value = delta < 0n ? -delta : delta;
+    let best = -1; let bestMag = 0n;
+    for (let i = 0; i < keys.length; i++) {
+      if (i === idx) continue;
+      const d = BigInt(post[i] ?? 0) - BigInt(pre[i] ?? 0);
+      const opposite = (delta < 0n && d > 0n) || (delta > 0n && d < 0n);
+      if (!opposite) continue;
+      const m = d < 0n ? -d : d;
+      if (m > bestMag) { bestMag = m; best = i; }
+    }
+    const counterparty = best >= 0 ? keys[best]! : '';
+    return delta < 0n ? { from: address, to: counterparty, value } : { from: counterparty, to: address, value };
+  }
+
+  async function page(address: string, opts?: GetTransactionsOptions): Promise<TransactionPage> {
+    const limit = opts?.limit ?? 25;
+    const sigParams: Record<string, unknown> = { limit };
+    if (opts?.cursor) sigParams.before = opts.cursor; // Solana paginates by signature, not page number
+    const sigs = await rpc<SolSignature[]>('getSignaturesForAddress', [address, sigParams]);
+    if (!Array.isArray(sigs) || sigs.length === 0) return { records: [] };
+
+    const records: TransactionRecord[] = [];
+    let enriched = 0;
+    for (const s of sigs) {
+      let from = ''; let to = ''; let value = 0n;
+      if (enriched < maxEnrich) {
+        enriched++;
+        const tx = await rpc<SolTx | null>('getTransaction', [s.signature, { maxSupportedTransactionVersion: 0, encoding: 'jsonParsed' }]).catch(() => null);
+        if (tx) ({ from, to, value } = deriveTransfer(tx, address));
+      }
+      records.push({
+        hash: s.signature,
+        blockNumber: BigInt(s.slot ?? 0),
+        timestamp: s.blockTime ?? 0,
+        from,
+        to,
+        value,
+        status: s.err ? 'failed' : 'success',
+        extra: { slot: s.slot },
+      });
+    }
+    // A full page implies more may exist; the cursor is the last signature (for `before`).
+    const nextCursor = sigs.length === limit ? sigs[sigs.length - 1]!.signature : undefined;
+    return nextCursor ? { records, nextCursor } : { records };
+  }
+
+  return {
+    async getTransactions(_chain, address, opts) { return (await page(address, opts)).records; },
+    async getTransactionsPage(_chain, address, opts) { return page(address, opts); },
+  };
+}

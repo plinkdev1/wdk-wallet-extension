@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { createMockIndexerAdapter, createEtherscanIndexerAdapter, type TransactionRecord } from './indexer.js';
+import { createMockIndexerAdapter, createEtherscanIndexerAdapter, createSolanaRpcIndexerAdapter, type TransactionRecord } from './indexer.js';
 
 const SAMPLE_TX: TransactionRecord = {
   hash: '0xabc',
@@ -95,6 +95,89 @@ describe('indexer adapter', () => {
       expect(p2.records).toHaveLength(1);
       expect(p2.nextCursor).toBeUndefined(); // partial page → end
       expect(new URL(spy.mock.calls.at(-1)![0]).searchParams.get('page')).toBe('2');
+    });
+  });
+
+  describe('createSolanaRpcIndexerAdapter (Solana, standard JSON-RPC — no Helius)', () => {
+    const ADDR = 'Owner1111111111111111111111111111111111111';
+    const CP = 'Peer22222222222222222222222222222222222222';
+
+    // sigAAA: success; sigBBB: failed (err set).
+    const SIGS = [
+      { signature: 'sigAAA', slot: 250000001, blockTime: 1700000000, err: null },
+      { signature: 'sigBBB', slot: 250000000, blockTime: 1699999000, err: { InstructionError: [0, 'Custom'] } },
+    ];
+    // sigAAA: owner sends 200 lamports to peer (owner delta −200, peer +200).
+    const TX_AAA = {
+      transaction: { message: { accountKeys: [ADDR, CP] } },
+      meta: { preBalances: [1000, 500], postBalances: [800, 700] },
+    };
+
+    /** A mock fetch that dispatches by JSON-RPC method in the POST body. */
+    function rpcMock(sigs: typeof SIGS = SIGS) {
+      return vi.fn(async (_url: string, init?: { body?: string }) => {
+        const req = JSON.parse(init?.body ?? '{}') as { method: string; params: unknown[] };
+        if (req.method === 'getSignaturesForAddress') {
+          return new Response(JSON.stringify({ jsonrpc: '2.0', id: 1, result: sigs }), { status: 200 });
+        }
+        if (req.method === 'getTransaction') {
+          const sig = req.params[0] as string;
+          return new Response(JSON.stringify({ jsonrpc: '2.0', id: 1, result: sig === 'sigAAA' ? TX_AAA : null }), { status: 200 });
+        }
+        return new Response(JSON.stringify({ jsonrpc: '2.0', id: 1, error: { message: 'unexpected ' + req.method } }), { status: 200 });
+      });
+    }
+    const bodyOf = (call: unknown[]) => JSON.parse((call[1] as { body: string }).body) as { method: string; params: unknown[] };
+
+    it('maps signatures → records, derives transfer from pre/post balances, reads status from err', async () => {
+      const adapter = createSolanaRpcIndexerAdapter({ rpcUrl: 'https://sol.example/rpc', fetchImpl: rpcMock() as unknown as typeof fetch });
+      const txs = await adapter.getTransactions('solana-mainnet', ADDR);
+
+      expect(txs).toHaveLength(2);
+      expect(txs[0]).toMatchObject({ hash: 'sigAAA', blockNumber: 250000001n, timestamp: 1700000000, from: ADDR, to: CP, value: 200n, status: 'success' });
+      expect(txs[0]!.extra).toMatchObject({ slot: 250000001 });
+      // err set → failed; getTransaction returns null → no transfer derived.
+      expect(txs[1]).toMatchObject({ hash: 'sigBBB', status: 'failed', from: '', to: '', value: 0n });
+    });
+
+    it('requests getSignaturesForAddress(address, { limit }) then one getTransaction per signature', async () => {
+      const spy = rpcMock();
+      const adapter = createSolanaRpcIndexerAdapter({ rpcUrl: 'https://sol.example/rpc', fetchImpl: spy as unknown as typeof fetch });
+      await adapter.getTransactions('solana-mainnet', ADDR, { limit: 5 });
+
+      const sigReq = bodyOf(spy.mock.calls.find((c) => bodyOf(c).method === 'getSignaturesForAddress')!);
+      expect(sigReq.params[0]).toBe(ADDR);
+      expect(sigReq.params[1]).toMatchObject({ limit: 5 });
+      expect(spy.mock.calls.filter((c) => bodyOf(c).method === 'getTransaction')).toHaveLength(2);
+    });
+
+    it('respects maxEnrich: signatures beyond the cap appear without amounts', async () => {
+      const spy = rpcMock();
+      const adapter = createSolanaRpcIndexerAdapter({ rpcUrl: 'https://sol.example/rpc', fetchImpl: spy as unknown as typeof fetch, maxEnrich: 1 });
+      const txs = await adapter.getTransactions('solana-mainnet', ADDR);
+
+      expect(txs[0]!.value).toBe(200n);                               // enriched
+      expect(txs[1]).toMatchObject({ from: '', to: '', value: 0n });  // beyond cap
+      expect(spy.mock.calls.filter((c) => bodyOf(c).method === 'getTransaction')).toHaveLength(1);
+    });
+
+    it('paginates: a full page yields nextCursor = last signature, passed as `before`', async () => {
+      const spy = rpcMock();
+      const adapter = createSolanaRpcIndexerAdapter({ rpcUrl: 'https://sol.example/rpc', fetchImpl: spy as unknown as typeof fetch });
+
+      const p1 = await adapter.getTransactionsPage!('solana-mainnet', ADDR, { limit: 2 });
+      expect(p1.records).toHaveLength(2);
+      expect(p1.nextCursor).toBe('sigBBB'); // last signature, for the `before` cursor
+
+      await adapter.getTransactionsPage!('solana-mainnet', ADDR, { limit: 2, cursor: 'sigBBB' });
+      const lastSig = spy.mock.calls.filter((c) => bodyOf(c).method === 'getSignaturesForAddress').at(-1)!;
+      expect((bodyOf(lastSig).params[1] as Record<string, unknown>)).toMatchObject({ before: 'sigBBB' });
+    });
+
+    it('surfaces RPC errors', async () => {
+      const fetchImpl = vi.fn(async () => new Response(JSON.stringify({ error: { message: 'rate limited' } }), { status: 200 })) as unknown as typeof fetch;
+      const adapter = createSolanaRpcIndexerAdapter({ rpcUrl: 'https://sol.example/rpc', fetchImpl });
+      await expect(adapter.getTransactions('solana-mainnet', ADDR)).rejects.toThrow(/rate limited/);
     });
   });
 });
