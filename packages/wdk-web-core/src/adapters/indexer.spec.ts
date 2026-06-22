@@ -34,6 +34,32 @@ describe('indexer adapter', () => {
       expect(txs).toEqual([SAMPLE_TX]);
       expect(handler).toHaveBeenCalledWith('plasma-mainnet', '0xfoo', { limit: 10, fromBlock: 100n });
     });
+
+    describe('enforces request filters on the fixed set (B-10)', () => {
+      // newest-first, like the real adapters
+      const fixed: TransactionRecord[] = [30n, 20n, 10n].map((b) => ({ ...SAMPLE_TX, hash: '0x' + b, blockNumber: b }));
+      const adapter = createMockIndexerAdapter({ fixedTransactions: fixed });
+
+      it('truncates to `limit`', async () => {
+        const txs = await adapter.getTransactions('ethereum', '0xabc', { limit: 2 });
+        expect(txs.map((t) => t.blockNumber)).toEqual([30n, 20n]);
+      });
+
+      it('windows by fromBlock/toBlock (inclusive)', async () => {
+        const txs = await adapter.getTransactions('ethereum', '0xabc', { fromBlock: 10n, toBlock: 20n });
+        expect(txs.map((t) => t.blockNumber)).toEqual([20n, 10n]);
+      });
+
+      it('applies window then limit together', async () => {
+        const txs = await adapter.getTransactions('ethereum', '0xabc', { fromBlock: 10n, limit: 1 });
+        expect(txs.map((t) => t.blockNumber)).toEqual([30n]); // >=10 keeps all, limit takes the newest
+      });
+
+      it('returns the full set when no filters are given', async () => {
+        const txs = await adapter.getTransactions('ethereum', '0xabc');
+        expect(txs).toHaveLength(3);
+      });
+    });
   });
 
   describe('createEtherscanIndexerAdapter (B-2)', () => {

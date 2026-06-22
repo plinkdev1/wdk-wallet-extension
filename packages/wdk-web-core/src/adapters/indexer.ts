@@ -94,14 +94,34 @@ export interface MockIndexerAdapterOptions {
   ) => Promise<readonly TransactionRecord[]> | readonly TransactionRecord[];
 }
 
+/**
+ * Apply the request filters to a fixed record set (B-10). A real indexer honors
+ * `fromBlock`/`toBlock`/`limit`; the mock must too, so fixture-driven tests see
+ * the same windowing/truncation behavior as production. Records are assumed
+ * newest-first (descending blockNumber), matching the real adapters.
+ */
+function applyIndexerFilters(
+  txs: readonly TransactionRecord[],
+  opts?: GetTransactionsOptions,
+): TransactionRecord[] {
+  let out = txs.slice();
+  if (opts?.fromBlock !== undefined) out = out.filter((t) => t.blockNumber >= opts.fromBlock!);
+  if (opts?.toBlock !== undefined) out = out.filter((t) => t.blockNumber <= opts.toBlock!);
+  if (opts?.limit !== undefined) out = out.slice(0, Math.max(0, opts.limit));
+  return out;
+}
+
 /** In-memory mock indexer. No network. */
 export function createMockIndexerAdapter(options: MockIndexerAdapterOptions = {}): IndexerAdapter {
   return {
     async getTransactions(chain, address, opts) {
       if (options.onGetTransactions) {
+        // Custom fixture: the handler owns its own filtering.
         return options.onGetTransactions(chain, address, opts);
       }
-      return options.fixedTransactions ?? [];
+      // Fixed fixture: enforce the request filters so the mock matches a real
+      // indexer's windowing/limit behavior (B-10).
+      return applyIndexerFilters(options.fixedTransactions ?? [], opts);
     },
   };
 }
