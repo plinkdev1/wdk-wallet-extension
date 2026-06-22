@@ -27,7 +27,7 @@
     <text x="100" y="60" font-size="25" font-weight="700" fill="#F6F1EC" letter-spacing="0.4">WDK Wallet</text>
     <text x="100" y="79" font-size="13" fill="#DBCFC5" letter-spacing="0.6">Self-custodial multi-chain wallet · built on Tether WDK</text>
 
-    <rect x="1028" y="44" width="204" height="34" rx="17" fill="#1c140f" stroke="#ffffff24"/>
+    <rect x="1028" y="44" width="204" height="34" rx="17" fill="#1c140f" stroke="#ffffff" stroke-opacity="0.141"/>
     <rect x="1046" y="55" width="16" height="12" rx="2" fill="none" stroke="#F8763F" stroke-width="2"/>
     <line x1="1058" y1="55" x2="1058" y2="67" stroke="#F8763F" stroke-width="2"/>
     <text x="1074" y="65" font-size="13" font-weight="600" fill="#F6F1EC">Side panel · MV3</text>
@@ -35,12 +35,12 @@
 
   <!-- ============ browser window (the dApp / page) ============ -->
   <g>
-    <rect x="48" y="128" width="788" height="556" rx="16" fill="url(#gBrowser)" stroke="#ffffff14"/>
+    <rect x="48" y="128" width="788" height="556" rx="16" fill="url(#gBrowser)" stroke="#ffffff" stroke-opacity="0.078"/>
     <!-- title bar -->
     <circle cx="74" cy="154" r="6" fill="#ff5f57"/>
     <circle cx="94" cy="154" r="6" fill="#febc2e"/>
     <circle cx="114" cy="154" r="6" fill="#28c840"/>
-    <rect x="150" y="142" width="392" height="24" rx="12" fill="#ffffff0d" stroke="#ffffff14"/>
+    <rect x="150" y="142" width="392" height="24" rx="12" fill="#ffffff" fill-opacity="0.051" stroke="#ffffff" stroke-opacity="0.078"/>
     <rect x="166" y="149" width="9" height="7" rx="1.5" fill="none" stroke="#B8B2D4" stroke-width="1.4"/>
     <path d="M168 149 a3 3 0 0 1 5 0" fill="none" stroke="#B8B2D4" stroke-width="1.4"/>
     <text x="184" y="159" font-size="12" fill="#CFCAE6">app.exampledex.eth</text>
@@ -48,7 +48,7 @@
     <rect x="688" y="142" width="132" height="24" rx="12" fill="#14301f" stroke="#1f5f3f"/>
     <circle cx="701" cy="154" r="4" fill="#3FB950"/>
     <text x="712" y="159" font-size="11" fill="#7EE2A4" font-family="ui-monospace, 'SF Mono', Menlo, monospace">0xf39F…2266</text>
-    <line x1="48" y1="180" x2="836" y2="180" stroke="#ffffff10"/>
+    <line x1="48" y1="180" x2="836" y2="180" stroke="#ffffff" stroke-opacity="0.063"/>
 
     <!-- dApp brand -->
     <path d="M70 206 l9 9 -9 9 -9 -9 z" fill="#7C6BE6"/>
@@ -56,31 +56,38 @@
     <text x="92" y="240" font-size="11.5" fill="#B8B2D4">A WDK-connected decentralized exchange</text>
 
     <!-- swap card -->
-    <rect x="286" y="270" width="312" height="360" rx="20" fill="#1b1726" stroke="#ffffff14"/>
+    <rect x="286" y="270" width="312" height="360" rx="20" fill="#1b1726" stroke="#ffffff" stroke-opacity="0.078"/>
     <text x="312" y="308" font-size="17" font-weight="700" fill="#E8E6F0">Swap</text>
     <circle cx="566" cy="302" r="11" fill="none" stroke="#B8B2D4" stroke-width="1.6"/>
     <circle cx="566" cy="302" r="2.4" fill="#B8B2D4"/>
 
     <!-- you pay -->
-    <rect x="312" y="326" width="260" height="84" rx="14" fill="#ffffff08"/>
+    <rect x="312" y="326" width="260" height="84" rx="14" fill="#ffffff" fill-opacity="0.031"/>
     <text x="330" y="352" font-size="11.5" fill="#CFCAE6">You pay</text>
     <text x="330" y="388" font-size="25" font-weight="700" fill="#F4F2FA">1,000</text>
-    <rect x="486" y="350" width="72" height="36" rx="18" fill="#ffffff12"/>
-    <circle cx="505" cy="368" r="10" fill="#2775CA"/>
-    <text x="505" y="372" font-size="9" font-weight="700" fill="#fff" text-anchor="middle">$</text>
+    <rect x="486" y="350" width="72" height="36" rx="18" fill="#ffffff" fill-opacity="0.071"/>
+    <svg x="495" y="358" width="20" height="20" viewBox="0 0 24 24"><path fill="#0B53BF" d="M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18"/>
+    <path fill="#fff" d="M13.62 5.45v1.159a5.64 5.64 0 0 1 4.005 5.394 5.64 5.64 0 0 1-4.005 5.394v1.16a6.74 6.74 0 0 0 5.13-6.554 6.74 6.74 0 0 0-5.13-6.553m-7.245 6.553a5.64 5.64 0 0 1 4.005-5.394V5.45a6.74 6.74 0 0 0-5.13 6.553 6.74 6.74 0 0 0 5.13 6.553v-1.159a5.63 5.63 0 0 1-4.005-5.394"/>
+    <path fill="#fff" d="M14.419 13.258c0-2.301-3.606-1.356-3.606-2.627 0-.456.366-.748 1.063-.748.833 0 1.12.405 1.21.95h1.147c-.102-1.024-.69-1.67-1.67-1.863v-.904h-1.125v.872c-1.075.137-1.75.762-1.75 1.693 0 2.312 3.611 1.445 3.611 2.694 0 .472-.455.787-1.226.787-1.007 0-1.339-.444-1.462-1.057H9.49c.073 1.122.764 1.823 1.947 1.999v.886h1.125v-.875c1.153-.149 1.856-.82 1.856-1.807"/></svg>
     <text x="520" y="372" font-size="12.5" font-weight="600" fill="#E8E6F0">USDC</text>
 
     <!-- swap arrow -->
-    <circle cx="442" cy="424" r="19" fill="#14111c" stroke="#ffffff1f"/>
+    <circle cx="442" cy="424" r="19" fill="#14111c" stroke="#ffffff" stroke-opacity="0.122"/>
     <path d="M442 414 v18 M435 425 l7 8 7 -8" fill="none" stroke="#C9C4E6" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
 
     <!-- you receive -->
-    <rect x="312" y="438" width="260" height="84" rx="14" fill="#ffffff08"/>
+    <rect x="312" y="438" width="260" height="84" rx="14" fill="#ffffff" fill-opacity="0.031"/>
     <text x="330" y="464" font-size="11.5" fill="#CFCAE6">You receive</text>
     <text x="330" y="500" font-size="25" font-weight="700" fill="#F4F2FA">0.3192</text>
-    <rect x="486" y="462" width="72" height="36" rx="18" fill="#ffffff12"/>
-    <circle cx="505" cy="480" r="10" fill="#627EEA"/>
-    <path d="M505 473 l5 7 -5 3 -5 -3 z M505 489 l5 -6 -5 3 -5 -3 z" fill="#fff"/>
+    <rect x="486" y="462" width="72" height="36" rx="18" fill="#ffffff" fill-opacity="0.071"/>
+    <svg x="495" y="470" width="20" height="20" viewBox="0 0 24 24"><path fill="#8FFCF3" d="M12 3v6.65l5.625 2.516z"/>
+    <path fill="#CABCF8" d="m12 3-5.625 9.166L12 9.651z"/>
+    <path fill="#CBA7F5" d="M12 16.477v4.522l5.625-7.784z"/>
+    <path fill="#74A0F3" d="M12 21v-4.523l-5.625-3.262z"/>
+    <path fill="#CBA7F5" d="m12 15.43 5.625-3.263L12 9.65z"/>
+    <path fill="#74A0F3" d="M6.375 12.167 12 15.429V9.651z"/>
+    <path fill="#202699" fill-rule="evenodd" d="m12 15.429-5.625-3.263L12 3l5.625 9.166zM6.749 11.9l5.16-8.41v6.115zm-.077.23 5.238-2.327v5.364zm5.418-2.327v5.364l5.233-3.038zm0-.198 5.16 2.295-5.16-8.41z" clip-rule="evenodd"/>
+    <path fill="#202699" fill-rule="evenodd" d="M12 16.406 6.375 13.21 12 21l5.625-7.79zm-4.995-2.633 4.905 2.79v4.005zm5.085 2.79v4.005l4.905-6.795z" clip-rule="evenodd"/></svg>
     <text x="524" y="484" font-size="12.5" font-weight="600" fill="#E8E6F0">ETH</text>
 
     <!-- swap button + rate -->
@@ -91,13 +98,20 @@
 
   <!-- ============ docked side panel (the wallet) ============ -->
   <g>
-    <rect x="856" y="112" width="376" height="588" rx="18" fill="url(#gPanel)" stroke="#ffffff16"/>
+    <rect x="856" y="112" width="376" height="588" rx="18" fill="url(#gPanel)" stroke="#ffffff" stroke-opacity="0.086"/>
     <!-- dock accent edge -->
     <rect x="856" y="124" width="4" height="564" rx="2" fill="url(#gOrange)" opacity="0.85"/>
 
     <!-- header: chain pill / gear / lock -->
-    <rect x="880" y="138" width="212" height="38" rx="19" fill="#0e0a07" stroke="#ffffff1f"/>
-    <path d="M903 150 l8 8 -8 8 -8 -8 z" fill="#627EEA"/>
+    <rect x="880" y="138" width="212" height="38" rx="19" fill="#0e0a07" stroke="#ffffff" stroke-opacity="0.122"/>
+    <svg x="895" y="150" width="16" height="16" viewBox="0 0 24 24"><path fill="#8FFCF3" d="M12 3v6.65l5.625 2.516z"/>
+    <path fill="#CABCF8" d="m12 3-5.625 9.166L12 9.651z"/>
+    <path fill="#CBA7F5" d="M12 16.477v4.522l5.625-7.784z"/>
+    <path fill="#74A0F3" d="M12 21v-4.523l-5.625-3.262z"/>
+    <path fill="#CBA7F5" d="m12 15.43 5.625-3.263L12 9.65z"/>
+    <path fill="#74A0F3" d="M6.375 12.167 12 15.429V9.651z"/>
+    <path fill="#202699" fill-rule="evenodd" d="m12 15.429-5.625-3.263L12 3l5.625 9.166zM6.749 11.9l5.16-8.41v6.115zm-.077.23 5.238-2.327v5.364zm5.418-2.327v5.364l5.233-3.038zm0-.198 5.16 2.295-5.16-8.41z" clip-rule="evenodd"/>
+    <path fill="#202699" fill-rule="evenodd" d="M12 16.406 6.375 13.21 12 21l5.625-7.79zm-4.995-2.633 4.905 2.79v4.005zm5.085 2.79v4.005l4.905-6.795z" clip-rule="evenodd"/></svg>
     <text x="922" y="162" font-size="13" font-weight="600" fill="#F6F1EC">Ethereum Mainnet</text>
     <path d="M1066 156 l6 7 6 -7" fill="none" stroke="#EFE6DE" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
     <circle cx="1118" cy="157" r="8" fill="none" stroke="#EFE6DE" stroke-width="1.8"/>
@@ -107,7 +121,7 @@
     <text x="1176" y="162" font-size="13" font-weight="600" fill="#F6F1EC">Lock</text>
 
     <!-- balance card -->
-    <rect x="876" y="196" width="336" height="156" rx="16" fill="#221a15" stroke="#ffffff0f"/>
+    <rect x="876" y="196" width="336" height="156" rx="16" fill="#221a15" stroke="#ffffff" stroke-opacity="0.059"/>
     <rect x="876" y="208" width="4" height="132" rx="2" fill="url(#gOrange)" opacity="0.8"/>
     <text x="904" y="234" font-size="14" fill="#EFE6DE">Balance</text>
     <text x="904" y="286" font-size="34" font-weight="700" fill="#F6F1EC">$4,812.50</text>
@@ -117,45 +131,44 @@
     <text x="1132" y="281" font-size="12.5" font-weight="600" fill="#5BD98A">2.34%</text>
 
     <!-- account card -->
-    <rect x="876" y="372" width="336" height="104" rx="16" fill="#1e1712" stroke="#ffffff0f"/>
+    <rect x="876" y="372" width="336" height="104" rx="16" fill="#1e1712" stroke="#ffffff" stroke-opacity="0.059"/>
     <text x="904" y="404" font-size="14" fill="#EFE6DE">Account</text>
-    <rect x="904" y="418" width="200" height="40" rx="10" fill="#0e0a07" stroke="#ffffff12"/>
+    <rect x="904" y="418" width="200" height="40" rx="10" fill="#0e0a07" stroke="#ffffff" stroke-opacity="0.071"/>
     <text x="920" y="443" font-size="15" fill="#F6F1EC" font-family="ui-monospace, 'SF Mono', Menlo, monospace">0xf39F…2266</text>
-    <rect x="1116" y="418" width="80" height="40" rx="10" fill="#33271f" stroke="#ffffff1f"/>
+    <rect x="1116" y="418" width="80" height="40" rx="10" fill="#33271f" stroke="#ffffff" stroke-opacity="0.122"/>
     <text x="1156" y="443" font-size="13" font-weight="600" fill="#F6F1EC" text-anchor="middle">Copy</text>
 
     <!-- send / receive -->
     <rect x="876" y="496" width="160" height="52" rx="12" fill="url(#gOrange)"/>
     <text x="956" y="529" font-size="17" font-weight="700" fill="#1a0f08" text-anchor="middle">Send</text>
-    <rect x="1052" y="496" width="160" height="52" rx="12" fill="#33271f" stroke="#ffffff1f"/>
+    <rect x="1052" y="496" width="160" height="52" rx="12" fill="#33271f" stroke="#ffffff" stroke-opacity="0.122"/>
     <text x="1132" y="529" font-size="17" font-weight="600" fill="#F6F1EC" text-anchor="middle">Receive</text>
 
     <!-- token row -->
-    <rect x="876" y="566" width="336" height="58" rx="12" fill="#1c140f" stroke="#ffffff0d"/>
-    <circle cx="906" cy="595" r="16" fill="#26A17B"/>
-    <text x="906" y="601" font-size="15" font-weight="700" fill="#fff" text-anchor="middle">T</text>
+    <rect x="876" y="566" width="336" height="58" rx="12" fill="#1c140f" stroke="#ffffff" stroke-opacity="0.051"/>
+    <svg x="890" y="579" width="32" height="32" viewBox="0 0 24 24"><path fill="#009393" d="m12 19.2-9-8.88L6.433 4.8h11.134L21 10.32zm.9-8.1v-1.098c1.62.08 3.132.396 3.6.805-.544.477-2.493.824-4.5.824s-3.956-.347-4.5-.824c.463-.41 1.98-.72 3.6-.81V11.1zm-5.4-.297v.661c.463.41 1.975.72 3.6.81V14.7h1.8v-2.43c1.62-.081 3.136-.396 3.6-.806v-1.318c-.464-.41-1.98-.725-3.6-.81V8.4h2.7V7.05H8.4V8.4h2.7v.936c-1.625.085-3.137.4-3.6.81z"/></svg>
     <text x="936" y="590" font-size="14" font-weight="600" fill="#F6F1EC">USDt</text>
     <text x="936" y="609" font-size="11" fill="#DBCFC5">Tether USD</text>
     <text x="1188" y="591" font-size="14.5" font-weight="600" fill="#F6F1EC" text-anchor="end">1,250.00</text>
     <text x="1188" y="609" font-size="11" fill="#DBCFC5" text-anchor="end">$1,250.00</text>
 
     <!-- connected dapp row -->
-    <rect x="876" y="642" width="336" height="42" rx="12" fill="#1c140f" stroke="#ffffff0d"/>
+    <rect x="876" y="642" width="336" height="42" rx="12" fill="#1c140f" stroke="#ffffff" stroke-opacity="0.051"/>
     <circle cx="900" cy="663" r="4" fill="#3FB950"/>
     <text x="916" y="668" font-size="12.5" fill="#DBCFC5">Connected · app.exampledex.eth</text>
   </g>
 
   <!-- ============ caption chips ============ -->
   <g>
-    <rect x="196" y="714" width="262" height="38" rx="19" fill="#ffffff08" stroke="#ffffff14"/>
+    <rect x="196" y="714" width="262" height="38" rx="19" fill="#ffffff" fill-opacity="0.031" stroke="#ffffff" stroke-opacity="0.078"/>
     <circle cx="218" cy="733" r="4" fill="#F8763F"/>
     <text x="232" y="738" font-size="13.5" fill="#D9CEC6">Persistent while you browse</text>
 
-    <rect x="478" y="714" width="226" height="38" rx="19" fill="#ffffff08" stroke="#ffffff14"/>
+    <rect x="478" y="714" width="226" height="38" rx="19" fill="#ffffff" fill-opacity="0.031" stroke="#ffffff" stroke-opacity="0.078"/>
     <circle cx="500" cy="733" r="4" fill="#F8763F"/>
     <text x="514" y="738" font-size="13.5" fill="#D9CEC6">Same app as the popup</text>
 
-    <rect x="724" y="714" width="360" height="38" rx="19" fill="#ffffff08" stroke="#ffffff14"/>
+    <rect x="724" y="714" width="360" height="38" rx="19" fill="#ffffff" fill-opacity="0.031" stroke="#ffffff" stroke-opacity="0.078"/>
     <circle cx="746" cy="733" r="4" fill="#F8763F"/>
     <text x="760" y="738" font-size="13.5" fill="#D9CEC6">Right-click the icon → Open in side panel</text>
   </g>
