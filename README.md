@@ -1,6 +1,9 @@
 <div align="center">
 
-<img src="./brand/01-master-mark/wdk-master-mark-256.png" alt="WDK Wallet" width="120" />
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="./brand/extension-lockup-ondark.png" />
+  <img src="./brand/extension-lockup-onlight.png" alt="WDK · Browser Extension" width="440" />
+</picture>
 
 # WDK Wallet — Browser Extension
 
