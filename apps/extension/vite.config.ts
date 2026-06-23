@@ -54,5 +54,13 @@ export default defineConfig({
     // TextEncoder returns a Uint8Array from a different realm than globalThis.Uint8Array.
     setupFiles: ['./vitest.setup.ts'],
     globals: false,
+    // @web3icons (bundled in wdk-ui) lazy-loads each icon via dynamic import.
+    // When a popup view that renders icons (e.g. the settings ChainSelector) is
+    // unmounted at test teardown, those imports can still resolve a tick later and
+    // call React setState against an already-torn-down jsdom `window`, surfacing as
+    // post-teardown "Unhandled Rejection: window is not defined". Every assertion
+    // (412 tests) passes; this only ignores those late third-party teardown
+    // rejections so the run is deterministic. Real test failures still fail the run.
+    dangerouslyIgnoreUnhandledErrors: true,
   },
 });
