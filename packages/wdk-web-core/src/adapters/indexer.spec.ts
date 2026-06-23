@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { createMockIndexerAdapter, createEtherscanIndexerAdapter, createSolanaRpcIndexerAdapter, type TransactionRecord } from './indexer.js';
+import { createMockIndexerAdapter, createEtherscanIndexerAdapter, createSolanaRpcIndexerAdapter, createTetherIndexerAdapter, createFallbackIndexerAdapter, type TransactionRecord, type IndexerAdapter } from './indexer.js';
 
 const SAMPLE_TX: TransactionRecord = {
   hash: '0xabc',
@@ -204,6 +204,114 @@ describe('indexer adapter', () => {
       const fetchImpl = vi.fn(async () => new Response(JSON.stringify({ error: { message: 'rate limited' } }), { status: 200 })) as unknown as typeof fetch;
       const adapter = createSolanaRpcIndexerAdapter({ rpcUrl: 'https://sol.example/rpc', fetchImpl });
       await expect(adapter.getTransactions('solana-mainnet', ADDR)).rejects.toThrow(/rate limited/);
+    });
+  });
+
+  describe('createTetherIndexerAdapter (PRIMARY)', () => {
+    const respond = (body: unknown) =>
+      vi.fn(async () => new Response(JSON.stringify(body), { status: 200 })) as unknown as typeof fetch;
+
+    it('maps the default {transactions:[…]} shape into TransactionRecords', async () => {
+      const fetchImpl = respond({
+        transactions: [
+          { hash: '0xabc', blockNumber: '18000000', timestamp: 1700000000, from: '0xfrom', to: '0xto', value: '1000000000000000000', status: 'success' },
+        ],
+      });
+      const adapter = createTetherIndexerAdapter({ baseUrl: 'https://idx.tether.example', fetchImpl });
+      const txs = await adapter.getTransactions('ethereum', '0xabc');
+      expect(txs).toEqual([SAMPLE_TX]);
+    });
+
+    it('tolerates field aliases (items / txid / blockHeight / blockTime / amount / isError)', async () => {
+      const fetchImpl = respond({
+        items: [{ txid: '0x9', blockHeight: 42, blockTime: 1699999999, sender: '0xa', recipient: '0xb', amount: '5', isError: '1' }],
+      });
+      const adapter = createTetherIndexerAdapter({ baseUrl: 'https://idx.tether.example', fetchImpl });
+      const txs = await adapter.getTransactions('plasma-mainnet', '0xa');
+      expect(txs[0]).toMatchObject({ hash: '0x9', blockNumber: 42n, timestamp: 1699999999, from: '0xa', to: '0xb', value: 5n, status: 'failed' });
+    });
+
+    it('builds the default REST URL (chain + address + limit) and sends the API key', async () => {
+      const fetchImpl = vi.fn(async (url: string, init?: RequestInit) => {
+        expect(url).toContain('/v1/chains/ethereum/address/0xabc/transactions');
+        expect(new URL(url).searchParams.get('limit')).toBe('10');
+        expect((init?.headers as Record<string, string>).Authorization).toBe('Bearer KEY');
+        return new Response(JSON.stringify({ transactions: [] }), { status: 200 });
+      }) as unknown as typeof fetch;
+      await createTetherIndexerAdapter({ baseUrl: 'https://idx.tether.example/', apiKey: 'KEY', fetchImpl }).getTransactions('ethereum', '0xabc', { limit: 10 });
+      expect(fetchImpl).toHaveBeenCalledOnce();
+    });
+
+    it('surfaces nextCursor for the paged variant', async () => {
+      const fetchImpl = respond({ transactions: [], nextCursor: 'page-2' });
+      const page = await createTetherIndexerAdapter({ baseUrl: 'https://idx.tether.example', fetchImpl }).getTransactionsPage!('ethereum', '0xabc');
+      expect(page.nextCursor).toBe('page-2');
+    });
+
+    it('honors custom buildUrl + mapResponse overrides', async () => {
+      const fetchImpl = vi.fn(async (url: string) => {
+        expect(url).toBe('https://custom.example/q');
+        return new Response('{}', { status: 200 });
+      }) as unknown as typeof fetch;
+      const adapter = createTetherIndexerAdapter({
+        baseUrl: 'https://idx.tether.example',
+        fetchImpl,
+        buildUrl: () => 'https://custom.example/q',
+        mapResponse: () => [SAMPLE_TX],
+      });
+      expect(await adapter.getTransactions('ethereum', '0xabc')).toEqual([SAMPLE_TX]);
+    });
+
+    it('throws on a non-OK HTTP response', async () => {
+      const fetchImpl = vi.fn(async () => new Response('nope', { status: 503 })) as unknown as typeof fetch;
+      await expect(createTetherIndexerAdapter({ baseUrl: 'https://idx.tether.example', fetchImpl }).getTransactions('ethereum', '0xabc')).rejects.toThrow(/HTTP 503/);
+    });
+  });
+
+  describe('createFallbackIndexerAdapter (Tether primary → optional third parties)', () => {
+    const down = (): IndexerAdapter => ({ getTransactions: async () => { throw new Error('indexer unavailable'); } });
+
+    it('returns the primary result without consulting fallbacks', async () => {
+      const secondary = vi.fn(async () => [SAMPLE_TX]);
+      const adapter = createFallbackIndexerAdapter([
+        createMockIndexerAdapter({ fixedTransactions: [SAMPLE_TX] }),
+        createMockIndexerAdapter({ onGetTransactions: secondary }),
+      ]);
+      const txs = await adapter.getTransactions('ethereum', '0xabc');
+      expect(txs).toEqual([SAMPLE_TX]);
+      expect(secondary).not.toHaveBeenCalled();
+    });
+
+    it('falls back to the next adapter when the primary is unavailable (throws)', async () => {
+      const adapter = createFallbackIndexerAdapter([down(), createMockIndexerAdapter({ fixedTransactions: [SAMPLE_TX] })]);
+      expect(await adapter.getTransactions('ethereum', '0xabc')).toEqual([SAMPLE_TX]);
+    });
+
+    it('does NOT fall through on a legitimately-empty success', async () => {
+      const secondary = vi.fn(async () => [SAMPLE_TX]);
+      const adapter = createFallbackIndexerAdapter([
+        createMockIndexerAdapter({ fixedTransactions: [] }),
+        createMockIndexerAdapter({ onGetTransactions: secondary }),
+      ]);
+      expect(await adapter.getTransactions('ethereum', '0xabc')).toEqual([]);
+      expect(secondary).not.toHaveBeenCalled();
+    });
+
+    it('throws an aggregate error when every adapter fails', async () => {
+      const adapter = createFallbackIndexerAdapter([down(), down()]);
+      await expect(adapter.getTransactions('ethereum', '0xabc')).rejects.toThrow(/All indexer adapters failed/);
+    });
+
+    it('exposes getTransactionsPage only when a member supports it, and falls back across pagers', async () => {
+      const noPager = createFallbackIndexerAdapter([createMockIndexerAdapter(), createMockIndexerAdapter()]);
+      expect(noPager.getTransactionsPage).toBeUndefined();
+
+      const tetherDown = createTetherIndexerAdapter({ baseUrl: 'https://idx.tether.example', fetchImpl: (vi.fn(async () => new Response('x', { status: 500 })) as unknown as typeof fetch) });
+      const tetherOk = createTetherIndexerAdapter({ baseUrl: 'https://idx2.tether.example', fetchImpl: (vi.fn(async () => new Response(JSON.stringify({ transactions: [], nextCursor: 'c' }), { status: 200 })) as unknown as typeof fetch) });
+      const withPager = createFallbackIndexerAdapter([tetherDown, tetherOk]);
+      expect(typeof withPager.getTransactionsPage).toBe('function');
+      const page = await withPager.getTransactionsPage!('ethereum', '0xabc');
+      expect(page.nextCursor).toBe('c');
     });
   });
 });

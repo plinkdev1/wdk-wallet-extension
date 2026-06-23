@@ -328,3 +328,194 @@ export function createSolanaRpcIndexerAdapter(options: SolanaRpcIndexerOptions):
     async getTransactionsPage(_chain, address, opts) { return page(address, opts); },
   };
 }
+
+// ─── Tether-hosted indexer (the PRIMARY, per owner decision) ──────────────────
+
+/**
+ * Config for the **Tether-hosted** transaction-history indexer — the primary
+ * history source (owner decision: "focus on the Tether-hosted indexer API,
+ * enable third parties as optional"). Third-party adapters (Etherscan, Solana
+ * RPC) plug in as optional fallbacks via {@link createFallbackIndexerAdapter}.
+ *
+ * The exact endpoint/response shape is deployment-specific and still rolling out
+ * across chains (Plasma indexer support is not universal yet — see
+ * `docs/phase-1` and the `NOBLE-HASHES` note's "confirm against the live
+ * endpoint" discipline). So this adapter is **fully configurable**: the dev
+ * supplies `baseUrl` (never hard-coded — template-standard) and may override
+ * both the request URL builder and the response mapper. The defaults assume a
+ * REST endpoint returning records close to this engine's own
+ * {@link TransactionRecord}, tolerant of common field aliases.
+ */
+export interface TetherIndexerOptions {
+  /** Base URL of the Tether-hosted indexer (dev-supplied). */
+  readonly baseUrl: string;
+  /** Optional API key, sent as `Authorization: Bearer <key>`. */
+  readonly apiKey?: string;
+  /** Injectable fetch (tests / non-browser). */
+  readonly fetchImpl?: typeof fetch;
+  /**
+   * Override the request URL builder. Default:
+   * `${baseUrl}/v1/chains/${chain}/address/${address}/transactions?limit&fromBlock&toBlock&cursor`.
+   */
+  readonly buildUrl?: (
+    baseUrl: string,
+    chain: ChainId,
+    address: string,
+    options?: GetTransactionsOptions,
+  ) => string;
+  /**
+   * Override the response→records mapper. Default tolerates an array at
+   * `transactions` / `items` / `result` (or a top-level array) with field
+   * aliases (`hash|txid|signature`, `blockNumber|blockHeight|slot`,
+   * `timestamp|blockTime`, `value|amount`, `status|isError|err`).
+   */
+  readonly mapResponse?: (json: unknown) => TransactionRecord[];
+}
+
+const asString = (v: unknown): string | undefined =>
+  typeof v === 'string' ? v : typeof v === 'number' || typeof v === 'bigint' ? String(v) : undefined;
+
+const asNumber = (v: unknown): number => {
+  if (typeof v === 'number') return v;
+  if (typeof v === 'bigint') return Number(v);
+  if (typeof v === 'string' && v.trim() !== '' && Number.isFinite(Number(v))) return Number(v);
+  return 0;
+};
+
+const asBigint = (v: unknown): bigint => {
+  try {
+    if (typeof v === 'bigint') return v;
+    if (typeof v === 'number' && Number.isInteger(v)) return BigInt(v);
+    if (typeof v === 'string' && /^\d+$/.test(v.trim())) return BigInt(v.trim());
+  } catch {
+    /* fall through */
+  }
+  return 0n;
+};
+
+function defaultTetherUrl(
+  baseUrl: string,
+  chain: ChainId,
+  address: string,
+  opts?: GetTransactionsOptions,
+): string {
+  const root = baseUrl.replace(/\/+$/, '');
+  const url = new URL(`${root}/v1/chains/${encodeURIComponent(chain)}/address/${encodeURIComponent(address)}/transactions`);
+  if (opts?.limit !== undefined) url.searchParams.set('limit', String(opts.limit));
+  if (opts?.fromBlock !== undefined) url.searchParams.set('fromBlock', String(opts.fromBlock));
+  if (opts?.toBlock !== undefined) url.searchParams.set('toBlock', String(opts.toBlock));
+  if (opts?.cursor) url.searchParams.set('cursor', opts.cursor);
+  return url.toString();
+}
+
+function defaultTetherMap(json: unknown): TransactionRecord[] {
+  const j = json as Record<string, unknown> | unknown[];
+  const arr: unknown[] = Array.isArray(j)
+    ? j
+    : Array.isArray((j as Record<string, unknown>)?.transactions)
+      ? ((j as Record<string, unknown>).transactions as unknown[])
+      : Array.isArray((j as Record<string, unknown>)?.items)
+        ? ((j as Record<string, unknown>).items as unknown[])
+        : Array.isArray((j as Record<string, unknown>)?.result)
+          ? ((j as Record<string, unknown>).result as unknown[])
+          : [];
+  const out: TransactionRecord[] = [];
+  for (const item of arr) {
+    const o = item as Record<string, unknown>;
+    const hash = asString(o.hash ?? o.txid ?? o.txHash ?? o.signature);
+    if (hash === undefined) continue;
+    const statusRaw = o.status ?? o.result;
+    const failed =
+      statusRaw === 'failed' || statusRaw === 0 || statusRaw === '0' || o.isError === '1' || Boolean(o.err);
+    out.push({
+      hash,
+      blockNumber: asBigint(o.blockNumber ?? o.blockHeight ?? o.block ?? o.slot ?? 0),
+      timestamp: asNumber(o.timestamp ?? o.blockTime ?? o.time ?? 0),
+      from: asString(o.from ?? o.sender) ?? '',
+      to: asString(o.to ?? o.recipient) ?? '',
+      value: asBigint(o.value ?? o.amount ?? 0),
+      status: failed ? 'failed' : 'success',
+    });
+  }
+  return out;
+}
+
+/** A configurable HTTP indexer over the Tether-hosted history API (the primary source). */
+export function createTetherIndexerAdapter(options: TetherIndexerOptions): IndexerAdapter {
+  const doFetch = options.fetchImpl ?? (globalThis.fetch as typeof fetch | undefined);
+  const buildUrl = options.buildUrl ?? defaultTetherUrl;
+  const mapResponse = options.mapResponse ?? defaultTetherMap;
+
+  async function fetchPage(chain: ChainId, address: string, opts?: GetTransactionsOptions): Promise<TransactionPage> {
+    if (typeof doFetch !== 'function') throw new Error('Tether indexer: no fetch available; pass options.fetchImpl');
+    const url = buildUrl(options.baseUrl, chain, address, opts);
+    const init: RequestInit = options.apiKey
+      ? { headers: { Authorization: `Bearer ${options.apiKey}` } }
+      : {};
+    const res = await doFetch(url, init);
+    if (!res.ok) throw new Error('Tether indexer HTTP ' + res.status);
+    const json = (await res.json()) as Record<string, unknown>;
+    const records = mapResponse(json);
+    const nextCursor = asString(json?.nextCursor ?? json?.next ?? json?.cursor);
+    return nextCursor !== undefined ? { records, nextCursor } : { records };
+  }
+
+  return {
+    async getTransactions(chain, address, opts) {
+      return (await fetchPage(chain, address, opts)).records;
+    },
+    async getTransactionsPage(chain, address, opts) {
+      return fetchPage(chain, address, opts);
+    },
+  };
+}
+
+// ─── Fallback chain (Tether primary → optional third parties) ─────────────────
+
+/**
+ * Composes several {@link IndexerAdapter}s into one that tries them **in order**
+ * (primary first) and falls back to the next when one is **unavailable** (throws)
+ * — the documented "Tether-hosted indexer primary, third-party/RPC fallback"
+ * strategy. A successful call (even an empty result) stops the chain; it does
+ * not fall through on legitimately-empty history. If every adapter throws, the
+ * combined error is thrown (with the last failure as `cause`).
+ *
+ * `getTransactionsPage` is exposed only when at least one adapter supports it,
+ * and falls back across the page-capable adapters the same way.
+ */
+export function createFallbackIndexerAdapter(adapters: readonly IndexerAdapter[]): IndexerAdapter {
+  if (adapters.length === 0) {
+    throw new Error('createFallbackIndexerAdapter: at least one adapter is required');
+  }
+
+  async function tryInOrder<T>(label: string, attempts: ReadonlyArray<() => Promise<T>>): Promise<T> {
+    let lastError: unknown;
+    for (const attempt of attempts) {
+      try {
+        return await attempt();
+      } catch (error) {
+        lastError = error;
+      }
+    }
+    throw new Error(`All indexer adapters failed for ${label}`, { cause: lastError });
+  }
+
+  const base: IndexerAdapter = {
+    getTransactions: (chain, address, opts) =>
+      tryInOrder(
+        'getTransactions',
+        adapters.map((a) => () => a.getTransactions(chain, address, opts)),
+      ),
+  };
+
+  const pagers = adapters.filter((a) => typeof a.getTransactionsPage === 'function');
+  if (pagers.length > 0) {
+    base.getTransactionsPage = (chain, address, opts) =>
+      tryInOrder(
+        'getTransactionsPage',
+        pagers.map((a) => () => a.getTransactionsPage!(chain, address, opts)),
+      );
+  }
+
+  return base;
+}

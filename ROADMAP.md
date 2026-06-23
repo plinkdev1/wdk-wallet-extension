@@ -153,6 +153,10 @@ The current build is a production-grade MV3 wallet, not a prototype:
    a pricing adapter alongside the RPC/indexer adapters in `wdk-web-core`.
 3. **Token auto-discovery** — enumerate held ERC-20/SPL tokens via the indexer
    adapter instead of a static registry.
+   - ✅ **Indexer backend shipped** — `createTetherIndexerAdapter` (the
+     Tether-hosted **primary**) + `createFallbackIndexerAdapter` (Tether →
+     optional Etherscan / Solana-RPC fallback chain) in `adapters/indexer.ts`;
+     the live Tether endpoint shape is dev-supplied and to be confirmed.
 4. **Transaction detail view** — per-tx screen (confirmations, fee, raw data).
 
 ## ⏳ Phase 3 — More chains & account abstraction

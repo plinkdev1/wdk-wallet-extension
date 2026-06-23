@@ -9,6 +9,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Tether-hosted indexer + fallback chain (`adapters/indexer.ts`).**
+  `createTetherIndexerAdapter` is the **primary** transaction-history source — a
+  configurable HTTP adapter over a dev-supplied Tether endpoint (never
+  hard-coded), with an overridable URL builder and response mapper; the defaults
+  tolerate common field aliases (`hash|txid|signature`, `blockNumber|blockHeight|slot`,
+  `timestamp|blockTime`, `value|amount`, `status|isError|err`) and `nextCursor`
+  paging. `createFallbackIndexerAdapter([…])` composes the Tether primary with
+  the optional third-party adapters (Etherscan-v2 EVM, Solana-RPC) into one that
+  tries each in order and falls back on **unavailability** (a thrown error) — the
+  documented "Tether-hosted primary, third parties optional / RPC fallback"
+  strategy; a legitimately-empty success does *not* fall through, and the paged
+  variant is exposed only when a member supports it. The exact Tether endpoint
+  shape is deployment-specific and must be confirmed against the live API. +11
+  tests (mocked fetch).
+
 - **Spark / Lightning engine wiring (`protocols/spark.ts`).** On-demand Spark
   manager + worker methods: `account_getSparkAddress`, `account_getSparkBalance`,
   `account_sendSparkTransaction` (recipient guarded via `isSparkAddress`),
