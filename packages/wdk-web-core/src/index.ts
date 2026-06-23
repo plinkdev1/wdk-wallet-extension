@@ -17,5 +17,6 @@ export * from './chains/index.js';
 export * from './eip3009/index.js';
 export * from './worker/index.js';
 export * from './adapters/index.js';
+export * from './payments/index.js';
 export * from './design';
 export * from './storage';

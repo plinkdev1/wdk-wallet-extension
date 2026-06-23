@@ -7,6 +7,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **`payments/` module — address validation + payment-URI parsing.** A
+  framework-agnostic, dependency-light source of truth shared by every WDK
+  surface (extension + template), exported from the package root:
+  - `validateAddress(family, address)` / `detectPaymentFamily(address)` plus
+    per-family checks: EVM (EIP-55), Solana (32-byte base58), Bitcoin
+    (bech32/bech32m segwit + legacy Base58Check, with network), Tron
+    (Base58Check + `0x41`), TON (CRC16-XMODEM friendly + raw), and Spark
+    (`spark1…`, bech32m — recognised ahead of the chain loader).
+  - `parsePaymentUri(input)` for BIP-21 (`bitcoin:`), EIP-681 (`ethereum:`,
+    native value + ERC-20 `transfer`), and BOLT11 (`lightning:` / bare `ln…`),
+    returning a discriminated `ParsedPaymentTarget`.
+  - `decodeBolt11(invoice)` (network + amount→msat + timestamp) and a
+    self-contained bech32/bech32m decoder, so no new runtime dependency is added
+    (reuses `viem`, `bs58`, `Buffer`). Covered by 30 tests over canonical
+    real-world vectors (BIP-173/350, the BOLT #11 spec invoices, the
+    USDT-TRON contract, a TON address, and the Spark validation address).
+
+  This is the first engine unit toward the Lightning/Spark roadmap item (BOLT11
+  is the Lightning invoice format, so it de-risks Spark without touching the
+  blocked SDK bundling) and the basis for the worker send-path recipient guard
+  (next unit).
+
 ## [0.2.0] - 2026-06-22
 
 ### Added

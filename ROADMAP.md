@@ -133,6 +133,14 @@ The current build is a production-grade MV3 wallet, not a prototype:
    > only when the extensionless path fails; (b) a monorepo-wide `@noble/hashes` v2
    > override (risks bitcoinjs-lib's v1 assumptions); or (c) the Bare-worklet path.
    > Reverted cleanly — the 5-chain build stays green.
+   >
+   > **Engine groundwork shipped (`payments/`).** Independent of the bundling
+   > blocker, the shared engine now ships a framework-agnostic payment-target
+   > module — per-family address validation plus **BOLT11** (Lightning), BIP-21,
+   > and EIP-681 parsing (`validateAddress`, `parsePaymentUri`, `decodeBolt11`),
+   > with 30 tests over canonical vectors and **no new runtime dependency**.
+   > BOLT11 decode is exactly what the Lightning send/receive UI consumes, so the
+   > Spark account integration is de-risked the moment the SDK bundles.
 2. **Fiat values** (`@tetherto/wdk-pricing-*`) — show balances and amounts in USD;
    a pricing adapter alongside the RPC/indexer adapters in `wdk-web-core`.
 3. **Token auto-discovery** — enumerate held ERC-20/SPL tokens via the indexer
