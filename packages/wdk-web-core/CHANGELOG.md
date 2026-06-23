@@ -9,6 +9,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Spark / Lightning is now a fully bundled chain family** (the `@noble/hashes`
+  v1↔v2 blocker is resolved). The Spark SDK's hard-pinned `@noble/hashes` v2 used
+  to displace `wdk-wallet-btc`'s v1 (a phantom dependency) and break Bitcoin. Fixed
+  with `pnpm.packageExtensions` in each workspace root — pin
+  `@tetherto/wdk-wallet-btc` → `@noble/hashes@^1.8.0`; Spark keeps v2 and the two
+  coexist. `@tetherto/wdk-wallet-spark` is now a real engine dependency, lazy-loaded
+  via a literal dynamic import (its own chunk), and **both products build with
+  Bitcoin + Spark in one bundle** (crxjs/MV3 and Next.js/webpack, verified end-to-end;
+  engine 220 tests green). See `spark-browser-validation/NOBLE-HASHES-V1-V2-CONFLICT.md` §0.
+
 - **`./payments` subpath export.** `@wdk-starter/wdk-web-core/payments` exposes the
   validators + URI parsers directly, so UIs import `validateAddress` /
   `parsePaymentUri` without pulling the worker/chains barrel. Consumed by the send
