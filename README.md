@@ -28,6 +28,8 @@ This repository is that reference. It is not a toy: it ships a real WebCrypto-en
 
 > **Engineering philosophy:** the wallet is the *product*, but the leverage is the *architecture*. All wallet logic lives in two reusable, framework-agnostic packages (`wdk-web-core` engine + `wdk-ui` component library). The extension is the first surface to consume them; the same packages power the [WDK Template Wallet](https://github.com/plinkdev1/wdk-wallet-template) and other WDK reference products. Build once, ship everywhere.
 
+> **A browser / MV3 port the official SDK doesn't ship.** WDK officially targets Bare / Node / React-Native — the browser and the Manifest V3 service worker are not first-party targets. Viability was proved out first in a dedicated [Phase 0 validation gate](https://github.com/plinkdev1/wdk-phase0-validation): WDK cold-boots inside an MV3 service worker with key state surviving termination, byte-identical derivation, and a documented polyfill recipe — and, as a capstone, even a **Bare-first** WDK module ran in a browser Web Worker. That evidence base is *why* this extension is solid rather than hopeful.
+
 ---
 
 ## Table of contents
