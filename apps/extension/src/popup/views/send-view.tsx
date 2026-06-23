@@ -10,7 +10,8 @@
 
 import { useCallback, useState } from 'react';
 import { Button, Card, Input, Label } from '@wdk-starter/wdk-ui';
-import type { BtcChainId, EvmChainId, SolanaChainId, TonChainId, TronChainId } from '@wdk-starter/wdk-web-core/types';
+import type { BtcChainId, EvmChainId, SolanaChainId, TonChainId, TronChainId, ChainFamily } from '@wdk-starter/wdk-web-core/types';
+import { validateAddress, parsePaymentUri } from '@wdk-starter/wdk-web-core/payments';
 import { send } from '../lib/sw-client.js';
 import { addTransaction } from '../hooks/use-transactions.js';
 import { encodeErc20Transfer } from '../lib/erc20.js';
@@ -29,15 +30,13 @@ export interface SendViewProps {
   readonly onSent?: () => void;
 }
 
-const EVM_ADDRESS = /^0x[0-9a-fA-F]{40}$/;
-const SOLANA_ADDRESS = /^[1-9A-HJ-NP-Za-km-z]{32,44}$/;
-// Bech32 native-segwit (bc1/tb1) or base58 legacy/P2SH. Lenient: the worker
-// validates precisely when building the PSBT.
-const BTC_ADDRESS = /^(bc1|tb1)[0-9ac-hj-np-z]{11,87}$|^[123mn2][a-km-zA-HJ-NP-Z1-9]{25,39}$/;
-// TON: user-friendly base64url (48 chars, e.g. EQ…/UQ…) or raw workchain:hex.
-const TON_ADDRESS = /^[A-Za-z0-9_-]{48}$|^-?\d:[0-9a-fA-F]{64}$/;
-// Tron: base58check, 'T' + 33 chars.
-const TRON_ADDRESS = /^T[1-9A-HJ-NP-Za-km-z]{33}$/;
+/** Formats a base-unit bigint back into a decimal string (for prefilling an amount from a payment URI). */
+function formatBaseToDecimal(base: bigint, decimals: number): string {
+  const divisor = 10n ** BigInt(decimals);
+  const whole = base / divisor;
+  const frac = (base % divisor).toString().padStart(decimals, '0').replace(/0+$/, '');
+  return frac ? `${whole}.${frac}` : whole.toString();
+}
 
 /** Parses a decimal amount into a base-unit bigint with the given decimals. */
 function parseAmount(input: string, decimals: number): bigint {
@@ -65,20 +64,32 @@ export function SendView({ chain, symbol, accountIndex, kind = 'evm', token, onB
   const isBitcoin = kind === 'bitcoin';
   const isTon = kind === 'ton';
   const isTron = kind === 'tron';
+  const family: ChainFamily = isSolana ? 'solana' : isBitcoin ? 'bitcoin' : isTon ? 'ton' : isTron ? 'tron' : 'evm';
+
+  // Paste-aware recipient: a BIP-21 (bitcoin:) or EIP-681 (ethereum:) payment URI
+  // fills the address and, when present, the amount — a scanned/copied request "just works".
+  const onRecipientChange = useCallback((raw: string): void => {
+    const parsed = parsePaymentUri(raw.trim());
+    if (parsed && parsed.scheme === 'bip21' && family === 'bitcoin') {
+      setTo(parsed.address);
+      if (parsed.satoshis !== undefined) setAmount(formatBaseToDecimal(parsed.satoshis, 8));
+      return;
+    }
+    if (parsed && parsed.scheme === 'eip681' && family === 'evm' && !token) {
+      setTo(parsed.address);
+      if (parsed.wei !== undefined) setAmount(formatBaseToDecimal(parsed.wei, 18));
+      return;
+    }
+    setTo(raw);
+  }, [family, token]);
 
   const handleSend = useCallback(async (): Promise<void> => {
     setError(null);
     const decimals = token ? token.decimals : isSolana ? 9 : isBitcoin ? 8 : isTon ? 9 : isTron ? 6 : 18;
     const recipient = to.trim();
-    const addressRe = isSolana ? SOLANA_ADDRESS : isBitcoin ? BTC_ADDRESS : isTon ? TON_ADDRESS : isTron ? TRON_ADDRESS : EVM_ADDRESS;
-    if (!addressRe.test(recipient)) {
-      setError(
-        isSolana ? 'Enter a valid Solana address (base58).'
-          : isBitcoin ? 'Enter a valid Bitcoin address (bech32 or legacy).'
-            : isTon ? 'Enter a valid TON address.'
-              : isTron ? 'Enter a valid Tron address (T…).'
-                : 'Enter a valid recipient address (0x…40 hex).',
-      );
+    const check = validateAddress(family, recipient);
+    if (!check.valid) {
+      setError(check.reason ? `Enter a valid recipient address — ${check.reason}.` : 'Enter a valid recipient address.');
       return;
     }
     let value: bigint;
@@ -117,7 +128,7 @@ export function SendView({ chain, symbol, accountIndex, kind = 'evm', token, onB
       setError(e instanceof Error ? e.message : 'Transaction failed.');
       setPhase({ status: 'form' });
     }
-  }, [to, amount, chain, accountIndex, isSolana, isBitcoin, isTon, isTron, token, symbol, onSent]);
+  }, [to, amount, chain, accountIndex, family, isSolana, isBitcoin, isTon, isTron, token, symbol, onSent]);
 
   return (
     <div style={{ padding: 20, display: 'flex', flexDirection: 'column', gap: 16, flex: 1, fontFamily: 'var(--font-body)', color: 'var(--text-primary)' }}>
@@ -131,7 +142,7 @@ export function SendView({ chain, symbol, accountIndex, kind = 'evm', token, onB
           <div style={{ display: 'flex', flexDirection: 'column', gap: 14, padding: 16 }}>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
               <Label>Recipient address</Label>
-              <Input value={to} onChange={(e) => setTo(e.target.value)} placeholder={isSolana ? 'Base58 address' : isBitcoin ? 'bc1… or legacy address' : isTon ? 'EQ… / UQ… address' : isTron ? 'T… address' : '0x…'} />
+              <Input value={to} onChange={(e) => onRecipientChange(e.target.value)} placeholder={isSolana ? 'Base58 address' : isBitcoin ? 'bc1… or legacy address' : isTon ? 'EQ… / UQ… address' : isTron ? 'T… address' : '0x…'} />
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
               <Label>Amount ({symbol})</Label>

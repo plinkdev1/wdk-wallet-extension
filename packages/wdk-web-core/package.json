@@ -28,6 +28,10 @@
       "types": "./dist/chains/index.d.ts",
       "default": "./dist/chains/index.js"
     },
+    "./payments": {
+      "types": "./dist/payments/index.d.ts",
+      "default": "./dist/payments/index.js"
+    },
     "./worker": {
       "types": "./dist/worker/index.d.ts",
       "default": "./dist/worker/index.js"

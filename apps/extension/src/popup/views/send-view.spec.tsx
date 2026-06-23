@@ -161,4 +161,20 @@ describe('SendView', () => {
         '00000000000000000000000000000000000000000000000000000000000f4240',
     }));
   });
+
+  it('auto-fills recipient + amount from a pasted BIP-21 (bitcoin:) URI', () => {
+    render(<SendView chain="bitcoin-mainnet" symbol="BTC" accountIndex={0} kind="bitcoin" onBack={() => {}} />);
+    const recipient = screen.getByPlaceholderText('bc1… or legacy address') as HTMLInputElement;
+    fireEvent.change(recipient, { target: { value: 'bitcoin:bc1qar0srrr7xfkvy5l643lydnw9re59gtzzwf5mdq?amount=0.001' } });
+    expect(recipient.value).toBe('bc1qar0srrr7xfkvy5l643lydnw9re59gtzzwf5mdq');
+    expect((screen.getByPlaceholderText('0.0') as HTMLInputElement).value).toBe('0.001');
+  });
+
+  it('auto-fills recipient + amount from a pasted EIP-681 (ethereum:) URI', () => {
+    render(<SendView chain="ethereum" symbol="ETH" accountIndex={0} kind="evm" onBack={() => {}} />);
+    const recipient = screen.getByPlaceholderText('0x…') as HTMLInputElement;
+    fireEvent.change(recipient, { target: { value: 'ethereum:0x70997970C51812dc3A010C7d01b50e0d17dc79C8@1?value=1000000000000000000' } });
+    expect(recipient.value).toBe('0x70997970C51812dc3A010C7d01b50e0d17dc79C8');
+    expect((screen.getByPlaceholderText('0.0') as HTMLInputElement).value).toBe('1');
+  });
 });

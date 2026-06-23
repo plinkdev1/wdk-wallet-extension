@@ -174,11 +174,11 @@ export function validateAddress(family: ChainFamily, address: string): AddressVa
     case 'evm':
       return isEvmAddress(address)
         ? { valid: true, family, normalized: getAddress(address) }
-        : { valid: false, family, reason: 'not a valid EVM (0x + 20-byte) address' };
+        : { valid: false, family, reason: 'not a valid EVM address (0x + 20-byte)' };
     case 'solana':
       return isSolanaAddress(address)
         ? { valid: true, family }
-        : { valid: false, family, reason: 'not a 32-byte base58 Solana address' };
+        : { valid: false, family, reason: 'not a valid Solana address (32-byte base58)' };
     case 'bitcoin':
       return isBitcoinAddress(address)
         ? { valid: true, family }
@@ -190,7 +190,7 @@ export function validateAddress(family: ChainFamily, address: string): AddressVa
     case 'tron':
       return isTronAddress(address)
         ? { valid: true, family }
-        : { valid: false, family, reason: 'not a valid Tron (T…) address' };
+        : { valid: false, family, reason: 'not a valid Tron address (T…)' };
   }
 }
 

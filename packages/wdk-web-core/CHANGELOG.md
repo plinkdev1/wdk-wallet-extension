@@ -9,6 +9,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **`./payments` subpath export.** `@wdk-starter/wdk-web-core/payments` exposes the
+  validators + URI parsers directly, so UIs import `validateAddress` /
+  `parsePaymentUri` without pulling the worker/chains barrel. Consumed by the send
+  forms in both products: recipient validation is now the engine's checksum-aware
+  `validateAddress` (replacing lenient per-family regexes), with **BIP-21 / EIP-681
+  paste auto-fill**, and the template's cross-VM bridge signpost uses the engine
+  detector. Validator reason strings normalized to "not a valid {family} address (…)".
+
 - **Pricing adapters + fallback chain (`adapters/pricing.ts`).** Brings USD
   pricing into the adapter pattern (like rpc/indexer): a `PricingAdapter`
   interface with `createBitfinexPricingAdapter` (the Tether/iFinex-aligned
