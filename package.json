@@ -44,6 +44,13 @@
       "ws": ">=8.21.0",
       "rollup": ">=4.62.2",
       "vite": ">=6.4.3 <7"
+    },
+    "packageExtensions": {
+      "@tetherto/wdk-wallet-btc": {
+        "dependencies": {
+          "@noble/hashes": "^1.8.0"
+        }
+      }
     }
   }
 }

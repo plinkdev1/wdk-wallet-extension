@@ -64,15 +64,14 @@ export async function createSparkManager(
 ): Promise<SparkManagerLike> {
   let mod: { default: SparkManagerCtor };
   try {
-    // Optional peer dependency, installed + bundled by the consuming app. The
-    // Spark SDK pins @noble/hashes v2, which conflicts with
-    // @tetherto/wdk-wallet-btc's v1 (the extensionless `@noble/hashes/hmac`) in
-    // a *shared* install — so Spark is deliberately NOT an engine dependency
-    // (see ROADMAP / spark-browser-validation). The non-literal specifier keeps
-    // it out of the engine's dependency graph: tsc does not resolve it and the
-    // engine builds and tests without it present.
-    const sparkPackage = '@tetherto/wdk-wallet-spark';
-    mod = (await import(sparkPackage)) as { default: SparkManagerCtor };
+    // Spark is a real engine dependency that coexists with @tetherto/wdk-wallet-btc:
+    // the workspace pins BTC to @noble/hashes v1 via pnpm.packageExtensions while
+    // the Spark SDK keeps v2 (see spark-browser-validation/NOBLE-HASHES-V1-V2-CONFLICT.md).
+    // A *literal* dynamic import keeps the ~6.4 MB SDK in its own lazy chunk
+    // (F-SPARK-03) while letting the bundler statically split it. On an MV3 service
+    // worker, runtime dynamic import() may still be unavailable — the catch below
+    // surfaces a clear error there (the template / Web-Worker path is unaffected).
+    mod = (await import('@tetherto/wdk-wallet-spark')) as unknown as { default: SparkManagerCtor };
   } catch (cause) {
     throw new Error(IMPORT_ERROR, { cause });
   }
