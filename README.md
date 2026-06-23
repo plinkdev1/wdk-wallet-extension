@@ -234,6 +234,11 @@ It wraps Tether's WDK SDK (`@tetherto/wdk-*`) and provides:
 
 Full API and import paths: [`packages/wdk-web-core/README.md`](./packages/wdk-web-core/README.md).
 
+> **Provenance.** This product didn't start with product code — it started with a
+> proof of concept. WDK's viability in the browser, a Web Worker, and an MV3 service
+> worker was validated first in **[WDK Phase 0](https://github.com/plinkdev1/wdk-phase0-validation)**
+> (9 tests, 12 findings, and the architecture decisions that shaped this repo).
+
 ---
 
 ## Quickstart
