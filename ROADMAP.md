@@ -151,6 +151,9 @@ The current build is a production-grade MV3 wallet, not a prototype:
    > bundler shim.
 2. **Fiat values** (`@tetherto/wdk-pricing-*`) — show balances and amounts in USD;
    a pricing adapter alongside the RPC/indexer adapters in `wdk-web-core`.
+   - ✅ **Pricing adapter shipped** — `PricingAdapter` + Bitfinex (Tether-aligned
+     primary) / CoinGecko sources + `createFallbackPricingAdapter`; the worker's
+     `pricing_getUsdPrice` is now injectable (default CoinGecko, behavior unchanged).
 3. **Token auto-discovery** — enumerate held ERC-20/SPL tokens via the indexer
    adapter instead of a static registry.
    - ✅ **Indexer backend shipped** — `createTetherIndexerAdapter` (the

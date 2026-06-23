@@ -86,7 +86,7 @@ import {
   type X402Requirements,
 } from '../x402.js';
 import type { RpcAdapter, TransactionStatus } from '../adapters/index.js';
-import { CoingeckoPricingClient } from '@tetherto/wdk-pricing-coingecko-http';
+import { createCoingeckoPricingAdapter, type PricingAdapter } from '../adapters/pricing.js';
 import type {
   Base58Address,
   BtcChainId,
@@ -122,6 +122,12 @@ export interface WalletWorkerOptions {
    * Web-Worker host (F-SPARK-03 / F-MV3-04 — see protocols/spark.ts).
    */
   readonly sparkConfig?: SparkManagerConfig;
+  /**
+   * Optional pricing source for `pricing_getUsdPrice`. Defaults to a CoinGecko
+   * adapter over the built-in symbol map; inject a fallback chain (e.g. Bitfinex
+   * → CoinGecko via `createFallbackPricingAdapter`) for resilience.
+   */
+  readonly pricingAdapter?: PricingAdapter;
 }
 
 export interface Erc4337WorkerConfig {
@@ -140,11 +146,8 @@ const COIN_IDS: Record<string, string> = {
   METIS: 'metis-token', BERA: 'berachain-bera', USDT: 'tether', XAUT: 'tether-gold',
 };
 
-let _pricingClient: CoingeckoPricingClient | null = null;
-function getPricingClient(): CoingeckoPricingClient {
-  if (!_pricingClient) _pricingClient = new CoingeckoPricingClient({ coinIds: COIN_IDS });
-  return _pricingClient;
-}
+// Pricing is provided through an injectable PricingAdapter; the worker's default
+// (constructor) is a CoinGecko adapter over COIN_IDS — see adapters/pricing.ts.
 
 export class WalletWorker implements Pick<WalletWorkerApi, 'vault_hasStored' | 'vault_store' | 'vault_load' | 'vault_clear' | 'account_getEvmAddress' | 'account_getSolanaAddress' | 'account_signMessage' | 'account_signTypedData' | 'account_signSolanaMessage' | 'account_sendTransaction' | 'account_sendSolanaTransaction' | 'account_getBtcAddress' | 'account_getBtcBalance' | 'account_sendBtcTransaction' | 'account_getTonAddress' | 'account_getTonBalance' | 'account_sendTonTransaction' | 'account_getTronAddress' | 'account_getTronBalance' | 'account_sendTronTransaction' | 'rpc_getBalance' | 'rpc_getTokenBalance' | 'rpc_getTransactionStatus' | 'pricing_getUsdPrice' | 'bip39_generateMnemonic' | 'bip39_validateMnemonic'> {
   private readonly vault: WebCryptoVault;
@@ -152,6 +155,7 @@ export class WalletWorker implements Pick<WalletWorkerApi, 'vault_hasStored' | '
   private readonly moonpayConfig: MoonPayConfig | null;
   private readonly erc4337Config: Erc4337WorkerConfig | null;
   private readonly sparkConfig: SparkManagerConfig | null;
+  private readonly pricingAdapter: PricingAdapter;
   private wdk: WdkManager | null = null;
   /**
    * Retained decrypted mnemonic, set on vault_load and cleared on lock/clear.
@@ -167,6 +171,7 @@ export class WalletWorker implements Pick<WalletWorkerApi, 'vault_hasStored' | '
     this.moonpayConfig = options.moonpayConfig ?? null;
     this.erc4337Config = options.erc4337Config ?? null;
     this.sparkConfig = options.sparkConfig ?? null;
+    this.pricingAdapter = options.pricingAdapter ?? createCoingeckoPricingAdapter({ coinIds: COIN_IDS });
   }
 
   /**
@@ -592,11 +597,7 @@ export class WalletWorker implements Pick<WalletWorkerApi, 'vault_hasStored' | '
    * value display in the UI. Errors (unknown symbol, network) resolve to null.
    */
   async pricing_getUsdPrice(symbol: string): Promise<number | null> {
-    try {
-      return await getPricingClient().getCurrentPrice(symbol, 'usd');
-    } catch {
-      return null;
-    }
+    return this.pricingAdapter.getUsdPrice(symbol);
   }
 
   /**

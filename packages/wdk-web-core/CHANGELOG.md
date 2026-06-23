@@ -9,6 +9,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Pricing adapters + fallback chain (`adapters/pricing.ts`).** Brings USD
+  pricing into the adapter pattern (like rpc/indexer): a `PricingAdapter`
+  interface with `createBitfinexPricingAdapter` (the Tether/iFinex-aligned
+  **primary**; direct public-ticker HTTP, no dependency),
+  `createCoingeckoPricingAdapter` (wraps `@tetherto/wdk-pricing-coingecko-http`,
+  broad long-tail coverage), `createFallbackPricingAdapter([…])` (tries each in
+  order, first non-null price wins), and `createMockPricingAdapter`. The worker's
+  `pricing_getUsdPrice` now runs through an injectable `pricingAdapter` option —
+  the default is CoinGecko over the built-in symbol map (behavior unchanged), and
+  a product can inject a Bitfinex → CoinGecko fallback for resilience. +11 tests.
+
 - **Tether-hosted indexer + fallback chain (`adapters/indexer.ts`).**
   `createTetherIndexerAdapter` is the **primary** transaction-history source — a
   configurable HTTP adapter over a dev-supplied Tether endpoint (never
