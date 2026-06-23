@@ -194,6 +194,12 @@ describe('WalletWorker (Step 6c — signing methods, initialized worker)', () =>
     ).rejects.toThrowError(RangeError);
   });
 
+  it('account_sendTransaction rejects a malformed recipient before any network call (send-path guard)', async () => {
+    await expect(
+      worker.account_sendTransaction('ethereum', 0, { to: 'not-an-address', value: '0x1' }),
+    ).rejects.toThrowError(/invalid evm recipient/i);
+  });
+
   it('rpc_getBalance throws if no rpcAdapter is configured on the worker', async () => {
     await expect(
       worker.rpc_getBalance('ethereum', '0x0000000000000000000000000000000000000000'),

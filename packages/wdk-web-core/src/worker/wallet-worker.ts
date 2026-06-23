@@ -34,6 +34,7 @@ import {
   ensureChainRegistered,
   isSupportedChainId,
 } from '../chains/index.js';
+import { assertValidRecipient } from '../payments/index.js';
 import {
   createAaveProtocol,
   normalizeActionResult,
@@ -250,6 +251,8 @@ export class WalletWorker implements Pick<WalletWorkerApi, 'vault_hasStored' | '
     if (!isSupportedChainId(chain)) {
       throw new Error('Unsupported chain (no loader registered): ' + chain);
     }
+    // Send-path guard: never ask WDK to sign a transfer to a malformed recipient.
+    if (typeof tx.to === 'string') assertValidRecipient('evm', tx.to);
     const wdk = this._requireWdk();
     await ensureChainRegistered(wdk, chain);
     const account = await wdk.getAccount(chain, index);
@@ -276,6 +279,7 @@ export class WalletWorker implements Pick<WalletWorkerApi, 'vault_hasStored' | '
     if (!isSupportedChainId(chain)) {
       throw new Error('Unsupported chain (no loader registered, deferred to v1.1): ' + chain);
     }
+    assertValidRecipient('solana', to);
     const wdk = this._requireWdk();
     await ensureChainRegistered(wdk, chain);
     const account = await wdk.getAccount(chain, index);
@@ -323,6 +327,7 @@ export class WalletWorker implements Pick<WalletWorkerApi, 'vault_hasStored' | '
     if (!isSupportedChainId(chain)) {
       throw new Error('Unsupported chain (no loader registered): ' + chain);
     }
+    assertValidRecipient('bitcoin', to);
     const wdk = this._requireWdk();
     await ensureChainRegistered(wdk, chain);
     const account = await wdk.getAccount(chain, index);
@@ -363,6 +368,7 @@ export class WalletWorker implements Pick<WalletWorkerApi, 'vault_hasStored' | '
     if (!isSupportedChainId(chain)) {
       throw new Error('Unsupported chain (no loader registered): ' + chain);
     }
+    assertValidRecipient('ton', to);
     const wdk = this._requireWdk();
     await ensureChainRegistered(wdk, chain);
     const account = await wdk.getAccount(chain, index);
@@ -403,6 +409,7 @@ export class WalletWorker implements Pick<WalletWorkerApi, 'vault_hasStored' | '
     if (!isSupportedChainId(chain)) {
       throw new Error('Unsupported chain (no loader registered): ' + chain);
     }
+    assertValidRecipient('tron', to);
     const wdk = this._requireWdk();
     await ensureChainRegistered(wdk, chain);
     const account = await wdk.getAccount(chain, index);

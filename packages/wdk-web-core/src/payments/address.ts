@@ -195,6 +195,22 @@ export function validateAddress(family: ChainFamily, address: string): AddressVa
 }
 
 /**
+ * Throws if `address` is not a well-formed recipient for `family`. Used at the
+ * worker send boundary as a last-line guard so the engine never asks the WDK
+ * account to sign a transfer to a malformed or wrong-family address. The check
+ * is family-level (not network-level): a valid testnet address still passes on
+ * a mainnet chain.
+ */
+export function assertValidRecipient(family: ChainFamily, address: string): void {
+  const result = validateAddress(family, address);
+  if (!result.valid) {
+    throw new Error(
+      `Refusing to send: invalid ${family} recipient address — ${result.reason ?? 'malformed address'}`,
+    );
+  }
+}
+
+/**
  * Best-effort detection of which family a bare address belongs to. Order is
  * chosen so unambiguous formats win first and the checksum-bearing families
  * (Bitcoin/Tron/TON) are tried before checksum-free Solana.

@@ -29,7 +29,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   This is the first engine unit toward the Lightning/Spark roadmap item (BOLT11
   is the Lightning invoice format, so it de-risks Spark without touching the
   blocked SDK bundling) and the basis for the worker send-path recipient guard
-  (next unit).
+  (now wired — see Changed).
+
+### Changed
+
+- **Worker send-path recipient guard.** Every `account_send*Transaction` method
+  now validates the recipient via the `payments` module before asking WDK to
+  sign — rejecting a malformed or wrong-family `to` up front (EVM `tx.to`,
+  Solana/Bitcoin/TON/Tron `to`). The check is family-level (a valid testnet
+  address still passes on a mainnet chain) and runs before any network call.
+  Exposed as `assertValidRecipient(family, address)`.
 
 ## [0.2.0] - 2026-06-22
 

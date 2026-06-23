@@ -14,6 +14,7 @@ import {
   isTonAddress,
   isSparkAddress,
   validateAddress,
+  assertValidRecipient,
   detectPaymentFamily,
 } from './address.js';
 
@@ -113,6 +114,20 @@ describe('validateAddress', () => {
     expect(validateAddress('bitcoin', BTC_V0).valid).toBe(true);
     expect(validateAddress('ton', TON).valid).toBe(true);
     expect(validateAddress('tron', TRON).valid).toBe(true);
+  });
+});
+
+describe('assertValidRecipient', () => {
+  it('passes for a valid recipient of each family', () => {
+    expect(() => assertValidRecipient('evm', EVM)).not.toThrow();
+    expect(() => assertValidRecipient('solana', SOLANA)).not.toThrow();
+    expect(() => assertValidRecipient('bitcoin', BTC_V0)).not.toThrow();
+    expect(() => assertValidRecipient('ton', TON)).not.toThrow();
+    expect(() => assertValidRecipient('tron', TRON)).not.toThrow();
+  });
+  it('throws a descriptive error for a malformed recipient', () => {
+    expect(() => assertValidRecipient('evm', 'not-an-address')).toThrow(/invalid evm recipient/i);
+    expect(() => assertValidRecipient('bitcoin', EVM)).toThrow(/invalid bitcoin recipient/i);
   });
 });
 

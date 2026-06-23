@@ -14,6 +14,7 @@ export {
   isTonAddress,
   isSparkAddress,
   validateAddress,
+  assertValidRecipient,
   detectPaymentFamily,
 } from './address.js';
 export { decodeBolt11 } from './bolt11.js';
