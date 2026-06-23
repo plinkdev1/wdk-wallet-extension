@@ -137,17 +137,8 @@ export interface Erc4337WorkerConfig {
   readonly providerFor: (chain: string) => string | undefined;
 }
 
-/** Symbol → CoinGecko id for USD pricing. Small by design; extend as assets are added. */
-const COIN_IDS: Record<string, string> = {
-  BTC: 'bitcoin', TBTC: 'bitcoin', ETH: 'ethereum', SOL: 'solana',
-  TON: 'the-open-network', TRX: 'tron', MATIC: 'matic-network', POL: 'matic-network',
-  BNB: 'binancecoin', AVAX: 'avalanche-2', XDAI: 'xdai', CELO: 'celo',
-  MNT: 'mantle', GLMR: 'moonbeam', MOVR: 'moonriver', CRO: 'crypto-com-chain',
-  METIS: 'metis-token', BERA: 'berachain-bera', USDT: 'tether', XAUT: 'tether-gold',
-};
-
 // Pricing is provided through an injectable PricingAdapter; the worker's default
-// (constructor) is a CoinGecko adapter over COIN_IDS — see adapters/pricing.ts.
+// (constructor) is a CoinGecko adapter over DEFAULT_COIN_IDS — see adapters/pricing.ts.
 
 export class WalletWorker implements Pick<WalletWorkerApi, 'vault_hasStored' | 'vault_store' | 'vault_load' | 'vault_clear' | 'account_getEvmAddress' | 'account_getSolanaAddress' | 'account_signMessage' | 'account_signTypedData' | 'account_signSolanaMessage' | 'account_sendTransaction' | 'account_sendSolanaTransaction' | 'account_getBtcAddress' | 'account_getBtcBalance' | 'account_sendBtcTransaction' | 'account_getTonAddress' | 'account_getTonBalance' | 'account_sendTonTransaction' | 'account_getTronAddress' | 'account_getTronBalance' | 'account_sendTronTransaction' | 'rpc_getBalance' | 'rpc_getTokenBalance' | 'rpc_getTransactionStatus' | 'pricing_getUsdPrice' | 'bip39_generateMnemonic' | 'bip39_validateMnemonic'> {
   private readonly vault: WebCryptoVault;
@@ -171,7 +162,7 @@ export class WalletWorker implements Pick<WalletWorkerApi, 'vault_hasStored' | '
     this.moonpayConfig = options.moonpayConfig ?? null;
     this.erc4337Config = options.erc4337Config ?? null;
     this.sparkConfig = options.sparkConfig ?? null;
-    this.pricingAdapter = options.pricingAdapter ?? createCoingeckoPricingAdapter({ coinIds: COIN_IDS });
+    this.pricingAdapter = options.pricingAdapter ?? createCoingeckoPricingAdapter();
   }
 
   /**

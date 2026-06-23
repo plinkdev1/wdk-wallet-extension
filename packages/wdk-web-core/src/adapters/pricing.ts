@@ -29,6 +29,19 @@ export interface PricingAdapter {
   getUsdPrice(symbol: string): Promise<number | null>;
 }
 
+/**
+ * Default symbol → CoinGecko id map for the assets the WDK wallets surface.
+ * Single source of truth: the engine's worker default and any app-side pricing
+ * adapter both reuse this, so the mapping never drifts. Extend as assets are added.
+ */
+export const DEFAULT_COIN_IDS: Readonly<Record<string, string>> = {
+  BTC: 'bitcoin', TBTC: 'bitcoin', ETH: 'ethereum', SOL: 'solana',
+  TON: 'the-open-network', TRX: 'tron', MATIC: 'matic-network', POL: 'matic-network',
+  BNB: 'binancecoin', AVAX: 'avalanche-2', XDAI: 'xdai', CELO: 'celo',
+  MNT: 'mantle', GLMR: 'moonbeam', MOVR: 'moonriver', CRO: 'crypto-com-chain',
+  METIS: 'metis-token', BERA: 'berachain-bera', USDT: 'tether', XAUT: 'tether-gold',
+};
+
 /** In-memory mock. No network. Symbol lookup is case-insensitive. */
 export function createMockPricingAdapter(prices: Readonly<Record<string, number>> = {}): PricingAdapter {
   const upper: Record<string, number> = {};
@@ -53,7 +66,7 @@ export interface CoingeckoPricingOptions {
 /** Wraps the WDK CoinGecko client behind {@link PricingAdapter}; errors resolve to `null`. */
 export function createCoingeckoPricingAdapter(options: CoingeckoPricingOptions = {}): PricingAdapter {
   const client = new CoingeckoPricingClient({
-    ...(options.coinIds ? { coinIds: options.coinIds } : {}),
+    coinIds: options.coinIds ?? { ...DEFAULT_COIN_IDS },
     ...(options.apiKey ? { apiKey: options.apiKey } : {}),
     ...(options.baseURL ? { baseURL: options.baseURL } : {}),
   });

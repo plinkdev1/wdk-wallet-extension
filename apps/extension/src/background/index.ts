@@ -31,6 +31,11 @@
 import './polyfill-document.js';
 import '@wdk-starter/wdk-web-core/polyfill-globals';
 import { WalletWorker } from '@wdk-starter/wdk-web-core/worker';
+import {
+  createFallbackPricingAdapter,
+  createBitfinexPricingAdapter,
+  createCoingeckoPricingAdapter,
+} from '@wdk-starter/wdk-web-core';
 import { createExtensionRpcAdapter, evmRpcUrlFor } from './rpc-adapter.js';
 
 import { createDispatcher } from './dispatch.js';
@@ -76,6 +81,12 @@ const erc4337Config = bundlerUrl
 
 const worker = new WalletWorker({
   rpcAdapter: createExtensionRpcAdapter(),
+  // Fiat values: Bitfinex (Tether / iFinex) primary → CoinGecko fallback, so a
+  // single price source going down (or rate-limiting) no longer blanks USD values.
+  pricingAdapter: createFallbackPricingAdapter([
+    createBitfinexPricingAdapter(),
+    createCoingeckoPricingAdapter(),
+  ]),
   ...(moonpayConfig ? { moonpayConfig } : {}),
   ...(erc4337Config ? { erc4337Config } : {}),
 });
