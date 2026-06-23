@@ -34,7 +34,15 @@ import {
   ensureChainRegistered,
   isSupportedChainId,
 } from '../chains/index.js';
-import { assertValidRecipient } from '../payments/index.js';
+import { assertValidRecipient, isSparkAddress, decodeBolt11 } from '../payments/index.js';
+import {
+  createSparkManager,
+  extractBolt11,
+  normalizeSparkTxHash,
+  normalizeLightningSendId,
+  type SparkAccountLike,
+  type SparkManagerConfig,
+} from '../protocols/spark.js';
 import {
   createAaveProtocol,
   normalizeActionResult,
@@ -108,6 +116,12 @@ export interface WalletWorkerOptions {
    * configured" — the smart-account integration is present and ready.
    */
   readonly erc4337Config?: Erc4337WorkerConfig;
+  /**
+   * Optional Spark / Lightning config (network + optional SparkScan REST).
+   * If omitted, defaults to MAINNET. Spark loads lazily and runs only on a
+   * Web-Worker host (F-SPARK-03 / F-MV3-04 — see protocols/spark.ts).
+   */
+  readonly sparkConfig?: SparkManagerConfig;
 }
 
 export interface Erc4337WorkerConfig {
@@ -137,6 +151,7 @@ export class WalletWorker implements Pick<WalletWorkerApi, 'vault_hasStored' | '
   private readonly rpcAdapter: RpcAdapter | null;
   private readonly moonpayConfig: MoonPayConfig | null;
   private readonly erc4337Config: Erc4337WorkerConfig | null;
+  private readonly sparkConfig: SparkManagerConfig | null;
   private wdk: WdkManager | null = null;
   /**
    * Retained decrypted mnemonic, set on vault_load and cleared on lock/clear.
@@ -151,6 +166,7 @@ export class WalletWorker implements Pick<WalletWorkerApi, 'vault_hasStored' | '
     this.rpcAdapter = options.rpcAdapter ?? null;
     this.moonpayConfig = options.moonpayConfig ?? null;
     this.erc4337Config = options.erc4337Config ?? null;
+    this.sparkConfig = options.sparkConfig ?? null;
   }
 
   /**
@@ -803,6 +819,72 @@ export class WalletWorker implements Pick<WalletWorkerApi, 'vault_hasStored' | '
       nonce,
     });
     return encodePaymentHeader(payment);
+  }
+
+  // ─── Spark / Lightning (lazy; Web-Worker host only — F-SPARK-* / F-MV3-04) ──
+
+  /**
+   * Builds the on-demand Spark account from the retained mnemonic, lazy-loading
+   * the Spark SDK (its own chunk). Mirrors the ERC-4337 `_smartAccount` pattern.
+   * Throws "locked" before any load if the worker has no mnemonic, and throws a
+   * descriptive error on MV3 where dynamic import is forbidden.
+   */
+  private async _sparkAccount(index: number): Promise<SparkAccountLike> {
+    if (!this._mnemonic) {
+      throw new Error('WalletWorker: locked. Call vault_load(password) first.');
+    }
+    const manager = await createSparkManager(this._mnemonic, this.sparkConfig ?? {});
+    return manager.getAccount(index);
+  }
+
+  /** Returns the account's Spark address (requires network; no offline derivation — F-SPARK-02). */
+  async account_getSparkAddress(index: number): Promise<string> {
+    const account = await this._sparkAccount(index);
+    return account.getAddress();
+  }
+
+  /** Reads the account's Spark balance in satoshis (SparkScan REST / gRPC — F-SPARK-04). */
+  async account_getSparkBalance(index: number): Promise<bigint> {
+    const account = await this._sparkAccount(index);
+    return account.getBalance();
+  }
+
+  /** Sends a Spark-to-Spark transfer (value in satoshis); returns the transfer hash. */
+  async account_sendSparkTransaction(index: number, to: string, value: bigint): Promise<string> {
+    if (!isSparkAddress(to)) {
+      throw new Error('Refusing to send: invalid Spark recipient address (expected spark1…)');
+    }
+    const account = await this._sparkAccount(index);
+    return normalizeSparkTxHash(await account.sendTransaction({ to, value }));
+  }
+
+  /** Creates a BOLT11 Lightning invoice for `amountSats`; returns the encoded invoice string. */
+  async lightning_createInvoice(index: number, amountSats: number, memo?: string): Promise<string> {
+    if (!Number.isInteger(amountSats) || amountSats <= 0) {
+      throw new Error('lightning_createInvoice: amountSats must be a positive integer');
+    }
+    const account = await this._sparkAccount(index);
+    const request = await account.createLightningInvoice({
+      amountSats,
+      ...(memo !== undefined ? { memo } : {}),
+    });
+    return extractBolt11(request);
+  }
+
+  /**
+   * Pays a BOLT11 Lightning invoice, capping the routing fee at `maxFeeSats`.
+   * The invoice is validated with the shared BOLT11 decoder before paying.
+   * Returns the Lightning send-request id.
+   */
+  async lightning_payInvoice(index: number, invoice: string, maxFeeSats: number): Promise<string> {
+    if (!decodeBolt11(invoice)) {
+      throw new Error('lightning_payInvoice: not a valid BOLT11 invoice');
+    }
+    if (!Number.isInteger(maxFeeSats) || maxFeeSats < 0) {
+      throw new Error('lightning_payInvoice: maxFeeSats must be a non-negative integer');
+    }
+    const account = await this._sparkAccount(index);
+    return normalizeLightningSendId(await account.payLightningInvoice({ invoice, maxFeeSats }));
   }
 
   /**

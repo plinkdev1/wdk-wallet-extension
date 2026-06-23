@@ -141,6 +141,14 @@ The current build is a production-grade MV3 wallet, not a prototype:
    > with 30 tests over canonical vectors and **no new runtime dependency**.
    > BOLT11 decode is exactly what the Lightning send/receive UI consumes, so the
    > Spark account integration is de-risked the moment the SDK bundles.
+   >
+   > **Engine wiring shipped (`protocols/spark.ts`).** The on-demand Spark
+   > manager + worker methods (`account_*Spark*`, `lightning_createInvoice` /
+   > `lightning_payInvoice` with shared BOLT11 validation) now live in the engine,
+   > lazy and decoupled — the SDK is an app-provided optional dependency, *not* an
+   > engine dependency (it conflicts with `wdk-wallet-btc` over `@noble/hashes`
+   > v1↔v2 in a shared install). All that remains is the app-level install + MV3
+   > bundler shim.
 2. **Fiat values** (`@tetherto/wdk-pricing-*`) — show balances and amounts in USD;
    a pricing adapter alongside the RPC/indexer adapters in `wdk-web-core`.
 3. **Token auto-discovery** — enumerate held ERC-20/SPL tokens via the indexer

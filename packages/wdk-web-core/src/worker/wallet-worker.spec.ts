@@ -132,6 +132,11 @@ describe('WalletWorker (Step 6b — account ops, uninitialized worker)', () => {
       worker.account_getSolanaAddress('solana-mainnet', 0),
     ).rejects.toThrowError(/WDK not initialized/);
   });
+
+  it('account_getSparkAddress throws when locked (no mnemonic) before loading the SDK', async () => {
+    const worker = new WalletWorker({ vault: makeIsolatedVault() });
+    await expect(worker.account_getSparkAddress(0)).rejects.toThrowError(/locked/i);
+  });
 });
 
 describe('WalletWorker (Step 6c — signing methods, initialized worker)', () => {
@@ -198,6 +203,20 @@ describe('WalletWorker (Step 6c — signing methods, initialized worker)', () =>
     await expect(
       worker.account_sendTransaction('ethereum', 0, { to: 'not-an-address', value: '0x1' }),
     ).rejects.toThrowError(/invalid evm recipient/i);
+  });
+
+  it('account_sendSparkTransaction rejects a non-Spark recipient before loading the SDK', async () => {
+    await expect(
+      worker.account_sendSparkTransaction(0, 'not-a-spark-address', 1000n),
+    ).rejects.toThrowError(/invalid Spark recipient/i);
+  });
+
+  it('lightning_payInvoice rejects a non-BOLT11 string before loading the SDK', async () => {
+    await expect(worker.lightning_payInvoice(0, 'not-an-invoice', 0)).rejects.toThrowError(/BOLT11/i);
+  });
+
+  it('lightning_createInvoice rejects a non-positive amount before loading the SDK', async () => {
+    await expect(worker.lightning_createInvoice(0, 0)).rejects.toThrowError(/positive integer/i);
   });
 
   it('rpc_getBalance throws if no rpcAdapter is configured on the worker', async () => {

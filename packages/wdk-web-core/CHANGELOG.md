@@ -9,6 +9,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Spark / Lightning engine wiring (`protocols/spark.ts`).** On-demand Spark
+  manager + worker methods: `account_getSparkAddress`, `account_getSparkBalance`,
+  `account_sendSparkTransaction` (recipient guarded via `isSparkAddress`),
+  `lightning_createInvoice` (returns the BOLT11 string), and `lightning_payInvoice`
+  (the invoice is validated with the shared `decodeBolt11` before paying). Built on
+  the retained-mnemonic on-demand pattern (like ERC-4337) and lazy-loaded via a
+  non-literal dynamic import, so the ~6.4 MB Spark SDK is deliberately **not** an
+  engine dependency — it conflicts with `@tetherto/wdk-wallet-btc` over
+  `@noble/hashes` v1↔v2 in a shared install (F-SPARK-03 / spark-browser-validation).
+  The consuming app installs + bundles `@tetherto/wdk-wallet-spark`: on a Web-Worker
+  host it loads as its own chunk; on the MV3 service worker it surfaces a clear
+  "needs the bundler shim" error (F-MV3-04). Pure result-normalizers and the worker
+  guard paths (bad recipient / non-BOLT11 / bad amount / locked) are unit-tested
+  without loading the SDK.
+
 - **`payments/` module — address validation + payment-URI parsing.** A
   framework-agnostic, dependency-light source of truth shared by every WDK
   surface (extension + template), exported from the package root:
