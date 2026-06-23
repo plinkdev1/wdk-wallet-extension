@@ -57,6 +57,7 @@ This repository is that reference. It is not a toy: it ships a real WebCrypto-en
 ### Wallet & accounts
 - Multiple accounts per wallet via standard **BIP-44** derivation (`m/44'/60'/0'/0/i` for EVM, Solana's standard path for SVM).
 - Deterministic, WDK-backed address derivation — verified byte-for-byte against `viem` in the test suite.
+- _Multiple **distinct wallets** (separate seed vaults) per user is on the [roadmap](#roadmap); today the extension manages multiple accounts within a single encrypted vault._
 
 ### Multi-chain
 - **EVM:** Plasma, Ethereum, Polygon, Arbitrum (+ ~40 additional EVM networks available in the registry).
