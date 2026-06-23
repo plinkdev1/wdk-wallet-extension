@@ -213,6 +213,26 @@ wdk-wallet-extension/
 
 ---
 
+## The shared engine — `@wdk-starter/wdk-web-core`
+
+The extension is a thin MV3 surface over a reusable, framework-agnostic engine
+published to npm as **[`@wdk-starter/wdk-web-core`](https://www.npmjs.com/package/@wdk-starter/wdk-web-core)**
+(v0.2.0). The **same engine — byte-identical** — also powers the
+[WDK Template Wallet](https://github.com/plinkdev1/wdk-wallet-template); build it
+once, ship it on every surface.
+
+It wraps Tether's WDK SDK (`@tetherto/wdk-*`) and provides:
+
+- **Encrypted vault** — `WebCryptoVault`, AES-256-GCM + PBKDF2-SHA-512 (600k) in IndexedDB.
+- **Multi-chain registry** — EVM · Solana · BTC · TON · Tron · Plasma, one-line extensible.
+- **Signing + EIP-3009** gasless transfer builders.
+- **Adapters** — HTTP RPC, indexer, relayer, and WebSocket subscriptions.
+- **The "worklet"** — here an MV3 service worker, exposed over Comlink, so private keys never leave it.
+
+Full API and import paths: [`packages/wdk-web-core/README.md`](./packages/wdk-web-core/README.md).
+
+---
+
 ## Quickstart
 
 **Prerequisites:** Node ≥ 20 and `pnpm` 10 (`corepack enable` will provide it).
