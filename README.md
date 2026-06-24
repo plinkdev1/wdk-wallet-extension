@@ -89,6 +89,13 @@ These two are also **fully implemented** and activate from **your own** infrastr
 
 Each protocol is bound to the keyed account **inside the service worker** (keys never cross the trust boundary) and every SDK is **bundle-proven** into the MV3 service worker. See [`.env.example`](./.env.example) for the full config surface.
 
+### Spark (Bitcoin L2) & Lightning
+A **Spark & Lightning** view (reachable from the main screen — Spark is keyed off the mnemonic, independent of the active chain) with two tabs:
+- **Spark** — Receive (`spark1…` address + QR), Send (Spark→Spark, sats), Deposit (reusable Bitcoin L1 address to fund the L2 balance), Withdraw (to a BTC address via cooperative exit, with a fee quote + Fast/Medium/Slow exit speed).
+- **Lightning** — Receive (create a BOLT11 invoice) and Pay (settle one, capped by a max routing fee).
+
+**Spark is not the Lightning Network and not Bitcoin L1.** Spark is its own L2 (Lightspark statechains + FROST signing); Lightning is a payment rail Spark settles **natively** (so there's no standalone Lightning package — it ships *through* `@tetherto/wdk-wallet-spark`); Bitcoin L1 is bridged via deposit/withdraw. The ~6.4 MB Spark SDK is lazy-loaded on first use. On the MV3 service worker, runtime `import()` may be restricted (F-MV3-04) — the view surfaces that as a clear connect-error rather than failing silently.
+
 ### UX
 - Clean, dark-mode-first popup UI with a reusable component library, theming, and a brand picker.
 - Guided onboarding (create / import), unlock screen with adaptive feedback, and a dashboard with live balances.
@@ -308,7 +315,7 @@ A wallet's job is to protect a secret. The threat model and mitigations are docu
 | **Bitcoin** — mainnet / testnet (`@tetherto/wdk-wallet-btc`) | ✅ implemented (BIP-84 address, balance, send via Blockbook) |
 | **TON** — mainnet (`@tetherto/wdk-wallet-ton`) | ✅ implemented (v5r1 address, balance, send via TonCenter) |
 | **Tron** — mainnet (`@tetherto/wdk-wallet-tron`) | ✅ implemented (address, balance, send via TronGrid) |
-| **Lightning (Spark)** | 🚧 on the roadmap |
+| **Spark (Bitcoin L2) + Lightning** (`@tetherto/wdk-wallet-spark`) | ✅ implemented (address, balance, Spark↔Spark send, fund-from-Bitcoin deposit, withdraw to BTC, BOLT11 receive/pay) — lazy-loaded; MV3 `import()` caveat surfaced as a connect-error |
 
 This repository is transparent about what is implemented vs. planned — see the [roadmap](#roadmap). The architecture is explicitly designed so new chains are a single-file addition to the chain registry and new assets plug into the indexer/token adapter.
 
@@ -382,18 +389,17 @@ and the settlement primitive in
 ## Roadmap
 
 📍 **The full, phased product roadmap is in [`ROADMAP.md`](./ROADMAP.md)** — it
-shows what's shipped (EVM + Solana + Bitcoin + tokens + activity + dApp + side panel), and
-sequences the broader WDK vision (Lightning/Spark, account abstraction, TON/Tron,
+shows what's shipped (EVM + Solana + Bitcoin + TON + Tron + tokens + Spark/Lightning + activity + dApp + side panel), and
+sequences the broader WDK vision (account abstraction,
 in-wallet swaps/lending/bridging, fiat on-ramp, fiat pricing) against real,
 published `@tetherto/*` packages. It is written so reviewers can see the depth and
 the standard we're aiming to set across all WDK surfaces.
 
 Near-term, high-value increments:
 
-1. **Lightning (Spark)** — `@tetherto/wdk-wallet-spark` accounts for instant BTC payments (BTC base-layer send/receive ships today).
-2. **Fiat values** — balances in USD via `@tetherto/wdk-pricing-*` adapters.
-3. **Indexer-backed assets** — auto-discovery of held tokens and richer history via the indexer adapter (static USDt/XAUt registry + tap-to-send ship today).
-4. **Deeper monitoring** — push-style status updates and per-tx detail views (history, filtering, and real-time EVM/Solana status ship today).
+1. **Fiat values** — balances in USD via `@tetherto/wdk-pricing-*` adapters.
+2. **Indexer-backed assets** — auto-discovery of held tokens and richer history via the indexer adapter (static USDt/XAUt registry + tap-to-send ship today).
+3. **Deeper monitoring** — push-style status updates and per-tx detail views (history, filtering, and real-time EVM/Solana status ship today).
 5. **Account abstraction & more chains** — ERC-4337 gasless smart accounts, TON, Tron.
 
 Each lands behind the existing test gates with no regression to the current baseline.
