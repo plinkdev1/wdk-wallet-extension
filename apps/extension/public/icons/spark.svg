@@ -1,4 +1,5 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256" role="img" aria-label="Spark">
-  <circle cx="128" cy="128" r="128" fill="#7916FF"/>
-  <path d="M150 38 L72 144 h42 l-14 76 84 -112 h-46 z" fill="#ffffff"/>
+<svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+<rect width="32" height="32" rx="2" fill="black"/>
+<rect x="1.05" y="1.05" width="29.9" height="29.9" rx="1.95" fill="#0B0B0B" stroke="#929292" stroke-width="0.1"/>
+<path fill-rule="evenodd" clip-rule="evenodd" d="M17.8038 13.7118L18.1476 6H13.8527L14.1965 13.7119L7.32718 10.9849L6 15.2798L13.0819 17.3191L8.49271 23.3456L11.9673 26L16.0004 19.5482L20.0334 25.9997L23.508 23.3454L18.9189 17.3189L26 15.2798L24.6728 10.9849L17.8038 13.7118ZM16.0001 16.3222L16.0001 16.322L15.9998 16.3224L16.0001 16.3222Z" fill="#FAFAFA"/>
 </svg>
