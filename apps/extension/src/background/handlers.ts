@@ -275,6 +275,18 @@ export function createSwHandlers({ engine, worker, approvalFlow, connectionState
       return { hash: r.hash, fee: r.fee.toString() };
     },
 
+    // Spark (Bitcoin L2) + Lightning. The worker lazy-loads the Spark SDK; on the
+    // MV3 SW where dynamic import() is restricted it throws a descriptive error
+    // (F-MV3-04) which propagates to the popup as a normal { ok:false } response.
+    SPARK_GET_ADDRESS: async (msg) => worker.account_getSparkAddress(msg.accountIndex),
+    SPARK_GET_BALANCE: async (msg) => (await worker.account_getSparkBalance(msg.accountIndex)).toString(),
+    SPARK_SEND: async (msg) => worker.account_sendSparkTransaction(msg.accountIndex, msg.to, BigInt(msg.value)),
+    SPARK_GET_DEPOSIT_ADDRESS: async (msg) => worker.account_getSparkDepositAddress(msg.accountIndex),
+    SPARK_QUOTE_WITHDRAW: async (msg) => worker.account_quoteSparkWithdraw(msg.accountIndex, msg.to, msg.amountSats, msg.exitSpeed),
+    SPARK_WITHDRAW: async (msg) => worker.account_sparkWithdraw(msg.accountIndex, msg.to, msg.amountSats, msg.exitSpeed),
+    LIGHTNING_CREATE_INVOICE: async (msg) => worker.lightning_createInvoice(msg.accountIndex, msg.amountSats, msg.memo),
+    LIGHTNING_PAY_INVOICE: async (msg) => worker.lightning_payInvoice(msg.accountIndex, msg.invoice, msg.maxFeeSats),
+
     DAPP_REQUEST: async (msg) => {
       // ctx.id threads the DAPP_REQUEST envelope id through to approvalFlow.open()
       // so the popup's APPROVAL_GET_PENDING(id) call matches.

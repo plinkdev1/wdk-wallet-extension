@@ -5,7 +5,13 @@
  * and deliberately not imported here, so this spec never pulls the ~6.4 MB SDK.
  */
 import { describe, it, expect } from 'vitest';
-import { extractBolt11, normalizeSparkTxHash, normalizeLightningSendId } from './spark.js';
+import {
+  extractBolt11,
+  normalizeSparkTxHash,
+  normalizeLightningSendId,
+  normalizeWithdrawQuote,
+  normalizeWithdrawResult,
+} from './spark.js';
 
 describe('extractBolt11', () => {
   it('reads the encodedInvoice from a nested LightningReceiveRequest', () => {
@@ -37,5 +43,55 @@ describe('normalizeLightningSendId', () => {
   });
   it('throws when no id is present', () => {
     expect(() => normalizeLightningSendId({})).toThrow(/request id/);
+  });
+});
+
+describe('normalizeWithdrawQuote', () => {
+  // A CoopExitFeeQuote carries per-speed user + L1-broadcast fees as CurrencyAmounts.
+  const quote = {
+    id: 'quote_abc',
+    userFeeFast: { originalValue: 120, originalUnit: 'SATOSHI' },
+    l1BroadcastFeeFast: { originalValue: 800, originalUnit: 'SATOSHI' },
+    userFeeMedium: { originalValue: 90, originalUnit: 'SATOSHI' },
+    l1BroadcastFeeMedium: { originalValue: 400, originalUnit: 'SATOSHI' },
+    userFeeSlow: { originalValue: 60, originalUnit: 'SATOSHI' },
+    l1BroadcastFeeSlow: { originalValue: 150, originalUnit: 'SATOSHI' },
+  };
+
+  it('selects the per-speed fee and sums user + L1 broadcast (matching the SDK math)', () => {
+    expect(normalizeWithdrawQuote(quote, 'FAST')).toEqual({
+      quoteId: 'quote_abc',
+      exitSpeed: 'FAST',
+      userFeeSats: 120,
+      l1BroadcastFeeSats: 800,
+      totalFeeSats: 920,
+    });
+    expect(normalizeWithdrawQuote(quote, 'MEDIUM').totalFeeSats).toBe(490);
+    expect(normalizeWithdrawQuote(quote, 'SLOW').totalFeeSats).toBe(210);
+  });
+
+  it('tolerates a missing/empty quote (zeroed fees, null id)', () => {
+    expect(normalizeWithdrawQuote(null, 'MEDIUM')).toEqual({
+      quoteId: null,
+      exitSpeed: 'MEDIUM',
+      userFeeSats: 0,
+      l1BroadcastFeeSats: 0,
+      totalFeeSats: 0,
+    });
+  });
+});
+
+describe('normalizeWithdrawResult', () => {
+  it('reads the coop-exit id, status, and fee', () => {
+    expect(
+      normalizeWithdrawResult({ id: 'exit_1', status: 'PENDING', fee: { originalValue: 500 } }),
+    ).toEqual({ id: 'exit_1', status: 'PENDING', feeSats: 500 });
+  });
+  it('treats null/undefined (request could not be completed) as an error', () => {
+    expect(() => normalizeWithdrawResult(null)).toThrow(/could not be completed/);
+    expect(() => normalizeWithdrawResult(undefined)).toThrow(/could not be completed/);
+  });
+  it('throws when no id is present', () => {
+    expect(() => normalizeWithdrawResult({ status: 'PENDING' })).toThrow(/request id/);
   });
 });

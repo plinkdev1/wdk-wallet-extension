@@ -22,6 +22,12 @@
 /** Spark networks accepted by the SDK (`NetworkType`). */
 export type SparkNetwork = 'MAINNET' | 'REGTEST' | 'TESTNET' | 'SIGNET' | 'LOCAL';
 
+/**
+ * Cooperative-exit speed tiers (the SDK's `ExitSpeed` enum). A faster exit pays
+ * a higher on-chain fee; the quote returns a fee per tier (F-SPARK withdraw).
+ */
+export type SparkExitSpeed = 'FAST' | 'MEDIUM' | 'SLOW';
+
 export interface SparkManagerConfig {
   /** Network (default `'MAINNET'`). */
   readonly network?: SparkNetwork;
@@ -34,6 +40,22 @@ export interface SparkAccountLike {
   getAddress(): Promise<string>;
   getBalance(): Promise<bigint>;
   sendTransaction(tx: { to: string; value: bigint }): Promise<unknown>;
+  /**
+   * Returns a reusable static deposit address for funding the Spark account from
+   * Bitcoin L1: send BTC to it and the deposit credits the Spark balance.
+   */
+  getStaticDepositAddress(): Promise<string>;
+  /** Quotes the cooperative-exit fee to withdraw to an on-chain Bitcoin address. */
+  quoteWithdraw(options: { withdrawalAddress: string; amountSats: number }): Promise<unknown>;
+  /** Initiates a cooperative exit, moving funds from Spark to a Bitcoin L1 address. */
+  withdraw(options: {
+    onchainAddress: string;
+    exitSpeed: SparkExitSpeed;
+    amountSats?: number;
+    feeQuoteId?: string;
+    feeAmountSats?: number;
+    deductFeeFromWithdrawalAmount?: boolean;
+  }): Promise<unknown>;
   createLightningInvoice(options: {
     amountSats: number;
     memo?: string;
@@ -122,4 +144,80 @@ export function normalizeLightningSendId(result: unknown): string {
     if (typeof id === 'string') return id;
   }
   throw new Error('Spark payLightningInvoice: response carried no request id');
+}
+
+/**
+ * A normalized, structured-clone-safe withdrawal fee quote for one exit speed —
+ * the plain-data shape the worker hands back across Comlink (the SDK's
+ * `CoopExitFeeQuote` is a rich object that does not survive structured clone).
+ */
+export interface SparkWithdrawQuote {
+  /** Opaque fee-quote id to bind the subsequent `withdraw` to this quote. */
+  readonly quoteId: string | null;
+  /** The exit speed this quote was normalized for. */
+  readonly exitSpeed: SparkExitSpeed;
+  /** Cooperative-exit (operator) fee in satoshis. */
+  readonly userFeeSats: number;
+  /** L1 broadcast fee in satoshis. */
+  readonly l1BroadcastFeeSats: number;
+  /** Total fee in satoshis (`userFee + l1Broadcast`) — what `withdraw` charges. */
+  readonly totalFeeSats: number;
+}
+
+/** A normalized, structured-clone-safe cooperative-exit request result. */
+export interface SparkWithdrawResult {
+  /** The cooperative-exit request id. */
+  readonly id: string;
+  /** Exit request status, if the SDK reported one. */
+  readonly status: string | null;
+  /** Total fee charged in satoshis, if the result carried one. */
+  readonly feeSats: number | null;
+}
+
+/** Reads the numeric satoshi value out of a SDK `CurrencyAmount` (or a bare number). */
+function currencyValueSats(amount: unknown): number {
+  if (typeof amount === 'number') return amount;
+  if (amount && typeof amount === 'object' && 'originalValue' in amount) {
+    const v = (amount as { originalValue?: unknown }).originalValue;
+    if (typeof v === 'number') return v;
+  }
+  return 0;
+}
+
+/**
+ * Normalizes a `CoopExitFeeQuote` to the flat per-speed fee the UI displays and
+ * the worker re-binds the withdrawal to. Mirrors the SDK's own internal math:
+ * `feeAmountSats = l1BroadcastFee{Speed} + userFee{Speed}` for the chosen speed.
+ */
+export function normalizeWithdrawQuote(quote: unknown, exitSpeed: SparkExitSpeed): SparkWithdrawQuote {
+  const q = (quote ?? null) as Record<string, unknown> | null;
+  // FAST -> 'Fast', MEDIUM -> 'Medium', SLOW -> 'Slow' (matches userFee{Speed} fields).
+  const speed = exitSpeed.charAt(0) + exitSpeed.slice(1).toLowerCase();
+  const userFeeSats = currencyValueSats(q?.[`userFee${speed}`]);
+  const l1BroadcastFeeSats = currencyValueSats(q?.[`l1BroadcastFee${speed}`]);
+  const quoteId = q && typeof q.id === 'string' ? q.id : null;
+  return {
+    quoteId,
+    exitSpeed,
+    userFeeSats,
+    l1BroadcastFeeSats,
+    totalFeeSats: userFeeSats + l1BroadcastFeeSats,
+  };
+}
+
+/**
+ * Normalizes a `withdraw` result (`CoopExitRequest`) to plain data. Throws if the
+ * SDK returned null/undefined (the documented "request cannot be completed" path)
+ * or a result without an id.
+ */
+export function normalizeWithdrawResult(result: unknown): SparkWithdrawResult {
+  if (!result || typeof result !== 'object') {
+    throw new Error('Spark withdraw: the cooperative-exit request could not be completed (no result returned)');
+  }
+  const r = result as Record<string, unknown>;
+  const id = typeof r.id === 'string' ? r.id : null;
+  if (!id) throw new Error('Spark withdraw: response carried no request id');
+  const status = typeof r.status === 'string' ? r.status : null;
+  const feeSats = 'fee' in r ? currencyValueSats(r.fee) : null;
+  return { id, status, feeSats };
 }

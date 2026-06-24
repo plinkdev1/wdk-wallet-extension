@@ -34,14 +34,19 @@ import {
   ensureChainRegistered,
   isSupportedChainId,
 } from '../chains/index.js';
-import { assertValidRecipient, isSparkAddress, decodeBolt11 } from '../payments/index.js';
+import { assertValidRecipient, isSparkAddress, isBitcoinAddress, decodeBolt11 } from '../payments/index.js';
 import {
   createSparkManager,
   extractBolt11,
   normalizeSparkTxHash,
   normalizeLightningSendId,
+  normalizeWithdrawQuote,
+  normalizeWithdrawResult,
   type SparkAccountLike,
   type SparkManagerConfig,
+  type SparkExitSpeed,
+  type SparkWithdrawQuote,
+  type SparkWithdrawResult,
 } from '../protocols/spark.js';
 import {
   createAaveProtocol,
@@ -848,6 +853,70 @@ export class WalletWorker implements Pick<WalletWorkerApi, 'vault_hasStored' | '
     }
     const account = await this._sparkAccount(index);
     return normalizeSparkTxHash(await account.sendTransaction({ to, value }));
+  }
+
+  /**
+   * Returns the account's reusable static Spark deposit address — fund the Spark
+   * balance by sending BTC to it from Bitcoin L1 (F-SPARK deposit). The address is
+   * generated on first call and persists thereafter.
+   */
+  async account_getSparkDepositAddress(index: number): Promise<string> {
+    const account = await this._sparkAccount(index);
+    return account.getStaticDepositAddress();
+  }
+
+  /**
+   * Quotes the cooperative-exit fee to withdraw `amountSats` from Spark to a
+   * Bitcoin L1 address, for the chosen exit speed (default MEDIUM). Returns a
+   * flat, structured-clone-safe quote (operator fee + L1 broadcast fee + total).
+   */
+  async account_quoteSparkWithdraw(
+    index: number,
+    toBtcAddress: string,
+    amountSats: number,
+    exitSpeed: SparkExitSpeed = 'MEDIUM',
+  ): Promise<SparkWithdrawQuote> {
+    if (!isBitcoinAddress(toBtcAddress)) {
+      throw new Error('Refusing to quote: invalid Bitcoin withdrawal address');
+    }
+    if (!Number.isInteger(amountSats) || amountSats <= 0) {
+      throw new Error('account_quoteSparkWithdraw: amountSats must be a positive integer');
+    }
+    const account = await this._sparkAccount(index);
+    const quote = await account.quoteWithdraw({ withdrawalAddress: toBtcAddress, amountSats });
+    return normalizeWithdrawQuote(quote, exitSpeed);
+  }
+
+  /**
+   * Withdraws `amountSats` from Spark to a Bitcoin L1 address via a cooperative
+   * exit. Quotes the fee for the chosen speed first, then submits the withdrawal
+   * bound to that quote (the SDK requires both the quote id and the committed fee
+   * amount). Returns the exit request id + status; the cooperative exit is
+   * asynchronous and the funds settle on L1 once the exit transaction confirms.
+   */
+  async account_sparkWithdraw(
+    index: number,
+    toBtcAddress: string,
+    amountSats: number,
+    exitSpeed: SparkExitSpeed = 'MEDIUM',
+  ): Promise<SparkWithdrawResult> {
+    if (!isBitcoinAddress(toBtcAddress)) {
+      throw new Error('Refusing to withdraw: invalid Bitcoin withdrawal address');
+    }
+    if (!Number.isInteger(amountSats) || amountSats <= 0) {
+      throw new Error('account_sparkWithdraw: amountSats must be a positive integer');
+    }
+    const account = await this._sparkAccount(index);
+    const quote = await account.quoteWithdraw({ withdrawalAddress: toBtcAddress, amountSats });
+    const normalized = normalizeWithdrawQuote(quote, exitSpeed);
+    const result = await account.withdraw({
+      onchainAddress: toBtcAddress,
+      exitSpeed,
+      amountSats,
+      ...(normalized.quoteId ? { feeQuoteId: normalized.quoteId } : {}),
+      ...(normalized.totalFeeSats ? { feeAmountSats: normalized.totalFeeSats } : {}),
+    });
+    return normalizeWithdrawResult(result);
   }
 
   /** Creates a BOLT11 Lightning invoice for `amountSats`; returns the encoded invoice string. */

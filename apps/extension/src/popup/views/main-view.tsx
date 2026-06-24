@@ -44,7 +44,20 @@ import { SwapView } from './swap-view.js';
 import { BridgeView } from './bridge-view.js';
 import { BuyView } from './buy-view.js';
 import { SmartAccountView } from './smart-account-view.js';
+import { SparkView } from './spark-view.js';
 import { ActivityView } from './activity-view.js';
+
+/** Packaged asset URL (chrome-extension://… at runtime; bare path in tests). */
+function assetUrl(path: string): string {
+  try {
+    const c = (globalThis as { chrome?: { runtime?: { getURL?: (p: string) => string } } }).chrome;
+    if (c?.runtime?.getURL) return c.runtime.getURL(path);
+  } catch {
+    /* jsdom / non-extension context */
+  }
+  return path;
+}
+const SPARK_ICON = assetUrl('icons/spark.svg');
 
 export interface MainViewProps {
   /**
@@ -147,7 +160,7 @@ export function MainView({ onLockRequested, onOpenSettings }: MainViewProps): JS
   // SOL on Solana once those chains land in the picker, etc.).
   const activeSymbol = CHAIN_OPTIONS.find((o) => o.id === activeChain)?.symbol ?? 'ETH';
   const activeName = CHAIN_OPTIONS.find((o) => o.id === activeChain)?.name ?? 'this network';
-  const [subView, setSubView] = useState<'main' | 'receive' | 'send' | 'activity' | 'lending' | 'swap' | 'bridge' | 'buy' | 'smart'>('main');
+  const [subView, setSubView] = useState<'main' | 'receive' | 'send' | 'activity' | 'lending' | 'swap' | 'bridge' | 'buy' | 'smart' | 'spark'>('main');
   /** When set, the Send view sends this ERC-20 token instead of the native asset. */
   const [sendToken, setSendToken] = useState<TokenInfo | null>(null);
   const [accountIndex, setAccountIndex] = useState(0);
@@ -308,6 +321,16 @@ export function MainView({ onLockRequested, onOpenSettings }: MainViewProps): JS
         chain={evmChain}
         chainName={activeName}
         symbol={activeSymbol}
+        accountIndex={accountIndex}
+        onBack={() => setSubView('main')}
+      />
+    );
+  }
+  // Spark is its own L2, keyed off the mnemonic and independent of the active
+  // chain selection — so it's reachable from any chain context.
+  if (subView === 'spark') {
+    return (
+      <SparkView
         accountIndex={accountIndex}
         onBack={() => setSubView('main')}
       />
@@ -695,6 +718,15 @@ export function MainView({ onLockRequested, onOpenSettings }: MainViewProps): JS
           Buy crypto ↗
         </Button>
       )}
+
+      <Button
+        variant="secondary"
+        onClick={() => setSubView('spark')}
+        style={{ width: '100%', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}
+      >
+        <img src={SPARK_ICON} alt="" width={16} height={16} style={{ borderRadius: 4 }} />
+        Spark &amp; Lightning
+      </Button>
 
     </div>
   );

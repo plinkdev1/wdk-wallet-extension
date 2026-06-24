@@ -95,6 +95,18 @@ export type WalletMessage =
   | { type: 'ERC4337_GET_BALANCE'; chain: EvmChainId; accountIndex: number }
   | { type: 'ERC4337_QUOTE_SEND'; chain: EvmChainId; accountIndex: number; to: string; value: string; paymasterToken?: string }
   | { type: 'ERC4337_SEND'; chain: EvmChainId; accountIndex: number; to: string; value: string; paymasterToken?: string }
+  // Spark (Bitcoin L2) + Lightning. Spark loads lazily and may be unavailable on
+  // the MV3 service worker where dynamic import() is restricted (F-MV3-04) — the
+  // handler surfaces a clear error there. Sats values cross the wire as decimal
+  // strings (bigint balances; L-WIRE-03); amountSats/maxFeeSats are JS integers.
+  | { type: 'SPARK_GET_ADDRESS'; accountIndex: number }
+  | { type: 'SPARK_GET_BALANCE'; accountIndex: number }
+  | { type: 'SPARK_SEND'; accountIndex: number; to: string; value: string }
+  | { type: 'SPARK_GET_DEPOSIT_ADDRESS'; accountIndex: number }
+  | { type: 'SPARK_QUOTE_WITHDRAW'; accountIndex: number; to: string; amountSats: number; exitSpeed?: SparkExitSpeed }
+  | { type: 'SPARK_WITHDRAW'; accountIndex: number; to: string; amountSats: number; exitSpeed?: SparkExitSpeed }
+  | { type: 'LIGHTNING_CREATE_INVOICE'; accountIndex: number; amountSats: number; memo?: string }
+  | { type: 'LIGHTNING_PAY_INVOICE'; accountIndex: number; invoice: string; maxFeeSats: number }
   // dApp pipeline (B4.3)
   | { type: 'DAPP_REQUEST'; id: string; origin: string; method: string; params?: readonly unknown[] }
   // Approval flow (B4.4)
@@ -160,6 +172,14 @@ export type WalletResponseData = {
   ERC4337_GET_BALANCE: string;
   ERC4337_QUOTE_SEND: string;
   ERC4337_SEND: { readonly hash: string; readonly fee: string };
+  SPARK_GET_ADDRESS: string;
+  SPARK_GET_BALANCE: string;
+  SPARK_SEND: string;
+  SPARK_GET_DEPOSIT_ADDRESS: string;
+  SPARK_QUOTE_WITHDRAW: SparkWithdrawQuoteDto;
+  SPARK_WITHDRAW: SparkWithdrawResultDto;
+  LIGHTNING_CREATE_INVOICE: string;
+  LIGHTNING_PAY_INVOICE: string;
   DAPP_REQUEST: Eip1193Response;
   APPROVAL_GET_PENDING: ApprovalRequest | null;
   APPROVAL_RESPOND: { ok: boolean };
@@ -175,6 +195,25 @@ export interface ConnectionDto {
   readonly chains: readonly string[];
   readonly accountIndices: readonly number[];
   readonly approvedAt: number;
+}
+
+/** Cooperative-exit speed tiers for a Spark→Bitcoin withdrawal (the SDK's ExitSpeed). */
+export type SparkExitSpeed = 'FAST' | 'MEDIUM' | 'SLOW';
+
+/** Spark withdrawal fee quote over the wire (sats as JS integers; small values). */
+export interface SparkWithdrawQuoteDto {
+  readonly quoteId: string | null;
+  readonly exitSpeed: SparkExitSpeed;
+  readonly userFeeSats: number;
+  readonly l1BroadcastFeeSats: number;
+  readonly totalFeeSats: number;
+}
+
+/** Spark cooperative-exit request result over the wire. */
+export interface SparkWithdrawResultDto {
+  readonly id: string;
+  readonly status: string | null;
+  readonly feeSats: number | null;
 }
 
 /** Aave V3 account snapshot over the wire — bigints as decimal strings (L-WIRE-03). */
