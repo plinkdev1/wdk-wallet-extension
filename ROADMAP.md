@@ -224,8 +224,12 @@ already-pro engine, in lockstep with the [Template Wallet](https://github.com/pl
   TON, Tron): the amount field carries a Max chip fed by the active balance (a
   token's own ERC-20 balance in token mode), Review summarizes To / Amount /
   Network with an irreversibility note, and Success shows the hash. Paste-aware
-  payment URIs preserved. (Next: the fiat⇄crypto flip in the popup Send, and the
-  same primitives in Swap.)
+  payment URIs preserved.
+- ✅ **Asset-detail page** — tapping a token row opens a per-asset page (mirrors
+  the template): the asset's mark + balance + USD value, Send / Receive for that
+  asset, and the recent activity filtered to it (each row a shared `StatusPill`).
+  A pushed view above the tab bar; balance is handed in from the Home fetch.
+  (Next: the fiat⇄crypto flip in the popup Send, and the same primitives in Swap.)
 
 ## How each phase stays a *standard*, not a fork
 

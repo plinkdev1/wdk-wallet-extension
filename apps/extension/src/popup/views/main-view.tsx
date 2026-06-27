@@ -36,6 +36,7 @@ import { BuyView } from './buy-view.js';
 import { SmartAccountView } from './smart-account-view.js';
 import { SparkView } from './spark-view.js';
 import { ActivityView } from './activity-view.js';
+import { AssetDetailView } from './asset-detail-view.js';
 
 /** Packaged asset URL (chrome-extension://… at runtime; bare path in tests). */
 function assetUrl(path: string): string {
@@ -175,7 +176,7 @@ export function MainView({ onLockRequested, onOpenSettings }: MainViewProps): JS
   // "pushed" flows launched from Home (Receive/Send/Buy/Smart/Spark) that take the
   // full surface above the bar. Settings stays on the header gear.
   const [tab, setTab] = useState<'home' | 'swap' | 'earn' | 'activity'>('home');
-  const [pushed, setPushed] = useState<'none' | 'receive' | 'send' | 'buy' | 'smart' | 'spark'>('none');
+  const [pushed, setPushed] = useState<'none' | 'receive' | 'send' | 'asset' | 'buy' | 'smart' | 'spark'>('none');
   const [earnSub, setEarnSub] = useState<'lend' | 'bridge'>('lend');
   /** When set, the Send view sends this ERC-20 token instead of the native asset. */
   const [sendToken, setSendToken] = useState<TokenInfo | null>(null);
@@ -310,6 +311,22 @@ export function MainView({ onLockRequested, onOpenSettings }: MainViewProps): JS
         symbol={activeSymbol}
         accountIndex={accountIndex}
         onBack={() => setPushed('none')}
+      />
+    );
+  }
+  if (pushed === 'asset' && isEvmChain && sendToken) {
+    const assetBalance = tokenBalancesState.status === 'ready'
+      ? (tokenBalancesState.balances.find((b) => b.token.address === sendToken.address)?.balance ?? null)
+      : null;
+    return (
+      <AssetDetailView
+        token={sendToken}
+        chain={evmChain}
+        chainName={activeName}
+        balance={assetBalance}
+        onSend={() => setPushed('send')}
+        onReceive={() => setPushed('receive')}
+        onBack={() => { setSendToken(null); setPushed('none'); }}
       />
     );
   }
@@ -570,8 +587,8 @@ export function MainView({ onLockRequested, onOpenSettings }: MainViewProps): JS
             {tokenBalancesState.balances.map(({ token, balance }) => (
               <button
                 key={token.address}
-                onClick={() => { setSendToken(token); setPushed('send'); }}
-                title={`Send ${token.symbol}`}
+                onClick={() => { setSendToken(token); setPushed('asset'); }}
+                title={`${token.symbol} details`}
                 style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', padding: '4px 0', background: 'none', border: 'none', cursor: 'pointer', color: 'inherit', font: 'inherit' }}
               >
                 <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 13 }}>
@@ -581,7 +598,7 @@ export function MainView({ onLockRequested, onOpenSettings }: MainViewProps): JS
                   <span style={{ fontSize: 13, fontWeight: 600 }}>
                     {balance === null ? '—' : formatTokenAmount(balance, token.decimals)}
                   </span>
-                  <span style={{ fontSize: 11, opacity: 0.5 }}>Send ›</span>
+                  <span style={{ fontSize: 11, opacity: 0.5 }}>Details ›</span>
                 </span>
               </button>
             ))}
