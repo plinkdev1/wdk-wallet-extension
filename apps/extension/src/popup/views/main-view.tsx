@@ -271,12 +271,22 @@ export function MainView({ onLockRequested, onOpenSettings }: MainViewProps): JS
     );
   }
   if (pushed === 'send') {
+    // Spendable balance feeds the AmountInput "Max" chip: a token's own ERC-20
+    // balance in token mode, else the active chain's native balance.
+    const sendSpendable: bigint | undefined =
+      isEvmChain && sendToken
+        ? (tokenBalancesState.status === 'ready'
+            ? (tokenBalancesState.balances.find((b) => b.token.address === sendToken.address)?.balance ?? undefined)
+            : undefined)
+        : (activeNativeBase ?? undefined);
     return (
       <SendView
         chain={isSolanaChain ? (activeChain as SolanaChainId) : isBitcoinChain ? (activeChain as BtcChainId) : isTonChain ? (activeChain as TonChainId) : isTronChain ? (activeChain as TronChainId) : evmChain}
         kind={isSolanaChain ? 'solana' : isBitcoinChain ? 'bitcoin' : isTonChain ? 'ton' : isTronChain ? 'tron' : 'evm'}
         symbol={sendToken ? sendToken.symbol : activeSymbol}
         token={isEvmChain && sendToken ? { address: sendToken.address, decimals: sendToken.decimals } : null}
+        spendable={sendSpendable}
+        chainName={activeName}
         accountIndex={accountIndex}
         onBack={() => { setSendToken(null); setPushed('none'); }}
       />

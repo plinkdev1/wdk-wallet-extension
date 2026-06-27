@@ -22,7 +22,7 @@ describe('SendView', () => {
     render(<SendView chain="ethereum" symbol="ETH" accountIndex={0} onBack={() => {}} />);
     fireEvent.change(screen.getByPlaceholderText('0x…'), { target: { value: 'nope' } });
     fireEvent.change(screen.getByPlaceholderText('0.0'), { target: { value: '1' } });
-    fireEvent.click(screen.getByText('Review & send'));
+    fireEvent.click(screen.getByText('Review'));
     expect(screen.getByRole('alert')).toHaveTextContent(/valid recipient/i);
     expect(sendMock).not.toHaveBeenCalled();
   });
@@ -32,7 +32,8 @@ describe('SendView', () => {
     render(<SendView chain="ethereum" symbol="ETH" accountIndex={0} onBack={() => {}} />);
     fireEvent.change(screen.getByPlaceholderText('0x…'), { target: { value: '0x70997970C51812dc3A010C7d01b50e0d17dc79C8' } });
     fireEvent.change(screen.getByPlaceholderText('0.0'), { target: { value: '0.5' } });
-    fireEvent.click(screen.getByText('Review & send'));
+    fireEvent.click(screen.getByText('Review'));
+    fireEvent.click(await screen.findByText('Confirm & send'));
     await waitFor(() => expect(screen.getByText('0xabc123')).toBeInTheDocument());
     expect(sendMock).toHaveBeenCalledWith(expect.objectContaining({
       type: 'ACCOUNT_SEND_TRANSACTION',
@@ -53,7 +54,7 @@ describe('SendView', () => {
     render(<SendView chain="solana-mainnet" kind="solana" symbol="SOL" accountIndex={0} onBack={() => {}} />);
     fireEvent.change(screen.getByPlaceholderText('Base58 address'), { target: { value: 'not-valid' } });
     fireEvent.change(screen.getByPlaceholderText('0.0'), { target: { value: '1' } });
-    fireEvent.click(screen.getByText('Review & send'));
+    fireEvent.click(screen.getByText('Review'));
     expect(screen.getByRole('alert')).toHaveTextContent(/valid Solana address/i);
     expect(sendMock).not.toHaveBeenCalled();
   });
@@ -63,7 +64,8 @@ describe('SendView', () => {
     render(<SendView chain="solana-mainnet" kind="solana" symbol="SOL" accountIndex={0} onBack={() => {}} />);
     fireEvent.change(screen.getByPlaceholderText('Base58 address'), { target: { value: '9WzDXwBbmkg8ZTbNMqUxvQRAyrZzDsGYdLVL9zYtAWWM' } });
     fireEvent.change(screen.getByPlaceholderText('0.0'), { target: { value: '1.5' } });
-    fireEvent.click(screen.getByText('Review & send'));
+    fireEvent.click(screen.getByText('Review'));
+    fireEvent.click(await screen.findByText('Confirm & send'));
     await waitFor(() => expect(screen.getByText('soLsig123')).toBeInTheDocument());
     expect(sendMock).toHaveBeenCalledWith(expect.objectContaining({
       type: 'ACCOUNT_SEND_SOLANA_TRANSACTION',
@@ -80,7 +82,8 @@ describe('SendView', () => {
     expect(screen.getByText('Send BTC')).toBeInTheDocument();
     fireEvent.change(screen.getByPlaceholderText('bc1… or legacy address'), { target: { value: 'bc1qar0srrr7xfkvy5l643lydnw9re59gtzzwf5mdq' } });
     fireEvent.change(screen.getByPlaceholderText('0.0'), { target: { value: '0.001' } }); // 0.001 BTC = 100_000 sats
-    fireEvent.click(screen.getByText('Review & send'));
+    fireEvent.click(screen.getByText('Review'));
+    fireEvent.click(await screen.findByText('Confirm & send'));
     await waitFor(() => expect(screen.getByText('btctxid123')).toBeInTheDocument());
     expect(sendMock).toHaveBeenCalledWith(expect.objectContaining({
       type: 'ACCOUNT_SEND_BTC_TRANSACTION',
@@ -97,7 +100,8 @@ describe('SendView', () => {
     expect(screen.getByText('Send TON')).toBeInTheDocument();
     fireEvent.change(screen.getByPlaceholderText('EQ… / UQ… address'), { target: { value: 'EQCD39VS5jcptHL8vMjEXrzGaRcCVYto7HUn4bpAOg8xqB2N' } });
     fireEvent.change(screen.getByPlaceholderText('0.0'), { target: { value: '2' } }); // 2 TON = 2_000_000_000 nanoton
-    fireEvent.click(screen.getByText('Review & send'));
+    fireEvent.click(screen.getByText('Review'));
+    fireEvent.click(await screen.findByText('Confirm & send'));
     await waitFor(() => expect(screen.getByText('tontxhash')).toBeInTheDocument());
     expect(sendMock).toHaveBeenCalledWith(expect.objectContaining({
       type: 'ACCOUNT_SEND_TON_TRANSACTION',
@@ -113,7 +117,8 @@ describe('SendView', () => {
     expect(screen.getByText('Send TRX')).toBeInTheDocument();
     fireEvent.change(screen.getByPlaceholderText('T… address'), { target: { value: 'TQn9Y2khEsLJW1ChVWFMSMeRDow5KcbLSE' } });
     fireEvent.change(screen.getByPlaceholderText('0.0'), { target: { value: '5' } }); // 5 TRX = 5_000_000 sun
-    fireEvent.click(screen.getByText('Review & send'));
+    fireEvent.click(screen.getByText('Review'));
+    fireEvent.click(await screen.findByText('Confirm & send'));
     await waitFor(() => expect(screen.getByText('trontxhash')).toBeInTheDocument());
     expect(sendMock).toHaveBeenCalledWith(expect.objectContaining({
       type: 'ACCOUNT_SEND_TRON_TRANSACTION',
@@ -128,7 +133,7 @@ describe('SendView', () => {
     render(<SendView chain="bitcoin-mainnet" kind="bitcoin" symbol="BTC" accountIndex={0} onBack={() => {}} />);
     fireEvent.change(screen.getByPlaceholderText('bc1… or legacy address'), { target: { value: '0xdeadbeef' } });
     fireEvent.change(screen.getByPlaceholderText('0.0'), { target: { value: '0.1' } });
-    fireEvent.click(screen.getByText('Review & send'));
+    fireEvent.click(screen.getByText('Review'));
     expect(screen.getByRole('alert')).toHaveTextContent(/valid Bitcoin address/i);
     expect(sendMock).not.toHaveBeenCalled();
   });
@@ -148,7 +153,8 @@ describe('SendView', () => {
     expect(screen.getByText('Send USDt')).toBeInTheDocument();
     fireEvent.change(screen.getByPlaceholderText('0x…'), { target: { value: '0x70997970C51812dc3A010C7d01b50e0d17dc79C8' } });
     fireEvent.change(screen.getByPlaceholderText('0.0'), { target: { value: '1' } }); // 1 USDt = 1_000_000 base units
-    fireEvent.click(screen.getByText('Review & send'));
+    fireEvent.click(screen.getByText('Review'));
+    fireEvent.click(await screen.findByText('Confirm & send'));
     await waitFor(() => expect(screen.getByText('0xtokentx')).toBeInTheDocument());
     expect(sendMock).toHaveBeenCalledWith(expect.objectContaining({
       type: 'ACCOUNT_SEND_TRANSACTION',

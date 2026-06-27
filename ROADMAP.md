@@ -217,9 +217,15 @@ already-pro engine, in lockstep with the [Template Wallet](https://github.com/pl
   "EVM only" note off-EVM. The four flow views gained an `embedded` prop so they
   render headerless inside the shell. Settings stays on the header gear; Lock stays
   one click away (ADR-006). 441 popup tests green.
-- ✅ **Send-flow primitives** — `AmountInput` (fiat⇄crypto + Max), `ReviewSheet`,
-  `SuccessScreen`, and `StatusPill` are mirrored byte-identical from the template
-  in `wdk-ui`, ready for the popup Send/Swap flows to adopt next.
+- ✅ **Send-flow primitives + a two-step popup Send** — `AmountInput` (Max chip),
+  `ReviewSheet`, `SuccessScreen`, and `StatusPill` are mirrored byte-identical from
+  the template in `wdk-ui`, and the popup Send is rebuilt on them as **Form →
+  Review → Success** across every family (EVM native + ERC-20, Solana, Bitcoin,
+  TON, Tron): the amount field carries a Max chip fed by the active balance (a
+  token's own ERC-20 balance in token mode), Review summarizes To / Amount /
+  Network with an irreversibility note, and Success shows the hash. Paste-aware
+  payment URIs preserved. (Next: the fiat⇄crypto flip in the popup Send, and the
+  same primitives in Swap.)
 
 ## How each phase stays a *standard*, not a fork
 

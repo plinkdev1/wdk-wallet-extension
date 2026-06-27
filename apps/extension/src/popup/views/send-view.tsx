@@ -1,15 +1,16 @@
 /**
- * SendView - a user-initiated native-asset transfer on the active chain.
+ * SendView - a user-initiated native-or-token transfer on the active chain, now a
+ * pro-wallet two-step flow: Form → Review → Success, built on the shared wdk-ui
+ * primitives (AmountInput with a Max chip, ReviewSheet, SuccessScreen).
  *
- * Handles both EVM (0x address, 18 decimals, ACCOUNT_SEND_TRANSACTION) and
- * Solana (base58 address, 9 decimals / lamports, ACCOUNT_SEND_SOLANA_TRANSACTION)
- * via the `kind` prop (defaults to 'evm'). Flow: enter recipient + amount ->
- * validate -> message the SW (which signs + broadcasts via WDK) -> show the hash.
- * The keys never leave the service worker; this view only collects intent.
+ * Handles EVM (0x, 18 dp, ACCOUNT_SEND_TRANSACTION — native or ERC-20 transfer()),
+ * Solana (base58, 9 dp), Bitcoin (8 dp sats), TON (9 dp nanoton) and Tron (6 dp
+ * sun) via the `kind` prop. Validate → review → message the SW (which signs +
+ * broadcasts via WDK) → show the hash. Keys never leave the service worker.
  */
 
 import { useCallback, useState } from 'react';
-import { Button, Card, Input, Label } from '@wdk-starter/wdk-ui';
+import { Button, Input, Label, AmountInput, ReviewSheet, SuccessScreen, type ReviewRow } from '@wdk-starter/wdk-ui';
 import type { BtcChainId, EvmChainId, SolanaChainId, TonChainId, TronChainId, ChainFamily } from '@wdk-starter/wdk-web-core/types';
 import { validateAddress, parsePaymentUri } from '@wdk-starter/wdk-web-core/payments';
 import { send } from '../lib/sw-client.js';
@@ -25,6 +26,10 @@ export interface SendViewProps {
   readonly kind?: 'evm' | 'solana' | 'bitcoin' | 'ton' | 'tron';
   /** When set (EVM only), sends this ERC-20 token via transfer() calldata instead of native value. */
   readonly token?: { readonly address: string; readonly decimals: number } | null;
+  /** Spendable balance (base units) — enables the "Max" chip when provided. */
+  readonly spendable?: bigint | undefined;
+  /** Display name of the active network, for the review summary. */
+  readonly chainName?: string | undefined;
   readonly onBack: () => void;
   /** Called after a successful broadcast so the parent can refresh the balance. */
   readonly onSent?: () => void;
@@ -50,12 +55,17 @@ function parseAmount(input: string, decimals: number): bigint {
   return BigInt(whole || '0') * 10n ** BigInt(decimals) + BigInt(padded || '0');
 }
 
+function middleTruncate(s: string): string {
+  return s.length > 18 ? `${s.slice(0, 10)}…${s.slice(-6)}` : s;
+}
+
 type Phase =
   | { status: 'form' }
+  | { status: 'review' }
   | { status: 'sending' }
   | { status: 'sent'; hash: string };
 
-export function SendView({ chain, symbol, accountIndex, kind = 'evm', token, onBack, onSent }: SendViewProps): JSX.Element {
+export function SendView({ chain, symbol, accountIndex, kind = 'evm', token, spendable, chainName, onBack, onSent }: SendViewProps): JSX.Element {
   const [to, setTo] = useState('');
   const [amount, setAmount] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -65,6 +75,8 @@ export function SendView({ chain, symbol, accountIndex, kind = 'evm', token, onB
   const isTon = kind === 'ton';
   const isTron = kind === 'tron';
   const family: ChainFamily = isSolana ? 'solana' : isBitcoin ? 'bitcoin' : isTon ? 'ton' : isTron ? 'tron' : 'evm';
+  const decimals = token ? token.decimals : isSolana ? 9 : isBitcoin ? 8 : isTon ? 9 : isTron ? 6 : 18;
+  const maxStr = spendable !== undefined ? formatBaseToDecimal(spendable, decimals) : undefined;
 
   // Paste-aware recipient: a BIP-21 (bitcoin:) or EIP-681 (ethereum:) payment URI
   // fills the address and, when present, the amount — a scanned/copied request "just works".
@@ -83,9 +95,9 @@ export function SendView({ chain, symbol, accountIndex, kind = 'evm', token, onB
     setTo(raw);
   }, [family, token]);
 
-  const handleSend = useCallback(async (): Promise<void> => {
+  /** Validate the form and advance to Review. */
+  const toReview = useCallback((): void => {
     setError(null);
-    const decimals = token ? token.decimals : isSolana ? 9 : isBitcoin ? 8 : isTon ? 9 : isTron ? 6 : 18;
     const recipient = to.trim();
     const check = validateAddress(family, recipient);
     if (!check.valid) {
@@ -101,6 +113,25 @@ export function SendView({ chain, symbol, accountIndex, kind = 'evm', token, onB
     }
     if (value <= 0n) {
       setError('Amount must be greater than zero.');
+      return;
+    }
+    if (spendable !== undefined && value > spendable) {
+      setError('Insufficient balance.');
+      return;
+    }
+    setPhase({ status: 'review' });
+  }, [to, amount, family, decimals, spendable]);
+
+  /** Sign + broadcast from the Review step. */
+  const confirm = useCallback(async (): Promise<void> => {
+    setError(null);
+    const recipient = to.trim();
+    let value: bigint;
+    try {
+      value = parseAmount(amount, decimals);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Invalid amount.');
+      setPhase({ status: 'form' });
       return;
     }
 
@@ -126,9 +157,15 @@ export function SendView({ chain, symbol, accountIndex, kind = 'evm', token, onB
       onSent?.();
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Transaction failed.');
-      setPhase({ status: 'form' });
+      setPhase({ status: 'review' });
     }
-  }, [to, amount, chain, accountIndex, family, isSolana, isBitcoin, isTon, isTron, token, symbol, onSent]);
+  }, [to, amount, chain, accountIndex, decimals, isSolana, isBitcoin, isTon, isTron, token, symbol, onSent]);
+
+  const reviewRows: ReviewRow[] = [
+    { label: 'To', value: middleTruncate(to.trim()), mono: true },
+    { label: 'Amount', value: `${amount} ${symbol}` },
+    { label: 'Network', value: chainName ?? String(chain) },
+  ];
 
   return (
     <div style={{ padding: 20, display: 'flex', flexDirection: 'column', gap: 16, flex: 1, fontFamily: 'var(--font-body)', color: 'var(--text-primary)' }}>
@@ -137,39 +174,44 @@ export function SendView({ chain, symbol, accountIndex, kind = 'evm', token, onB
         <strong style={{ fontSize: 15 }}>Send {symbol}</strong>
       </header>
 
-      {phase.status !== 'sent' && (
-        <Card>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 14, padding: 16 }}>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-              <Label>Recipient address</Label>
-              <Input value={to} onChange={(e) => onRecipientChange(e.target.value)} placeholder={isSolana ? 'Base58 address' : isBitcoin ? 'bc1… or legacy address' : isTon ? 'EQ… / UQ… address' : isTron ? 'T… address' : '0x…'} />
-            </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-              <Label>Amount ({symbol})</Label>
-              <Input value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="0.0" inputMode="decimal" />
-            </div>
-            {error !== null && (
-              <div role="alert" style={{ fontSize: 12, color: 'var(--color-error, #EF4444)', lineHeight: 1.4 }}>{error}</div>
-            )}
-            <Button onClick={() => { void handleSend(); }} disabled={phase.status === 'sending'} style={{ width: '100%' }}>
-              {phase.status === 'sending' ? 'Sending…' : 'Review & send'}
-            </Button>
+      {phase.status === 'form' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+            <Label>Recipient address</Label>
+            <Input value={to} onChange={(e) => onRecipientChange(e.target.value)} placeholder={isSolana ? 'Base58 address' : isBitcoin ? 'bc1… or legacy address' : isTon ? 'EQ… / UQ… address' : isTron ? 'T… address' : '0x…'} />
           </div>
-        </Card>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+            <Label>Amount ({symbol})</Label>
+            <AmountInput value={amount} onChange={setAmount} symbol={symbol} max={maxStr} />
+          </div>
+          {error !== null && (
+            <div role="alert" style={{ fontSize: 12, color: 'var(--color-error, #EF4444)', lineHeight: 1.4 }}>{error}</div>
+          )}
+          <Button onClick={toReview} style={{ width: '100%' }}>Review</Button>
+        </div>
+      )}
+
+      {(phase.status === 'review' || phase.status === 'sending') && (
+        <ReviewSheet
+          title={`Send ${symbol}`}
+          rows={reviewRows}
+          confirmLabel="Confirm & send"
+          onConfirm={() => { void confirm(); }}
+          onCancel={() => { setError(null); setPhase({ status: 'form' }); }}
+          busy={phase.status === 'sending'}
+          busyLabel="Sending…"
+          error={error}
+          note="Double-check the recipient and network — on-chain sends can’t be reversed."
+        />
       )}
 
       {phase.status === 'sent' && (
-        <Card>
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12, padding: 20 }}>
-            <div style={{ fontSize: 36 }}>✅</div>
-            <div style={{ fontSize: 14 }}>Transaction submitted.</div>
-            <Label>Transaction hash</Label>
-            <code style={{ fontSize: 11, wordBreak: 'break-all', textAlign: 'center', padding: '8px 10px', backgroundColor: 'var(--bg-elevated-2)', borderRadius: 6, width: '100%' }}>
-              {phase.hash}
-            </code>
-            <Button onClick={onBack} style={{ width: '100%' }}>Done</Button>
-          </div>
-        </Card>
+        <SuccessScreen
+          title="Sent"
+          message={`${amount} ${symbol} is on its way.`}
+          hash={phase.hash}
+          onDone={onBack}
+        />
       )}
     </div>
   );

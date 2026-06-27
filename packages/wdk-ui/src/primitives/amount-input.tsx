@@ -22,15 +22,15 @@ export interface AmountInputProps {
   /** Crypto asset symbol, e.g. "ETH". */
   readonly symbol: string;
   /** Price of one whole unit in `fiatCurrency`. Enables the fiat flip + preview. */
-  readonly usdPrice?: number;
+  readonly usdPrice?: number | undefined;
   /** Spendable max as a crypto decimal string; renders a "Max" chip when set. */
-  readonly max?: string;
+  readonly max?: string | undefined;
   /** ISO currency for the fiat side (default "USD"). */
-  readonly fiatCurrency?: string;
-  readonly placeholder?: string;
-  readonly autoFocus?: boolean;
-  readonly disabled?: boolean;
-  readonly 'aria-label'?: string;
+  readonly fiatCurrency?: string | undefined;
+  readonly placeholder?: string | undefined;
+  readonly autoFocus?: boolean | undefined;
+  readonly disabled?: boolean | undefined;
+  readonly 'aria-label'?: string | undefined;
 }
 
 const NUM = /^[0-9]*\.?[0-9]*$/;
