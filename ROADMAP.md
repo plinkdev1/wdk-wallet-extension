@@ -181,9 +181,20 @@ The current build is a production-grade MV3 wallet, not a prototype:
       `BACKUP_IMPORT_VAULT` messages + SW handlers, and a **Backup** panel in
       Settings → Security (export-to-copy + restore-from-paste). Unit-tested
       (envelope round-trip, tamper/version rejection, targets) + a jsdom view test.
-    - ⏳ **WalletConnect v2** / **hardware-wallet signing** — the in-repo routing +
-      narrow signer/session interfaces are buildable now; full end-to-end needs a
-      WC relay / a physical device. *(Audit + store submission are external.)*
+    - ✅ **WalletConnect v2 bridge (seam)** — `background/walletconnect/bridge.ts`:
+      a WC `session_request` routes through the **same** dApp dispatcher as the
+      injected provider (same approval prompt, same per-origin allow-list), and a
+      proposal flows through the approval flow. Imports no `@walletconnect` SDK —
+      the client is a narrow interface over `@walletconnect/sign-client`. Unit-
+      tested (route→respond, error mapping, proposal approve/reject, event wiring);
+      `README.md` documents the 3 adapters to go live. *(The relay needs network.)*
+    - ✅ **Hardware-wallet signing (seam)** — `background/hardware/signer.ts`: a
+      `HardwareSigner` interface + a per-account registry + `routeSign*` that picks
+      the device at the single signing chokepoint, else the seed. Unit-tested;
+      `README.md` documents the Ledger/WebHID adapter. *(A physical device is the
+      only piece needed for end-to-end.)*
+    - ⏳ Remaining Phase-5: the live WC-relay + device transport adapters, a
+      third-party **security audit**, and **Web Store submission** — all external.
 
 ---
 
