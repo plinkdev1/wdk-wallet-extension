@@ -8,7 +8,7 @@
  */
 
 import { useCallback, useState } from 'react';
-import { Button, Card, Input, Label } from '@wdk-starter/wdk-ui';
+import { Button, Card, Input, Label, TokenChip } from '@wdk-starter/wdk-ui';
 import type { EvmChainId } from '@wdk-starter/wdk-web-core/types';
 import { send } from '../lib/sw-client.js';
 import { addTransaction } from '../hooks/use-transactions.js';
@@ -153,7 +153,7 @@ export function SwapView({ chain, chainName, accountIndex, onBack }: SwapViewPro
               <Label>Sell</Label>
               <div style={{ display: 'flex', gap: 6, marginTop: 6 }}>
                 {tokens!.map((t, i) => (
-                  <Button key={t.address} size="sm" variant={inIdx === i ? 'primary' : 'secondary'} onClick={() => { setInIdx(i); resetQuote(); }} style={{ flex: 1 }}>{t.symbol}</Button>
+                  <Button key={t.address} size="sm" variant={inIdx === i ? 'primary' : 'secondary'} onClick={() => { setInIdx(i); resetQuote(); }} style={{ flex: 1 }}><TokenChip symbol={t.symbol} /></Button>
                 ))}
               </div>
             </div>
@@ -161,7 +161,7 @@ export function SwapView({ chain, chainName, accountIndex, onBack }: SwapViewPro
               <Label>Buy</Label>
               <div style={{ display: 'flex', gap: 6, marginTop: 6 }}>
                 {tokens!.map((t, i) => (
-                  <Button key={t.address} size="sm" variant={outIdx === i ? 'primary' : 'secondary'} onClick={() => { setOutIdx(i); resetQuote(); }} style={{ flex: 1 }}>{t.symbol}</Button>
+                  <Button key={t.address} size="sm" variant={outIdx === i ? 'primary' : 'secondary'} onClick={() => { setOutIdx(i); resetQuote(); }} style={{ flex: 1 }}><TokenChip symbol={t.symbol} /></Button>
                 ))}
               </div>
             </div>

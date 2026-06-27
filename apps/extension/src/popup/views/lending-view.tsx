@@ -11,7 +11,7 @@
  */
 
 import { useCallback, useEffect, useState } from 'react';
-import { Button, Card, Input, Label } from '@wdk-starter/wdk-ui';
+import { Button, Card, Input, Label, TokenChip } from '@wdk-starter/wdk-ui';
 import type { EvmChainId } from '@wdk-starter/wdk-web-core/types';
 import type { WalletMessage } from '../../types/messages.js';
 import { send } from '../lib/sw-client.js';
@@ -202,7 +202,7 @@ export function LendingView({ chain, chainName, accountIndex, onBack }: LendingV
                   <div style={{ display: 'flex', gap: 6, marginTop: 6 }}>
                     {tokens!.map((t, i) => (
                       <Button key={t.address} size="sm" variant={tokenIdx === i ? 'primary' : 'secondary'} onClick={() => setTokenIdx(i)} style={{ flex: 1 }}>
-                        {t.symbol}
+                        <TokenChip symbol={t.symbol} />
                       </Button>
                     ))}
                   </div>

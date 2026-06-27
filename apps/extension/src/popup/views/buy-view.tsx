@@ -11,7 +11,7 @@
  */
 
 import { useCallback, useEffect, useState } from 'react';
-import { Button, Card, Input, Label } from '@wdk-starter/wdk-ui';
+import { Button, Card, Input, Label, TokenChip } from '@wdk-starter/wdk-ui';
 import { send } from '../lib/sw-client.js';
 
 export interface BuyViewProps {
@@ -139,7 +139,7 @@ export function BuyView({ chain, chainName, address, onBack }: BuyViewProps): JS
               <Label>Asset</Label>
               <div style={{ display: 'flex', gap: 6, marginTop: 6 }}>
                 {assets.map((a, i) => (
-                  <Button key={a.code} size="sm" variant={assetIdx === i ? 'primary' : 'secondary'} onClick={() => { setAssetIdx(i); setPhase({ status: 'form' }); }} style={{ flex: 1 }}>{a.label}</Button>
+                  <Button key={a.code} size="sm" variant={assetIdx === i ? 'primary' : 'secondary'} onClick={() => { setAssetIdx(i); setPhase({ status: 'form' }); }} style={{ flex: 1 }}><TokenChip symbol={a.label} /></Button>
                 ))}
               </div>
             </div>
