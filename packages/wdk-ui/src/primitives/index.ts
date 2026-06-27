@@ -47,3 +47,9 @@ export * from './network-icon.js';
 export * from './token-icon.js';
 export * from './token-chip.js';
 export * from './tab-bar.js';
+
+// Send-flow primitives (PRD §3.1)
+export * from './amount-input.js';
+export * from './review-sheet.js';
+export * from './success-screen.js';
+export * from './status-pill.js';
