@@ -31,7 +31,7 @@ blocks and sequenced them into the roadmap below:
 | **TON accounts (v5r1)** | `@tetherto/wdk-wallet-ton` | ✅ **shipped** |
 | **Tron accounts** | `@tetherto/wdk-wallet-tron` | ✅ **shipped** |
 | Gasless stablecoin transfers | `@tetherto/wdk-protocol-eip3009` *(our module)* | ✅ shipped |
-| Lightning / Spark | `@tetherto/wdk-wallet-spark` | ⏳ Phase 2 (validated; needs MV3 bundler shim — see below) |
+| **Spark (Bitcoin L2) + Lightning** | `@tetherto/wdk-wallet-spark` | ✅ **shipped** — branded Spark/Lightning view (address, balance, Spark↔Spark send, deposit-from-BTC, withdraw-to-BTC, BOLT11 receive/pay); `@noble/hashes` conflict solved |
 | Account abstraction (ERC-4337) | `@tetherto/wdk-wallet-evm-erc-4337` | ⏳ Phase 3 (validated; **infrastructure-gated** — see below) |
 | TON-gasless | `@tetherto/wdk-wallet-ton-gasless` | ⏳ Phase 3 |
 | Fiat pricing (balances in $) | `@tetherto/wdk-pricing-coingecko-http`, `-bitfinex-http` | ⏳ Phase 2 |
@@ -106,49 +106,35 @@ The current build is a production-grade MV3 wallet, not a prototype:
 
 ## ⏳ Phase 2 — Lightning, fiat values, richer history
 
-1. **Lightning / Spark** (`@tetherto/wdk-wallet-spark`) — instant, low-fee BTC
-   payments. The Bitcoin base layer already ships; Spark adds an L2 account family
-   following the exact chain-loader pattern Bitcoin uses (`src/chains/spark.ts`
-   + worker `account_*Spark*` methods + a Lightning send/receive (BOLT11 invoice) UI).
+1. ✅ **Lightning / Spark** (`@tetherto/wdk-wallet-spark`) — **SHIPPED**. Spark is
+   wired as an on-demand L2 manager (keyed off the mnemonic, like ERC-4337), with a
+   branded **Spark & Lightning** popup view: a Spark tab (Receive · Send Spark→Spark ·
+   Deposit-from-Bitcoin · Withdraw-to-BTC with a fee quote + exit speed) and a
+   Lightning tab (BOLT11 receive/pay). Worker methods: `account_getSparkAddress` /
+   `…Balance` / `…sendSparkTransaction` / `…getSparkDepositAddress` /
+   `…quoteSparkWithdraw` / `…sparkWithdraw` + `lightning_createInvoice` /
+   `lightning_payInvoice`. The ~6.4 MB SDK lazy-loads into its own chunk.
 
-   > **Validated, with one scoped blocker.** We installed the package and confirmed
-   > the account API (address, balance, `sendTransaction`, `createLightningInvoice`,
-   > `payLightningInvoice`). The engine wiring is a straight copy of the Bitcoin
-   > integration. The remaining task is **browser-bundling the Spark SDK for MV3**:
-   > `@buildonspark/spark-sdk` is Bare/Node/React-Native-first, and its dependency
-   > tree imports the extensionless `@noble/hashes/hmac` (removed in `@noble/hashes`
-   > v2, which only exports `./hmac.js`), so Vite resolves its Node build and fails.
-   > The fix is a Vite `resolve.alias` (`@noble/hashes/hmac` → `…/hmac.js`) plus a
-   > browser-condition pin to the SDK's `index.browser.js` — or consuming Spark via
-   > the **Bare worklet** path (how WDK intends it for mobile). Scoped as the first
-   > Phase-2 task; deliberately not rushed into the shipped build.
+   > **The `@noble/hashes` v1↔v2 conflict — SOLVED.** The blocker was that
+   > `@tetherto/wdk-wallet-btc` imports the extensionless `@noble/hashes/hmac`
+   > (v1-only; **undeclared** — a phantom dependency) while the Spark SDK pins
+   > `@noble/hashes` v2 (which dropped the extensionless exports), so installing
+   > Spark broke Bitcoin. A global Vite alias can't serve both (same specifier,
+   > different majors). The fix: pin BTC to v1 via `pnpm.packageExtensions`
+   > (`@tetherto/wdk-wallet-btc` → `@noble/hashes@^1.8.0`) so BTC and Spark resolve
+   > their own copies side-by-side. Verified at install, tsc/vitest, **and** in both
+   > bundlers (crxjs/Vite MV3 + Next.js/webpack) — Bitcoin L1 and Spark now coexist
+   > in one build. The upstream source fix (declare the dependency) is drafted for
+   > `tetherto/wdk-wallet-btc`.
    >
-   > **Shim attempt (recorded).** We tried the obvious fix — a Vite `resolve.alias`
-   > rewriting `@noble/hashes/<x>` → `@noble/hashes/<x>.js`. It **breaks the working
-   > Bitcoin build**: `@tetherto/wdk-wallet-btc` resolves `@noble/hashes` **v1**
-   > (which *does* expose the extensionless `./hmac`), so the alias points it at a
-   > `./hmac.js` that v1's export map doesn't publish. BTC and Spark import the same
-   > specifier but resolve different majors, so a *global* alias can't serve both.
-   > The clean fix is one of: (a) a custom `resolveId` Vite plugin that appends `.js`
-   > only when the extensionless path fails; (b) a monorepo-wide `@noble/hashes` v2
-   > override (risks bitcoinjs-lib's v1 assumptions); or (c) the Bare-worklet path.
-   > Reverted cleanly — the 5-chain build stays green.
+   > **MV3 caveat (F-MV3-04).** On the MV3 service worker, runtime `import()` may be
+   > restricted; the Spark view surfaces that as a clear connect-error rather than
+   > failing silently. The Web-Worker (template) path is unaffected.
    >
-   > **Engine groundwork shipped (`payments/`).** Independent of the bundling
-   > blocker, the shared engine now ships a framework-agnostic payment-target
-   > module — per-family address validation plus **BOLT11** (Lightning), BIP-21,
-   > and EIP-681 parsing (`validateAddress`, `parsePaymentUri`, `decodeBolt11`),
-   > with 30 tests over canonical vectors and **no new runtime dependency**.
-   > BOLT11 decode is exactly what the Lightning send/receive UI consumes, so the
-   > Spark account integration is de-risked the moment the SDK bundles.
-   >
-   > **Engine wiring shipped (`protocols/spark.ts`).** The on-demand Spark
-   > manager + worker methods (`account_*Spark*`, `lightning_createInvoice` /
-   > `lightning_payInvoice` with shared BOLT11 validation) now live in the engine,
-   > lazy and decoupled — the SDK is an app-provided optional dependency, *not* an
-   > engine dependency (it conflicts with `wdk-wallet-btc` over `@noble/hashes`
-   > v1↔v2 in a shared install). All that remains is the app-level install + MV3
-   > bundler shim.
+   > **Payment-target groundwork (`payments/`).** Per-family address validation plus
+   > **BOLT11**/BIP-21/EIP-681 parsing (`validateAddress`, `parsePaymentUri`,
+   > `decodeBolt11`), with tests over canonical vectors and no new runtime dependency
+   > — what the Lightning send/pay UI consumes.
 2. **Fiat values** (`@tetherto/wdk-pricing-*`) — show balances and amounts in USD;
    a pricing adapter alongside the RPC/indexer adapters in `wdk-web-core`.
    - ✅ **Pricing adapter shipped + wired** — `PricingAdapter` + Bitfinex
