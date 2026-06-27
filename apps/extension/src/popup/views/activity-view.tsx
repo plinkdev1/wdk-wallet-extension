@@ -11,6 +11,7 @@ import { Button, Card } from '@wdk-starter/wdk-ui';
 import { useTransactions, type TxRecord } from '../hooks/use-transactions.js';
 import { useTransactionStatuses, type LiveStatus } from '../hooks/use-transaction-statuses.js';
 import { explorerTxUrl } from '../lib/explorers.js';
+import { TransactionDetail } from './transaction-detail.js';
 
 export interface ActivityViewProps {
   readonly onBack: () => void;
@@ -54,6 +55,7 @@ export function ActivityView({ onBack, chainName }: ActivityViewProps): JSX.Elem
   const { transactions } = useTransactions();
   const liveStatuses = useTransactionStatuses(transactions);
   const [filter, setFilter] = useState<string>('all');
+  const [selected, setSelected] = useState<TxRecord | null>(null);
 
   const chains = useMemo(() => {
     const set = new Set(transactions.map((t) => t.chain));
@@ -62,6 +64,18 @@ export function ActivityView({ onBack, chainName }: ActivityViewProps): JSX.Elem
 
   const visible = filter === 'all' ? transactions : transactions.filter((t) => t.chain === filter);
   const nameOf = (c: string) => (chainName ? chainName(c) : c);
+
+  // A row opens the per-tx detail panel (Phase 2 item 4).
+  if (selected) {
+    return (
+      <TransactionDetail
+        tx={selected}
+        status={effectiveStatus(selected, liveStatuses)}
+        chainLabel={nameOf(selected.chain)}
+        onBack={() => setSelected(null)}
+      />
+    );
+  }
 
   return (
     <div style={{ padding: 20, display: 'flex', flexDirection: 'column', gap: 14, flex: 1, fontFamily: 'var(--font-body)', color: 'var(--text-primary)' }}>
@@ -89,7 +103,7 @@ export function ActivityView({ onBack, chainName }: ActivityViewProps): JSX.Elem
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
           {visible.map((tx) => (
-            <TxRow key={tx.hash + tx.ts} tx={tx} chainLabel={nameOf(tx.chain)} status={effectiveStatus(tx, liveStatuses)} />
+            <TxRow key={tx.hash + tx.ts} tx={tx} chainLabel={nameOf(tx.chain)} status={effectiveStatus(tx, liveStatuses)} onOpen={() => setSelected(tx)} />
           ))}
         </div>
       )}
@@ -112,11 +126,18 @@ function StatusPill({ status }: { status: LiveStatus }): JSX.Element {
   );
 }
 
-function TxRow({ tx, chainLabel, status }: { tx: TxRecord; chainLabel: string; status: LiveStatus }): JSX.Element {
+function TxRow({ tx, chainLabel, status, onOpen }: { tx: TxRecord; chainLabel: string; status: LiveStatus; onOpen: () => void }): JSX.Element {
   const url = explorerTxUrl(tx.chain, tx.hash);
   return (
     <Card>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 12px', gap: 8 }}>
+      <div
+        role="button"
+        tabIndex={0}
+        onClick={onOpen}
+        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onOpen(); } }}
+        title="View transaction details"
+        style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 12px', gap: 8, cursor: 'pointer' }}
+      >
         <div style={{ display: 'flex', flexDirection: 'column', gap: 3, minWidth: 0 }}>
           <span style={{ fontSize: 13 }}>Sent to {truncate(tx.to)}</span>
           <span style={{ fontSize: 11, opacity: 0.6 }}>{chainLabel} · {relativeTime(tx.ts)}</span>
@@ -125,7 +146,7 @@ function TxRow({ tx, chainLabel, status }: { tx: TxRecord; chainLabel: string; s
           <span style={{ fontSize: 13, fontWeight: 600 }}>-{formatBaseUnits(tx.value, tx.decimals)} {tx.symbol}</span>
           <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
             <StatusPill status={status} />
-            {url && <a href={url} target="_blank" rel="noreferrer" style={{ fontSize: 11 }}>view ↗</a>}
+            {url && <a href={url} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()} style={{ fontSize: 11 }}>view ↗</a>}
           </span>
         </div>
       </div>

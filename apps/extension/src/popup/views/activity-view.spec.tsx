@@ -2,7 +2,7 @@
  * @vitest-environment jsdom
  */
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 
 const sendMock = vi.fn();
 vi.mock('../lib/sw-client.js', () => ({ send: (msg: unknown) => sendMock(msg) }));
@@ -44,5 +44,21 @@ describe('ActivityView', () => {
     render(<ActivityView onBack={() => {}} chainName={() => 'Ethereum'} />);
     await waitFor(() => expect(screen.getByText('Confirmed')).toBeInTheDocument());
     expect(sendMock).toHaveBeenCalledWith(expect.objectContaining({ type: 'RPC_GET_TRANSACTION_STATUS', hash: '0xfeed' }));
+  });
+
+  it('opens the per-tx detail panel on row click and returns via Back', () => {
+    addTransaction({ hash: '0xabc0000000000000000000000000000000000000000000000000000000000def', chain: 'ethereum', to: '0x70997970C51812dc3A010C7d01b50e0d17dc79C8', value: '500000000000000000', symbol: 'ETH', decimals: 18, ts: Date.now() });
+    render(<ActivityView onBack={() => {}} chainName={() => 'Ethereum'} />);
+
+    fireEvent.click(screen.getByTitle('View transaction details'));
+
+    // Detail panel: heading + full network label + explorer link.
+    expect(screen.getByText('Transaction')).toBeInTheDocument();
+    expect(screen.getByText('View on block explorer ↗')).toBeInTheDocument();
+    expect(screen.getByText('Network')).toBeInTheDocument();
+
+    // Back returns to the list (the row is shown again).
+    fireEvent.click(screen.getByLabelText('Back'));
+    expect(screen.getByText(/Sent to 0x7099/)).toBeInTheDocument();
   });
 });

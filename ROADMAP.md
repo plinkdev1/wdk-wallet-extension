@@ -148,21 +148,24 @@ The current build is a production-grade MV3 wallet, not a prototype:
      Tether-hosted **primary**) + `createFallbackIndexerAdapter` (Tether →
      optional Etherscan / Solana-RPC fallback chain) in `adapters/indexer.ts`;
      the live Tether endpoint shape is dev-supplied and to be confirmed.
-4. **Transaction detail view** — per-tx screen (confirmations, fee, raw data).
+4. ✅ **Transaction detail view** — a per-tx panel (amount, **live** status, network,
+   recipient, time, copyable hash, explorer link). Opened by clicking any Activity
+   row (`transaction-detail.tsx`); the live status reuses the list's existing poll.
 
-## ⏳ Phase 3 — More chains & account abstraction
+## ✅ Phase 3 — More chains & account abstraction (SHIPPED)
 
-5. **Account abstraction** (`@tetherto/wdk-wallet-evm-erc-4337`) — smart-account
-   sends, sponsored/gasless UX, batched transactions.
-6. **TON & Tron** (`@tetherto/wdk-wallet-ton`, `-ton-gasless`, `-tron`) — two more
-   account families on the same registry pattern; TON-gasless for USDt transfers.
+5. ✅ **Account abstraction** (`@tetherto/wdk-wallet-evm-erc-4337`) — smart-account
+   address, native balance, and gasless `UserOperation` sends in `SmartAccountView`
+   (config-driven via `VITE_BUNDLER_URL` / `VITE_PAYMASTER_URL`).
+6. ✅ **TON & Tron** (`@tetherto/wdk-wallet-ton`, `-tron`) — both account families
+   shipped (v5r1 / Tron address, balance, native send) on the same registry pattern.
 
-## ⏳ Phase 4 — DeFi & fiat rails (in-wallet)
+## ✅ Phase 4 — DeFi & fiat rails (in-wallet) (SHIPPED)
 
-7. **Swaps** (`@tetherto/wdk-protocol-swap-velora-evm`) — in-wallet token swaps.
-8. **Lending** (`@tetherto/wdk-protocol-lending-aave-evm`) — supply/borrow on Aave.
-9. **Bridging** (`@tetherto/wdk-protocol-bridge-usdt0-evm`) — move USDt across chains.
-10. **Fiat on-ramp** (`@tetherto/wdk-protocol-fiat-moonpay`) — buy crypto with card.
+7. ✅ **Swaps** (`@tetherto/wdk-protocol-swap-velora-evm`) — `SwapView` (quote → execute).
+8. ✅ **Lending** (`@tetherto/wdk-protocol-lending-aave-evm`) — `LendingView` (supply/withdraw/borrow/repay + live position).
+9. ✅ **Bridging** (`@tetherto/wdk-protocol-bridge-usdt0-evm`) — `BridgeView` (Ethereum ⇄ Arbitrum USDt0).
+10. ✅ **Fiat on-ramp** (`@tetherto/wdk-protocol-fiat-moonpay`) — `BuyView` (quote → widget; config-driven key).
 
 ## ⏳ Phase 5 — Hardening & distribution
 
