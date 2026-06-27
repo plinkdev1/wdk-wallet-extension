@@ -8,16 +8,10 @@
  */
 
 import { useState } from 'react';
-import { Button, Card } from '@wdk-starter/wdk-ui';
+import { Button, Card, StatusPill } from '@wdk-starter/wdk-ui';
 import type { TxRecord } from '../hooks/use-transactions.js';
 import type { LiveStatus } from '../hooks/use-transaction-statuses.js';
 import { explorerTxUrl } from '../lib/explorers.js';
-
-const STATUS_STYLE: Record<LiveStatus, { label: string; color: string }> = {
-  pending: { label: 'Pending', color: '#E3A008' },
-  success: { label: 'Confirmed', color: '#3FB950' },
-  failed: { label: 'Failed', color: '#EF4444' },
-};
 
 function formatBaseUnits(value: string, decimals: number): string {
   try {
@@ -41,7 +35,6 @@ export interface TransactionDetailProps {
 export function TransactionDetail({ tx, status, chainLabel, onBack }: TransactionDetailProps): JSX.Element {
   const [copied, setCopied] = useState<string>('');
   const url = explorerTxUrl(tx.chain, tx.hash);
-  const s = STATUS_STYLE[status];
 
   const copy = async (label: string, value: string): Promise<void> => {
     try {
@@ -63,9 +56,7 @@ export function TransactionDetail({ tx, status, chainLabel, onBack }: Transactio
       <Card>
         <div style={{ padding: 16, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
           <span style={{ fontSize: 26, fontWeight: 700 }}>-{formatBaseUnits(tx.value, tx.decimals)} {tx.symbol}</span>
-          <span style={{ fontSize: 11, fontWeight: 600, color: s.color, border: `1px solid ${s.color}`, borderRadius: 999, padding: '2px 10px' }}>
-            {s.label}
-          </span>
+          <StatusPill status={status} />
         </div>
       </Card>
 
