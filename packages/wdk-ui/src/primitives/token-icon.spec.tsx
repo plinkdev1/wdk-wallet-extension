@@ -21,6 +21,24 @@ describe('TokenIcon', () => {
     expect(container.querySelector('span[aria-hidden="true"]')).not.toBeNull();
   });
 
+  it('renders the embedded Tether mark for USDt / XAUt (not a generic chip)', () => {
+    for (const sym of ['USDt', 'usdt', 'XAUt', 'USDT0']) {
+      const { container } = render(<TokenIcon symbol={sym} />);
+      const svg = container.querySelector('svg');
+      expect(svg).not.toBeNull();
+      // the canonical Tether glyph path is present, and NO letter-chip span
+      expect(svg?.querySelector('path')?.getAttribute('d')).toContain('M17.922 17.383');
+      expect(container.querySelector('span[aria-hidden="true"]')).toBeNull();
+    }
+  });
+
+  it('uses the green disc for USD₮ and the gold disc for Tether Gold', () => {
+    const { container: u } = render(<TokenIcon symbol="USDt" />);
+    expect(u.querySelector('circle')?.getAttribute('fill')).toBe('#26A17B');
+    const { container: x } = render(<TokenIcon symbol="XAUt" />);
+    expect(x.querySelector('circle')?.getAttribute('fill')).toBe('#C7A647');
+  });
+
   it('accepts a custom size', () => {
     const { container } = render(<TokenIcon symbol="ETH" size={24} />);
     expect(container.firstChild).not.toBeNull();
