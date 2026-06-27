@@ -119,6 +119,17 @@ Captured from the **real extension popup** running in Chromium (loaded unpacked)
 |:--:|:--:|:--:|
 | ![Import](./media/screenshots/03-import.png) | ![Send](./media/screenshots/06-send.png) | ![Receive](./media/screenshots/07-receive.png) |
 
+DeFi & fiat rails (rendered from the real views via the
+[`screenshots/`](./apps/extension/screenshots) harness):
+
+| Swap (Velora) | Lending (Aave) | Bridge (USDT0) |
+|:--:|:--:|:--:|
+| ![Swap](./media/screenshots/swap-view.png) | ![Lending](./media/screenshots/lending-view.png) | ![Bridge](./media/screenshots/bridge-view.png) |
+
+| Buy (MoonPay) | Smart account (ERC-4337) | |
+|:--:|:--:|:--:|
+| ![Buy](./media/screenshots/buy-view.png) | ![Smart account](./media/screenshots/smart-account-view.png) | |
+
 **▶ Demo video** — a real screen recording of the extension loaded in Chrome: Welcome → create wallet → back up the 12-word phrase → verify → set password → dashboard (live balance + USDt/XAUt tokens) → receive QR.
 
 <video src="https://github.com/plinkdev1/wdk-wallet-extension/raw/main/media/demo/wdk-wallet-extension-demo.webm" controls muted></video>

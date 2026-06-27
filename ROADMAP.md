@@ -214,5 +214,11 @@ and [WooCommerce checkout](https://github.com/plinkdev1/wdk-checkout-and-woocomm
 
 ## Presentation follow-ups (deferred — need tooling/funds)
 
-- **Capture screenshots** of the new flows (DeFi: Swap/Earn/Bridge, Smart Account, Buy, the ⚡ gasless toggle) and add them to `media/screenshots/` + the README gallery. Needs the headless-Chromium capture tooling and a wallet wired to an RPC (and a bundler/MoonPay key for the gated screens).
+- ✅ **Capture screenshots** of the new flows (Swap / Lending / Bridge / Buy /
+  Smart Account) — done via a reusable view-render harness
+  (`apps/extension/screenshots/`, `vite build -c screenshots/vite.config.ts`) that
+  mounts the real popup views with the SW client stubbed and the wdk-ui theme
+  applied, so imagery regenerates without loading the unpacked extension or wiring
+  RPC/keys. Captured to `media/screenshots/*-view.png` and shown in the README
+  gallery (the gated screens render their honest "configure …" state).
 - **Testnet integration runs** for the protocols end-to-end (needs funded accounts). The automated suites already cover the wire contracts + x402 round-trip.
