@@ -46,3 +46,4 @@ export {
 export * from './network-icon.js';
 export * from './token-icon.js';
 export * from './token-chip.js';
+export * from './tab-bar.js';
