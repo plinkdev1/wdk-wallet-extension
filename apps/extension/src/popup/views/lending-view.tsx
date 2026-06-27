@@ -23,6 +23,8 @@ export interface LendingViewProps {
   readonly chainName: string;
   readonly accountIndex: number;
   readonly onBack: () => void;
+  /** Rendered inside the tab shell — hide the back chevron (the TabBar owns nav). */
+  readonly embedded?: boolean;
 }
 
 interface ReserveToken {
@@ -96,7 +98,7 @@ interface AccountSnapshot {
   healthFactor: string;
 }
 
-export function LendingView({ chain, chainName, accountIndex, onBack }: LendingViewProps): JSX.Element {
+export function LendingView({ chain, chainName, accountIndex, onBack, embedded = false }: LendingViewProps): JSX.Element {
   const tokens = AAVE_TOKENS[chain];
   const supported = Boolean(tokens && tokens.length > 0);
 
@@ -152,7 +154,7 @@ export function LendingView({ chain, chainName, accountIndex, onBack }: LendingV
   return (
     <div style={{ padding: 20, display: 'flex', flexDirection: 'column', gap: 16, flex: 1, fontFamily: 'var(--font-body)', color: 'var(--text-primary)' }}>
       <header style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-        <Button variant="ghost" size="sm" onClick={onBack} aria-label="Back">‹</Button>
+        {!embedded && <Button variant="ghost" size="sm" onClick={onBack} aria-label="Back">‹</Button>}
         <h2 style={{ margin: 0, fontSize: 18 }}>Aave V3 · {chainName}</h2>
       </header>
 

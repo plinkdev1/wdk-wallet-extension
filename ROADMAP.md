@@ -201,6 +201,26 @@ The current build is a production-grade MV3 wallet, not a prototype:
 
 ---
 
+## Pro-wallet build (per the Design PRD)
+
+Bringing the popup up to a pro-wallet bar (Phantom/Coinbase/Rainbow-class) on the
+already-pro engine, in lockstep with the [Template Wallet](https://github.com/plinkdev1/wdk-wallet-template/blob/main/ROADMAP.md).
+
+- ✅ **Token logos everywhere** — the shared `TokenChip` (logo + symbol) backs the
+  Swap/Lending/Buy selectors; the Home balance + token rows show real marks.
+- ✅ **Navigation shell (Phase 1)** — the popup's "swap the whole surface" routing
+  is now a real tabbed IA: a persistent **Home · Swap · Earn · Activity** bottom
+  bar (the shared `wdk-ui` `TabBar`, same primitive the template's `WalletShell`
+  uses) drives the primary destinations, while the modal-style flows (Receive /
+  Send / Buy / Smart-account / Spark) push the full surface above the bar. Earn
+  groups Lend (Aave) + Bridge (USDT0) behind a sub-nav; Swap/Earn show a clear
+  "EVM only" note off-EVM. The four flow views gained an `embedded` prop so they
+  render headerless inside the shell. Settings stays on the header gear; Lock stays
+  one click away (ADR-006). 441 popup tests green.
+- ✅ **Send-flow primitives** — `AmountInput` (fiat⇄crypto + Max), `ReviewSheet`,
+  `SuccessScreen`, and `StatusPill` are mirrored byte-identical from the template
+  in `wdk-ui`, ready for the popup Send/Swap flows to adopt next.
+
 ## How each phase stays a *standard*, not a fork
 
 Every new chain is a **single chain-loader module** + worker methods guarded by
@@ -217,11 +237,13 @@ and [WooCommerce checkout](https://github.com/plinkdev1/wdk-checkout-and-woocomm
 
 ## Presentation follow-ups (deferred — need tooling/funds)
 
-- ✅ **Capture screenshots** of the new flows (Swap / Lending / Bridge / Buy /
-  Smart Account) — done via a reusable view-render harness
+- ✅ **Capture screenshots** of the tabbed Home shell + the flows (Swap / Lending /
+  Bridge / Buy / Smart Account) — done via a reusable view-render harness
   (`apps/extension/screenshots/`, `vite build -c screenshots/vite.config.ts`) that
-  mounts the real popup views with the SW client stubbed and the wdk-ui theme
-  applied, so imagery regenerates without loading the unpacked extension or wiring
-  RPC/keys. Captured to `media/screenshots/*-view.png` and shown in the README
-  gallery (the gated screens render their honest "configure …" state).
+  mounts the real popup views (incl. the full `MainView` with its TabBar) with the
+  SW client stubbed and the wdk-ui theme applied, so imagery regenerates without
+  loading the unpacked extension or wiring RPC/keys. The stub answers the Home read
+  messages (address / balance / token balances / price) with sample data so the
+  shell renders populated. Captured to `media/screenshots/{main,*}-view.png` and
+  shown in the README gallery (gated screens render their honest "configure …" state).
 - **Testnet integration runs** for the protocols end-to-end (needs funded accounts). The automated suites already cover the wire contracts + x402 round-trip.

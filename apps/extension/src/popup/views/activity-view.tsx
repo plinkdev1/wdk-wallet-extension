@@ -17,6 +17,8 @@ export interface ActivityViewProps {
   readonly onBack: () => void;
   /** Display name lookup for a chain id (falls back to the id). */
   readonly chainName?: (chain: string) => string;
+  /** Rendered inside the tab shell — hide the back chevron (the TabBar owns nav). */
+  readonly embedded?: boolean;
 }
 
 function formatBaseUnits(value: string, decimals: number): string {
@@ -51,7 +53,7 @@ function effectiveStatus(tx: TxRecord, live: Record<string, LiveStatus>): LiveSt
   return 'pending';
 }
 
-export function ActivityView({ onBack, chainName }: ActivityViewProps): JSX.Element {
+export function ActivityView({ onBack, chainName, embedded = false }: ActivityViewProps): JSX.Element {
   const { transactions } = useTransactions();
   const liveStatuses = useTransactionStatuses(transactions);
   const [filter, setFilter] = useState<string>('all');
@@ -80,7 +82,7 @@ export function ActivityView({ onBack, chainName }: ActivityViewProps): JSX.Elem
   return (
     <div style={{ padding: 20, display: 'flex', flexDirection: 'column', gap: 14, flex: 1, fontFamily: 'var(--font-body)', color: 'var(--text-primary)' }}>
       <header style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-        <Button variant="ghost" size="sm" onClick={onBack} aria-label="Back">←</Button>
+        {!embedded && <Button variant="ghost" size="sm" onClick={onBack} aria-label="Back">←</Button>}
         <strong style={{ fontSize: 15 }}>Activity</strong>
       </header>
 

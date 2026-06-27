@@ -19,6 +19,8 @@ export interface SwapViewProps {
   readonly chainName: string;
   readonly accountIndex: number;
   readonly onBack: () => void;
+  /** Rendered inside the tab shell — hide the back chevron (the TabBar owns nav). */
+  readonly embedded?: boolean;
 }
 
 interface SwapToken {
@@ -73,7 +75,7 @@ type Phase =
   | { status: 'swapping' }
   | { status: 'done'; hash: string };
 
-export function SwapView({ chain, chainName, accountIndex, onBack }: SwapViewProps): JSX.Element {
+export function SwapView({ chain, chainName, accountIndex, onBack, embedded = false }: SwapViewProps): JSX.Element {
   const tokens = SWAP_TOKENS[chain];
   const supported = Boolean(tokens && tokens.length >= 2);
 
@@ -134,7 +136,7 @@ export function SwapView({ chain, chainName, accountIndex, onBack }: SwapViewPro
   return (
     <div style={{ padding: 20, display: 'flex', flexDirection: 'column', gap: 16, flex: 1, fontFamily: 'var(--font-body)', color: 'var(--text-primary)' }}>
       <header style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-        <Button variant="ghost" size="sm" onClick={onBack} aria-label="Back">‹</Button>
+        {!embedded && <Button variant="ghost" size="sm" onClick={onBack} aria-label="Back">‹</Button>}
         <h2 style={{ margin: 0, fontSize: 18 }}>Swap · {chainName}</h2>
       </header>
 

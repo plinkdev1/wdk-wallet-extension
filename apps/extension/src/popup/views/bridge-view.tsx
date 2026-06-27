@@ -25,6 +25,8 @@ export interface BridgeViewProps {
   /** The user's EVM address — same on the target EVM chain; the default recipient. */
   readonly ownAddress: string;
   readonly onBack: () => void;
+  /** Rendered inside the tab shell — hide the back chevron (the TabBar owns nav). */
+  readonly embedded?: boolean;
 }
 
 interface BridgeRoute {
@@ -80,7 +82,7 @@ type Phase =
   | { status: 'bridging' }
   | { status: 'done'; hash: string };
 
-export function BridgeView({ chain, chainName, accountIndex, ownAddress, onBack }: BridgeViewProps): JSX.Element {
+export function BridgeView({ chain, chainName, accountIndex, ownAddress, onBack, embedded = false }: BridgeViewProps): JSX.Element {
   const route = BRIDGE_ROUTES[chain];
   const supported = Boolean(route);
 
@@ -135,7 +137,7 @@ export function BridgeView({ chain, chainName, accountIndex, ownAddress, onBack 
   return (
     <div style={{ padding: 20, display: 'flex', flexDirection: 'column', gap: 16, flex: 1, fontFamily: 'var(--font-body)', color: 'var(--text-primary)' }}>
       <header style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-        <Button variant="ghost" size="sm" onClick={onBack} aria-label="Back">‹</Button>
+        {!embedded && <Button variant="ghost" size="sm" onClick={onBack} aria-label="Back">‹</Button>}
         <h2 style={{ margin: 0, fontSize: 18 }}>Bridge USDT0</h2>
       </header>
 

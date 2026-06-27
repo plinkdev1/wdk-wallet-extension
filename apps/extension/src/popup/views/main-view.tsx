@@ -1,31 +1,21 @@
 /**
- * MainView - the default unlocked-and-no-pending-approval view.
+ * MainView - the unlocked wallet surface, now a pro-wallet tabbed shell.
  *
- * v0.1 scope (B5.3): minimum useful wallet surface.
- *   - Network badge (hardcoded "Ethereum Mainnet" for v0.1 - chain picker is v0.2+)
- *   - Account address with truncated display + copy-to-clipboard
- *   - Lock button (fires LOCK to the SW, triggers vault state refresh)
- *   - Future-work placeholder card for balances/send/receive/history
- *
- * Per ADR-006 the Lock button is always visible from MainView - one-click
- * lock from any unlocked surface is a security UX expectation.
+ * A persistent bottom TabBar (shared wdk-ui primitive) drives the primary
+ * destinations — Home · Swap · Earn · Activity — so the popup matches the
+ * Next.js template's IA (PRD Phase 1 cornerstone). Home keeps the balance,
+ * tokens, account and the launchers for the modal-style flows (Receive / Send /
+ * Buy / Smart-account / Spark) that take the full surface above the bar. Settings
+ * stays on the header gear; one-click Lock stays in the header (ADR-006).
  *
  * Routing context: this view is only mounted when
  *   App vault-state == 'unlocked' AND UnlockedRouter approval-queue == 'empty'.
  * After the user clicks Lock, the SW transitions to locked, onLockRequested()
  * triggers App's vault-state refresh, App re-routes to UnlockView.
- *
- * v0.2+ adds:
- *   - Multi-account switcher (account index selector)
- *   - Chain picker (changes the active chain context)
- *   - Real balance display via worker.rpc_getBalance
- *   - Send / Receive primary actions
- *   - Transaction history
- *   - Settings entry point (opens SettingsView with theme picker)
  */
 
 import { useCallback, useState } from 'react';
-import { Badge, Button, Card, ChainSelector, Label, NetworkIcon, TokenIcon, useActiveChain } from '@wdk-starter/wdk-ui';
+import { Button, Card, ChainSelector, Label, NetworkIcon, TabBar, TokenIcon, useActiveChain, type TabItem } from '@wdk-starter/wdk-ui';
 import type { BtcChainId, ChainId, EvmChainId, SolanaChainId, TonChainId, TronChainId } from '@wdk-starter/wdk-web-core/types';
 import { send } from '../lib/sw-client.js';
 import { useMainAccount } from '../hooks/use-main-account.js';
@@ -129,6 +119,14 @@ const CHAIN_OPTIONS = [
   { id: 'solana-devnet' as const, name: 'Solana Devnet', testnet: true, symbol: 'SOL', icon: <NetworkIcon chain="solana-devnet" size={14} /> },
   { id: 'solana-testnet' as const, name: 'Solana Testnet', testnet: true, symbol: 'SOL', icon: <NetworkIcon chain="solana-testnet" size={14} /> },
 ];
+
+const TABS: readonly TabItem[] = [
+  { id: 'home', label: 'Home', icon: '◎' },
+  { id: 'swap', label: 'Swap', icon: '⇄' },
+  { id: 'earn', label: 'Earn', icon: '％' },
+  { id: 'activity', label: 'Activity', icon: '≡' },
+];
+
 function truncateAddress(address: string): string {
   if (address.length <= 12) return address;
   return `${address.slice(0, 6)}...${address.slice(-4)}`;
@@ -140,6 +138,19 @@ function formatTokenAmount(base: bigint, decimals: number): string {
   const whole = base / divisor;
   const frac = (base % divisor).toString().padStart(decimals, '0').slice(0, 4).replace(/0+$/, '');
   return frac ? `${whole}.${frac}` : whole.toString();
+}
+
+/** Shown on the Swap/Earn tabs when the active chain isn't an EVM chain. */
+function EvmOnlyNote({ label }: { label: string }): JSX.Element {
+  return (
+    <div style={{ padding: 20 }}>
+      <Card>
+        <div style={{ padding: 14, fontSize: 13, lineHeight: 1.5, color: 'var(--text-secondary)' }}>
+          {label} run on EVM chains (Ethereum, Polygon, Arbitrum, …). Switch to an EVM network to use them.
+        </div>
+      </Card>
+    </div>
+  );
 }
 
 export function MainView({ onLockRequested, onOpenSettings }: MainViewProps): JSX.Element {
@@ -160,7 +171,12 @@ export function MainView({ onLockRequested, onOpenSettings }: MainViewProps): JS
   // SOL on Solana once those chains land in the picker, etc.).
   const activeSymbol = CHAIN_OPTIONS.find((o) => o.id === activeChain)?.symbol ?? 'ETH';
   const activeName = CHAIN_OPTIONS.find((o) => o.id === activeChain)?.name ?? 'this network';
-  const [subView, setSubView] = useState<'main' | 'receive' | 'send' | 'activity' | 'lending' | 'swap' | 'bridge' | 'buy' | 'smart' | 'spark'>('main');
+  // Persistent bottom-tab destinations (Home/Swap/Earn/Activity) plus modal-style
+  // "pushed" flows launched from Home (Receive/Send/Buy/Smart/Spark) that take the
+  // full surface above the bar. Settings stays on the header gear.
+  const [tab, setTab] = useState<'home' | 'swap' | 'earn' | 'activity'>('home');
+  const [pushed, setPushed] = useState<'none' | 'receive' | 'send' | 'buy' | 'smart' | 'spark'>('none');
+  const [earnSub, setEarnSub] = useState<'lend' | 'bridge'>('lend');
   /** When set, the Send view sends this ERC-20 token instead of the native asset. */
   const [sendToken, setSendToken] = useState<TokenInfo | null>(null);
   const [accountIndex, setAccountIndex] = useState(0);
@@ -232,8 +248,7 @@ export function MainView({ onLockRequested, onOpenSettings }: MainViewProps): JS
     }
   }, [accountState]);
 
-  // Sub-views own the full surface; they're reached from the Send/Receive
-  // actions and only available on EVM chains with a derived address.
+  // The active address across families — drives Receive/Buy availability.
   const activeAddress = isSolanaChain
     ? (solanaAccountState.status === 'ready' ? solanaAccountState.address : null)
     : isBitcoinChain
@@ -244,17 +259,18 @@ export function MainView({ onLockRequested, onOpenSettings }: MainViewProps): JS
           ? (tronAccountState.status === 'ready' ? tronAccountState.address : null)
           : (accountState.status === 'ready' ? accountState.address : null);
 
-  if (subView === 'receive' && activeAddress) {
+  // ── Pushed flows: launched from Home, take the full surface above the bar ──
+  if (pushed === 'receive' && activeAddress) {
     return (
       <ReceiveView
         address={activeAddress}
         chainName={activeName}
         symbol={activeSymbol}
-        onBack={() => setSubView('main')}
+        onBack={() => setPushed('none')}
       />
     );
   }
-  if (subView === 'send') {
+  if (pushed === 'send') {
     return (
       <SendView
         chain={isSolanaChain ? (activeChain as SolanaChainId) : isBitcoinChain ? (activeChain as BtcChainId) : isTonChain ? (activeChain as TonChainId) : isTronChain ? (activeChain as TronChainId) : evmChain}
@@ -262,89 +278,50 @@ export function MainView({ onLockRequested, onOpenSettings }: MainViewProps): JS
         symbol={sendToken ? sendToken.symbol : activeSymbol}
         token={isEvmChain && sendToken ? { address: sendToken.address, decimals: sendToken.decimals } : null}
         accountIndex={accountIndex}
-        onBack={() => { setSendToken(null); setSubView('main'); }}
+        onBack={() => { setSendToken(null); setPushed('none'); }}
       />
     );
   }
-  if (subView === 'activity') {
-    return (
-      <ActivityView
-        onBack={() => setSubView('main')}
-        chainName={(c) => CHAIN_OPTIONS.find((o) => o.id === c)?.name ?? c}
-      />
-    );
-  }
-  if (subView === 'lending' && isEvmChain) {
-    return (
-      <LendingView
-        chain={evmChain}
-        chainName={activeName}
-        accountIndex={accountIndex}
-        onBack={() => setSubView('main')}
-      />
-    );
-  }
-  if (subView === 'swap' && isEvmChain) {
-    return (
-      <SwapView
-        chain={evmChain}
-        chainName={activeName}
-        accountIndex={accountIndex}
-        onBack={() => setSubView('main')}
-      />
-    );
-  }
-  if (subView === 'bridge' && isEvmChain) {
-    return (
-      <BridgeView
-        chain={evmChain}
-        chainName={activeName}
-        accountIndex={accountIndex}
-        ownAddress={accountState.status === 'ready' ? accountState.address : ''}
-        onBack={() => setSubView('main')}
-      />
-    );
-  }
-  if (subView === 'buy' && activeAddress) {
+  if (pushed === 'buy' && activeAddress) {
     return (
       <BuyView
         chain={activeChain}
         chainName={activeName}
         address={activeAddress}
-        onBack={() => setSubView('main')}
+        onBack={() => setPushed('none')}
       />
     );
   }
-  if (subView === 'smart' && isEvmChain) {
+  if (pushed === 'smart' && isEvmChain) {
     return (
       <SmartAccountView
         chain={evmChain}
         chainName={activeName}
         symbol={activeSymbol}
         accountIndex={accountIndex}
-        onBack={() => setSubView('main')}
+        onBack={() => setPushed('none')}
       />
     );
   }
   // Spark is its own L2, keyed off the mnemonic and independent of the active
   // chain selection — so it's reachable from any chain context.
-  if (subView === 'spark') {
+  if (pushed === 'spark') {
     return (
       <SparkView
         accountIndex={accountIndex}
-        onBack={() => setSubView('main')}
+        onBack={() => setPushed('none')}
       />
     );
   }
 
-  return (
+  // ── Per-tab body (Home is the only chain-aware surface) ──
+  const homeBody = (
     <div
       style={{
         padding: 20,
         display: 'flex',
         flexDirection: 'column',
         gap: 16,
-        flex: 1,
         fontFamily: 'var(--font-body)',
         color: 'var(--text-primary)',
       }}
@@ -403,17 +380,13 @@ export function MainView({ onLockRequested, onOpenSettings }: MainViewProps): JS
           </Card>
 
           <div style={{ display: 'flex', gap: 10 }}>
-            <Button onClick={() => { setSendToken(null); setSubView('send'); }} disabled={solanaAccountState.status !== 'ready'} style={{ flex: 1 }}>
+            <Button onClick={() => { setSendToken(null); setPushed('send'); }} disabled={solanaAccountState.status !== 'ready'} style={{ flex: 1 }}>
               Send
             </Button>
-            <Button variant="secondary" onClick={() => setSubView('receive')} disabled={solanaAccountState.status !== 'ready'} style={{ flex: 1 }}>
+            <Button variant="secondary" onClick={() => setPushed('receive')} disabled={solanaAccountState.status !== 'ready'} style={{ flex: 1 }}>
               Receive
             </Button>
           </div>
-
-          <Button variant="ghost" size="sm" onClick={() => setSubView('activity')} style={{ alignSelf: 'center' }}>
-            Activity ›
-          </Button>
         </>
       )}
 
@@ -449,17 +422,13 @@ export function MainView({ onLockRequested, onOpenSettings }: MainViewProps): JS
           </Card>
 
           <div style={{ display: 'flex', gap: 10 }}>
-            <Button onClick={() => { setSendToken(null); setSubView('send'); }} disabled={btcAccountState.status !== 'ready'} style={{ flex: 1 }}>
+            <Button onClick={() => { setSendToken(null); setPushed('send'); }} disabled={btcAccountState.status !== 'ready'} style={{ flex: 1 }}>
               Send
             </Button>
-            <Button variant="secondary" onClick={() => setSubView('receive')} disabled={btcAccountState.status !== 'ready'} style={{ flex: 1 }}>
+            <Button variant="secondary" onClick={() => setPushed('receive')} disabled={btcAccountState.status !== 'ready'} style={{ flex: 1 }}>
               Receive
             </Button>
           </div>
-
-          <Button variant="ghost" size="sm" onClick={() => setSubView('activity')} style={{ alignSelf: 'center' }}>
-            Activity ›
-          </Button>
         </>
       )}
       {isTonChain && (
@@ -494,17 +463,13 @@ export function MainView({ onLockRequested, onOpenSettings }: MainViewProps): JS
           </Card>
 
           <div style={{ display: 'flex', gap: 10 }}>
-            <Button onClick={() => { setSendToken(null); setSubView('send'); }} disabled={tonAccountState.status !== 'ready'} style={{ flex: 1 }}>
+            <Button onClick={() => { setSendToken(null); setPushed('send'); }} disabled={tonAccountState.status !== 'ready'} style={{ flex: 1 }}>
               Send
             </Button>
-            <Button variant="secondary" onClick={() => setSubView('receive')} disabled={tonAccountState.status !== 'ready'} style={{ flex: 1 }}>
+            <Button variant="secondary" onClick={() => setPushed('receive')} disabled={tonAccountState.status !== 'ready'} style={{ flex: 1 }}>
               Receive
             </Button>
           </div>
-
-          <Button variant="ghost" size="sm" onClick={() => setSubView('activity')} style={{ alignSelf: 'center' }}>
-            Activity ›
-          </Button>
         </>
       )}
 
@@ -540,17 +505,13 @@ export function MainView({ onLockRequested, onOpenSettings }: MainViewProps): JS
           </Card>
 
           <div style={{ display: 'flex', gap: 10 }}>
-            <Button onClick={() => { setSendToken(null); setSubView('send'); }} disabled={tronAccountState.status !== 'ready'} style={{ flex: 1 }}>
+            <Button onClick={() => { setSendToken(null); setPushed('send'); }} disabled={tronAccountState.status !== 'ready'} style={{ flex: 1 }}>
               Send
             </Button>
-            <Button variant="secondary" onClick={() => setSubView('receive')} disabled={tronAccountState.status !== 'ready'} style={{ flex: 1 }}>
+            <Button variant="secondary" onClick={() => setPushed('receive')} disabled={tronAccountState.status !== 'ready'} style={{ flex: 1 }}>
               Receive
             </Button>
           </div>
-
-          <Button variant="ghost" size="sm" onClick={() => setSubView('activity')} style={{ alignSelf: 'center' }}>
-            Activity ›
-          </Button>
         </>
       )}
 
@@ -599,7 +560,7 @@ export function MainView({ onLockRequested, onOpenSettings }: MainViewProps): JS
             {tokenBalancesState.balances.map(({ token, balance }) => (
               <button
                 key={token.address}
-                onClick={() => { setSendToken(token); setSubView('send'); }}
+                onClick={() => { setSendToken(token); setPushed('send'); }}
                 title={`Send ${token.symbol}`}
                 style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', padding: '4px 0', background: 'none', border: 'none', cursor: 'pointer', color: 'inherit', font: 'inherit' }}
               >
@@ -676,7 +637,7 @@ export function MainView({ onLockRequested, onOpenSettings }: MainViewProps): JS
 
       <div style={{ display: 'flex', gap: 10 }}>
         <Button
-          onClick={() => { setSendToken(null); setSubView('send'); }}
+          onClick={() => { setSendToken(null); setPushed('send'); }}
           disabled={accountState.status !== 'ready'}
           style={{ flex: 1 }}
         >
@@ -684,7 +645,7 @@ export function MainView({ onLockRequested, onOpenSettings }: MainViewProps): JS
         </Button>
         <Button
           variant="secondary"
-          onClick={() => setSubView('receive')}
+          onClick={() => setPushed('receive')}
           disabled={accountState.status !== 'ready'}
           style={{ flex: 1 }}
         >
@@ -692,42 +653,57 @@ export function MainView({ onLockRequested, onOpenSettings }: MainViewProps): JS
         </Button>
       </div>
 
-      <div style={{ display: 'flex', gap: 10 }}>
-        <Button variant="secondary" onClick={() => setSubView('swap')} disabled={accountState.status !== 'ready'} style={{ flex: 1 }}>
-          Swap
-        </Button>
-        <Button variant="secondary" onClick={() => setSubView('lending')} disabled={accountState.status !== 'ready'} style={{ flex: 1 }}>
-          Earn (Aave)
-        </Button>
-        <Button variant="secondary" onClick={() => setSubView('bridge')} disabled={accountState.status !== 'ready'} style={{ flex: 1 }}>
-          Bridge
-        </Button>
-      </div>
-
-      <Button variant="secondary" onClick={() => setSubView('smart')} disabled={accountState.status !== 'ready'} style={{ width: '100%' }}>
+      <Button variant="secondary" onClick={() => setPushed('smart')} disabled={accountState.status !== 'ready'} style={{ width: '100%' }}>
         Smart Account (gasless)
-      </Button>
-
-      <Button variant="ghost" size="sm" onClick={() => setSubView('activity')} style={{ alignSelf: 'center' }}>
-        Activity ›
       </Button>
       </>)}
 
       {activeAddress && (
-        <Button variant="ghost" size="sm" onClick={() => setSubView('buy')} style={{ alignSelf: 'center' }}>
+        <Button variant="ghost" size="sm" onClick={() => setPushed('buy')} style={{ alignSelf: 'center' }}>
           Buy crypto ↗
         </Button>
       )}
 
       <Button
         variant="secondary"
-        onClick={() => setSubView('spark')}
+        onClick={() => setPushed('spark')}
         style={{ width: '100%', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}
       >
         <img src={SPARK_ICON} alt="" width={16} height={16} style={{ borderRadius: 4 }} />
         Spark &amp; Lightning
       </Button>
+    </div>
+  );
 
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: '100%' }}>
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflowY: 'auto' }}>
+        {tab === 'home' && homeBody}
+        {tab === 'swap' && (isEvmChain
+          ? <SwapView chain={evmChain} chainName={activeName} accountIndex={accountIndex} onBack={() => setTab('home')} embedded />
+          : <EvmOnlyNote label="Swaps" />)}
+        {tab === 'earn' && (isEvmChain
+          ? (
+            <div style={{ padding: 20, display: 'flex', flexDirection: 'column', gap: 12 }}>
+              <div style={{ display: 'flex', gap: 6 }}>
+                <Button size="sm" variant={earnSub === 'lend' ? 'primary' : 'secondary'} onClick={() => setEarnSub('lend')} style={{ flex: 1 }}>Lend</Button>
+                <Button size="sm" variant={earnSub === 'bridge' ? 'primary' : 'secondary'} onClick={() => setEarnSub('bridge')} style={{ flex: 1 }}>Bridge</Button>
+              </div>
+              {earnSub === 'lend'
+                ? <LendingView chain={evmChain} chainName={activeName} accountIndex={accountIndex} onBack={() => setTab('home')} embedded />
+                : <BridgeView chain={evmChain} chainName={activeName} accountIndex={accountIndex} ownAddress={accountState.status === 'ready' ? accountState.address : ''} onBack={() => setTab('home')} embedded />}
+            </div>
+            )
+          : <EvmOnlyNote label="Earn (lending & bridging)" />)}
+        {tab === 'activity' && (
+          <ActivityView
+            onBack={() => setTab('home')}
+            chainName={(c) => CHAIN_OPTIONS.find((o) => o.id === c)?.name ?? c}
+            embedded
+          />
+        )}
+      </div>
+      <TabBar tabs={TABS} active={tab} onChange={(id) => setTab(id as 'home' | 'swap' | 'earn' | 'activity')} aria-label="Wallet" />
     </div>
   );
 }

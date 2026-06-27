@@ -11,6 +11,7 @@ export default defineConfig({
   ],
   resolve: { alias: [{ find: '@', replacement: here('../src') }] },
   build: { outDir: here('./dist'), emptyOutDir: true, rollupOptions: { input: {
+    main: here('./main.html'),
     swap: here('./swap.html'), lending: here('./lending.html'), bridge: here('./bridge.html'),
     buy: here('./buy.html'), 'smart-account': here('./smart-account.html'),
   } } },
