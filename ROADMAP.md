@@ -193,8 +193,11 @@ The current build is a production-grade MV3 wallet, not a prototype:
       the device at the single signing chokepoint, else the seed. Unit-tested;
       `README.md` documents the Ledger/WebHID adapter. *(A physical device is the
       only piece needed for end-to-end.)*
-    - ⏳ Remaining Phase-5: the live WC-relay + device transport adapters, a
-      third-party **security audit**, and **Web Store submission** — all external.
+    - ⏳ Remaining Phase-5 (deferred by choice — the owner has WalletConnect creds
+      and hardware wallets, but is not exercising the live paths at this stage):
+      the live WC-relay + device transport adapters (the in-repo seams + tests are
+      done), end-to-end funded-testnet runs, a real-store install test, a
+      third-party **security audit**, and **Web Store submission**.
 
 ---
 
