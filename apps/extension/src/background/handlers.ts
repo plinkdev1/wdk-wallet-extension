@@ -27,6 +27,8 @@ import { createDappHandlers } from './dapp-handlers.js';
 import type { ApprovalFlow } from './approval-flow.js';
 import type { ConnectionState } from './connection-state.js';
 import type { DappEventBus } from './dapp-event-bus.js';
+import { createIndexedDbVaultStorage } from '@wdk-starter/wdk-web-core/vault';
+import { exportVaultBackup, importVaultBackup } from './backup.js';
 
 export interface SwHandlersDeps {
   engine: WalletEngine;
@@ -107,6 +109,18 @@ export function createSwHandlers({ engine, worker, approvalFlow, connectionState
       await connectionState.load();
       const ok = await connectionState.revoke(msg.origin);
       return { ok };
+    },
+
+    // Encrypted cloud backup: export/import the already-encrypted vault blob.
+    // The seed never leaves in plaintext; restore still needs the password.
+    BACKUP_EXPORT_VAULT: async () => {
+      const backup = await exportVaultBackup(createIndexedDbVaultStorage());
+      return { backup };
+    },
+
+    BACKUP_IMPORT_VAULT: async (msg) => {
+      await importVaultBackup(createIndexedDbVaultStorage(), msg.backup);
+      return { ok: true as const };
     },
 
     ACCOUNT_GET_EVM_ADDRESS: async (msg) => {

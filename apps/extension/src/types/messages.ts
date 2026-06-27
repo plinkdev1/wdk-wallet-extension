@@ -115,7 +115,11 @@ export type WalletMessage =
   | { type: 'APPROVAL_LIST_PENDING' }
   // Connections management (Settings → Connections)
   | { type: 'CONNECTIONS_LIST' }
-  | { type: 'CONNECTIONS_REVOKE'; origin: string };
+  | { type: 'CONNECTIONS_REVOKE'; origin: string }
+  // Encrypted cloud backup (Settings → Security → Backup). The exported blob is
+  // the already-encrypted vault — the seed never leaves in plaintext.
+  | { type: 'BACKUP_EXPORT_VAULT' }
+  | { type: 'BACKUP_IMPORT_VAULT'; backup: string };
 
 export type WalletMessageType = WalletMessage['type'];
 
@@ -186,6 +190,8 @@ export type WalletResponseData = {
   APPROVAL_LIST_PENDING: string[];
   CONNECTIONS_LIST: readonly ConnectionDto[];
   CONNECTIONS_REVOKE: { ok: boolean };
+  BACKUP_EXPORT_VAULT: { backup: string };
+  BACKUP_IMPORT_VAULT: { ok: true };
 };
 
 /** A connected dApp over the wire (Settings → Connections UI). */

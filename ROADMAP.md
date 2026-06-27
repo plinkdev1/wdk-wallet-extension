@@ -167,11 +167,23 @@ The current build is a production-grade MV3 wallet, not a prototype:
 9. ✅ **Bridging** (`@tetherto/wdk-protocol-bridge-usdt0-evm`) — `BridgeView` (Ethereum ⇄ Arbitrum USDt0).
 10. ✅ **Fiat on-ramp** (`@tetherto/wdk-protocol-fiat-moonpay`) — `BuyView` (quote → widget; config-driven key).
 
-## ⏳ Phase 5 — Hardening & distribution
+## 🚧 Phase 5 — Hardening & distribution
 
 11. Hardware-wallet signing, WalletConnect v2, encrypted cloud backup of the
     (already-encrypted) vault, third-party security audit, and Chrome/Firefox
     Web Store submission with the published-store review checklist.
+    - ✅ **Encrypted cloud backup** — done. Export the vault's *already-encrypted*
+      blob (PBKDF2 + AES-GCM ciphertext — the seed never leaves in plaintext) as a
+      portable, versioned, checksummed envelope, and restore it on another device;
+      decryption still needs the original password, so a leaked backup is useless
+      without it. `background/backup.ts` (encode/decode + a pluggable
+      `CloudBackupTarget`: memory / generic REST), the `BACKUP_EXPORT_VAULT` /
+      `BACKUP_IMPORT_VAULT` messages + SW handlers, and a **Backup** panel in
+      Settings → Security (export-to-copy + restore-from-paste). Unit-tested
+      (envelope round-trip, tamper/version rejection, targets) + a jsdom view test.
+    - ⏳ **WalletConnect v2** / **hardware-wallet signing** — the in-repo routing +
+      narrow signer/session interfaces are buildable now; full end-to-end needs a
+      WC relay / a physical device. *(Audit + store submission are external.)*
 
 ---
 

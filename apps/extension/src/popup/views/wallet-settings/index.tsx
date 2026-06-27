@@ -22,6 +22,7 @@
 import { type CSSProperties } from 'react';
 import { AutoLockSelector, ChainSelector, NetworkIcon, useActiveChain } from '@wdk-starter/wdk-ui';
 import { useAutoLockMinutes } from '../../hooks/use-auto-lock-minutes.js';
+import { BackupPanel } from './backup-panel.js';
 import type { ChainId, EvmChainId } from '@wdk-starter/wdk-web-core/types';
 
 export interface WalletSettingsViewProps {
@@ -245,6 +246,7 @@ export function WalletSettingsView({ onBack }: WalletSettingsViewProps): JSX.Ele
                   onChange={(n) => { void setAutoLockMinutes(n); }}
                   disabled={autoLockLoading}
                 />
+                <BackupPanel />
               </div>
             )}
           </section>
